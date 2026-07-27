@@ -13,9 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   football-shorts:
-
     name: Football Shorts AI Pipeline
 
     runs-on: ubuntu-latest
@@ -31,7 +29,6 @@ jobs:
       PYTHONUNBUFFERED: "1"
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -94,6 +91,16 @@ jobs:
         run: |
           PYTHONPATH=src python src/analytics/build_analytics_package.py
 
+      - name: Compile Production Studio Synchronizer
+        run: |
+          python -m py_compile \
+            src/dashboard/sync_production_studio.py
+
+      - name: Sync Production Studio Data
+        run: |
+          PYTHONPATH=src \
+          python src/dashboard/sync_production_studio.py
+
       - name: Generate HTML
         run: |
           python src/render_email.py
@@ -106,7 +113,11 @@ jobs:
           echo "GITHUB PAGES CONTENT"
           echo "=============================================="
 
-          find dashboard -maxdepth 4 -type f -print | sort
+          find dashboard \
+            -maxdepth 5 \
+            -type f \
+            -print \
+            | sort
 
       - name: Validate Generated Outputs
         run: |
@@ -123,11 +134,16 @@ jobs:
               "output/publishing_package.json",
               "output/analytics_package.json",
               "output/digest.html",
+
               "dashboard/index.html",
               "dashboard/assets/dashboard.css",
               "dashboard/assets/dashboard.js",
-              "dashboard/data/dashboard_model.json",
               "dashboard/.nojekyll",
+
+              "dashboard/data/dashboard_model.json",
+              "dashboard/data/content_package.json",
+              "dashboard/data/publishing_package.json",
+              "dashboard/data/analytics_package.json",
           ]
 
 
@@ -140,64 +156,66 @@ jobs:
                   )
 
 
-          digest = json.loads(
-              Path("output/digest.json").read_text(
-                  encoding="utf-8"
-              )
+          def load_json(filename: str) -> dict:
+              path = Path(filename)
+
+              try:
+                  payload = json.loads(
+                      path.read_text(
+                          encoding="utf-8"
+                      )
+                  )
+              except json.JSONDecodeError as exc:
+                  raise SystemExit(
+                      f"JSON inválido em {filename}: {exc}"
+                  ) from exc
+
+              if not isinstance(payload, dict):
+                  raise SystemExit(
+                      f"{filename} deve conter um objeto JSON"
+                  )
+
+              return payload
+
+
+          digest = load_json(
+              "output/digest.json"
           )
 
-
-          editorial = json.loads(
-              Path(
-                  "output/editorial_package.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          editorial = load_json(
+              "output/editorial_package.json"
           )
 
-
-          dashboard = json.loads(
-              Path(
-                  "output/dashboard_model.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          dashboard = load_json(
+              "output/dashboard_model.json"
           )
 
-
-          dashboard_public = json.loads(
-              Path(
-                  "dashboard/data/dashboard_model.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          dashboard_public = load_json(
+              "dashboard/data/dashboard_model.json"
           )
 
-
-          content = json.loads(
-              Path(
-                  "output/content_package.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          content = load_json(
+              "output/content_package.json"
           )
 
-
-          publishing = json.loads(
-              Path(
-                  "output/publishing_package.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          content_public = load_json(
+              "dashboard/data/content_package.json"
           )
 
+          publishing = load_json(
+              "output/publishing_package.json"
+          )
 
-          analytics = json.loads(
-              Path(
-                  "output/analytics_package.json"
-              ).read_text(
-                  encoding="utf-8"
-              )
+          publishing_public = load_json(
+              "dashboard/data/publishing_package.json"
+          )
+
+          analytics = load_json(
+              "output/analytics_package.json"
+          )
+
+          analytics_public = load_json(
+              "dashboard/data/analytics_package.json"
           )
 
 
@@ -288,10 +306,90 @@ jobs:
               )
 
 
-          if content["source_topic"]["priority"] != 1:
+          missing_public_content = (
+              required_content
+              - content_public.keys()
+          )
+
+
+          if missing_public_content:
+              raise SystemExit(
+                  "Content package público incompleto: "
+                  f"{sorted(missing_public_content)}"
+              )
+
+
+          source_topic = content.get(
+              "source_topic"
+          )
+
+
+          if not isinstance(source_topic, dict):
+              raise SystemExit(
+                  "Content source_topic inválido"
+              )
+
+
+          if source_topic.get("priority") != 1:
               raise SystemExit(
                   "Content package não usa "
                   "winner priority 1"
+              )
+
+
+          public_source_topic = content_public.get(
+              "source_topic"
+          )
+
+
+          if not isinstance(public_source_topic, dict):
+              raise SystemExit(
+                  "Content público source_topic inválido"
+              )
+
+
+          if (
+              public_source_topic.get("title")
+              != source_topic.get("title")
+          ):
+              raise SystemExit(
+                  "Content package público não corresponde "
+                  "ao package produzido"
+              )
+
+
+          scenes = content.get(
+              "scenes"
+          )
+
+
+          if not isinstance(scenes, list) or not scenes:
+              raise SystemExit(
+                  "Content package sem cenas"
+              )
+
+
+          expected_scene_numbers = list(
+              range(
+                  1,
+                  len(scenes) + 1,
+              )
+          )
+
+
+          observed_scene_numbers = [
+              scene.get("scene_number")
+              for scene in scenes
+              if isinstance(scene, dict)
+          ]
+
+
+          if (
+              observed_scene_numbers
+              != expected_scene_numbers
+          ):
+              raise SystemExit(
+                  "Content scenes não são sequenciais"
               )
 
 
@@ -319,10 +417,54 @@ jobs:
               )
 
 
+          missing_public_publishing = (
+              required_publishing
+              - publishing_public.keys()
+          )
+
+
+          if missing_public_publishing:
+              raise SystemExit(
+                  "Publishing package público incompleto: "
+                  f"{sorted(missing_public_publishing)}"
+              )
+
+
           if publishing["status"] != "draft":
               raise SystemExit(
                   "Publishing package deve "
                   "iniciar em draft"
+              )
+
+
+          if (
+              publishing_public.get("source_content_id")
+              != publishing.get("source_content_id")
+          ):
+              raise SystemExit(
+                  "Publishing package público não corresponde "
+                  "ao package produzido"
+              )
+
+
+          metadata = publishing.get(
+              "metadata"
+          )
+
+
+          if not isinstance(metadata, dict):
+              raise SystemExit(
+                  "Publishing metadata inválido"
+              )
+
+
+          if (
+              metadata.get("title")
+              != source_topic.get("title")
+          ):
+              raise SystemExit(
+                  "Título do Publishing Package não corresponde "
+                  "ao Content Package"
               )
 
 
@@ -351,6 +493,19 @@ jobs:
               )
 
 
+          missing_public_analytics = (
+              required_analytics
+              - analytics_public.keys()
+          )
+
+
+          if missing_public_analytics:
+              raise SystemExit(
+                  "Analytics package público incompleto: "
+                  f"{sorted(missing_public_analytics)}"
+              )
+
+
           if analytics["status"] != "pending":
               raise SystemExit(
                   "Analytics inicial deve "
@@ -359,12 +514,57 @@ jobs:
 
 
           if (
-              analytics["content_id"]
-              != publishing["source_content_id"]
+              analytics.get("content_id")
+              != publishing.get("source_content_id")
           ):
               raise SystemExit(
                   "Analytics content_id não corresponde "
-                  "ao publishing source_content_id"
+                  "ao Publishing source_content_id"
+              )
+
+
+          if (
+              analytics_public.get("content_id")
+              != analytics.get("content_id")
+          ):
+              raise SystemExit(
+                  "Analytics package público não corresponde "
+                  "ao package produzido"
+              )
+
+
+          metrics = analytics.get(
+              "metrics"
+          )
+
+
+          required_metrics = {
+              "views",
+              "likes",
+              "comments",
+              "shares",
+              "average_watch_time_seconds",
+              "retention_percent",
+              "subscribers_gained",
+          }
+
+
+          if not isinstance(metrics, dict):
+              raise SystemExit(
+                  "Analytics metrics inválido"
+              )
+
+
+          missing_metrics = (
+              required_metrics
+              - metrics.keys()
+          )
+
+
+          if missing_metrics:
+              raise SystemExit(
+                  "Analytics metrics incompleto: "
+                  f"{sorted(missing_metrics)}"
               )
 
 
@@ -389,7 +589,7 @@ jobs:
 
           print(
               f"Production scenes: "
-              f"{len(content['scenes'])}"
+              f"{len(scenes)}"
           )
 
           print(
@@ -404,7 +604,11 @@ jobs:
 
           print(
               f"Winner: "
-              f"{content['source_topic']['title']}"
+              f"{source_topic['title']}"
+          )
+
+          print(
+              "Production Studio data: PASS"
           )
 
           print(
@@ -429,9 +633,7 @@ jobs:
         with:
           path: dashboard/
 
-
   deploy-pages:
-
     name: Deploy GitHub Pages
 
     needs:
@@ -452,7 +654,6 @@ jobs:
       id-token: write
 
     steps:
-
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
