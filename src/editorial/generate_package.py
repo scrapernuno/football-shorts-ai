@@ -69,13 +69,11 @@ def extract_topics(
         topics,
         list,
     ):
-
         raise ValueError(
             "digest.json sem topics"
         )
 
     if not topics:
-
         raise ValueError(
             "digest.json sem temas"
         )
@@ -174,7 +172,7 @@ def normalize_topic_package(
                     else "UNKNOWN"
                 ),
 
-                "published": True,
+                "published": "YES",
 
             },
 
@@ -319,7 +317,6 @@ def normalize_editorial_package(
 def save_package(
     package: dict,
 ) -> None:
-
 
     OUTPUT_FILE.parent.mkdir(
         parents=True,
