@@ -1,4 +1,4 @@
-name: Football Shorts AI
+name: Football Shorts AI - Inspect OpenAI Client
 
 on:
   workflow_dispatch:
@@ -9,19 +9,13 @@ permissions:
 
 jobs:
 
-  football-shorts:
-    name: Football Shorts AI Pipeline
+  inspect-openai-client:
+
+    name: Inspect OpenAI Client Contract
+
     runs-on: ubuntu-latest
-    timeout-minutes: 25
 
-
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODEL: gpt-5.5
-      OPENAI_TIMEOUT_SECONDS: "120"
-      OPENAI_MAX_RETRIES: "3"
-      OPENAI_MAX_OUTPUT_TOKENS: "7000"
-      PYTHONUNBUFFERED: "1"
+    timeout-minutes: 10
 
 
     steps:
@@ -36,7 +30,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
 
 
@@ -47,25 +40,21 @@ jobs:
 
 
 
-      - name: Compile Python project
+      - name: Compile project
         run: |
           python -m compileall src
 
 
 
-      - name: Validate Editorial Contract
+      - name: Inspect OpenAI Client Functions
         run: |
-          PYTHONPATH=src python src/editorial/test_parser.py
 
-
-
-      - name: Inspect OpenAI Client
-        run: |
           echo "=============================================="
           echo "OPENAI CLIENT FUNCTIONS"
           echo "=============================================="
 
           grep -n "^def " src/openai_client.py || true
+
 
           echo ""
 
@@ -77,91 +66,12 @@ jobs:
 
 
 
-      - name: Validate OpenAI Secret
-        run: |
-          if [ -z "${OPENAI_API_KEY}" ]; then
-            echo "::error::OPENAI_API_KEY não configurada."
-            exit 1
-          fi
-
-          echo "OPENAI_API_KEY configurada"
-
-
-
-      - name: Generate News Digest
-        run: |
-          python src/generate_digest.py
-
-
-
-      - name: Generate Editorial Package
-        run: |
-          PYTHONPATH=src python src/editorial/generate_package.py
-
-
-
-      - name: Build Dashboard Model
-        run: |
-          PYTHONPATH=src python src/production/build_dashboard_model.py
-
-
-
-      - name: Generate HTML Email
-        run: |
-          python src/render_email.py
-
-
-
-      - name: Validate Pipeline Outputs
+      - name: Stop after inspection
         run: |
 
-          python - <<'PY'
+          echo "=============================================="
+          echo "INSPECTION COMPLETE"
+          echo "Generate package disabled temporarily."
+          echo "=============================================="
 
-          import json
-          from pathlib import Path
-
-
-          required = [
-
-              "output/digest.json",
-
-              "output/editorial_package.json",
-
-              "output/dashboard_model.json",
-
-              "output/digest.html",
-
-          ]
-
-
-          for file in required:
-
-              if not Path(file).exists():
-
-                  raise SystemExit(
-                      f"Ficheiro em falta: {file}"
-                  )
-
-
-          print("=" * 70)
-          print("OUTPUT VALIDATION PASS")
-          print("=" * 70)
-
-          PY
-
-
-
-      - name: Upload Artifacts
-
-        if: always()
-
-        uses: actions/upload-artifact@v4
-
-        with:
-
-          name: football-shorts-ai-output
-
-          retention-days: 7
-
-          path: |
-            output/
+          exit 1
