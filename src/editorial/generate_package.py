@@ -20,11 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 DIGEST_FILE = ROOT / "output" / "digest.json"
 
-OUTPUT_FILE = (
-    ROOT
-    / "output"
-    / "editorial_package.json"
-)
+OUTPUT_FILE = ROOT / "output" / "editorial_package.json"
 
 
 CHANNEL = "@dinamegaz2014"
@@ -52,7 +48,7 @@ def extract_topics(
 
     if not topics:
         raise ValueError(
-            "Sem temas no digest"
+            "Sem temas"
         )
 
     return topics[:5]
@@ -72,7 +68,7 @@ def normalize_topics(
             "score",
             item.get(
                 "viral_score",
-                0
+                0,
             )
         )
 
@@ -86,12 +82,55 @@ def scored_options(
 ) -> list[dict]:
 
     return [
+
         {
             "text": value,
-            "score": 90 - index * 5,
+            "score": 90 - (index * 5),
         }
+
         for index, value in enumerate(values)
+
     ]
+
+
+def normalize_storyboard() -> dict:
+
+    return {
+
+        "duration_seconds": 45,
+
+        "scenes": [
+
+            {
+                "start_second": 0,
+                "end_second": 3,
+                "voice": "Hook inicial forte",
+                "caption": "Atenção máxima nos primeiros segundos",
+                "visual": "Vídeo principal do tema",
+                "transition": "Fast cut",
+            },
+
+            {
+                "start_second": 3,
+                "end_second": 35,
+                "voice": "Desenvolvimento da história",
+                "caption": "Informação principal",
+                "visual": "Clips relacionados",
+                "transition": "Dynamic",
+            },
+
+            {
+                "start_second": 35,
+                "end_second": 45,
+                "voice": "Conclusão e chamada à ação",
+                "caption": "Comenta a tua opinião",
+                "visual": "Momento final forte",
+                "transition": "Zoom out",
+            },
+
+        ],
+
+    }
 
 
 def normalize_topic_package(
@@ -122,7 +161,7 @@ def normalize_topic_package(
             title.lower()
             .replace(
                 " ",
-                "-",
+                "-"
             )
         )
 
@@ -151,9 +190,7 @@ def normalize_topic_package(
                     "",
                 ),
 
-                "confirmation_status": (
-                    "CONFIRMED"
-                ),
+                "confirmation_status": "CONFIRMED",
 
                 "published": "YES",
 
@@ -230,19 +267,17 @@ def normalize_topic_package(
                 ),
 
                 "pinned_comment": (
-                    "Qual é a tua opinião? "
-                    "Comenta abaixo 👇"
+                    "Qual é a tua opinião?"
                 ),
 
                 "call_to_action": (
-                    "Segue o canal para mais "
-                    "histórias de futebol."
+                    "Segue o canal para mais histórias."
                 ),
 
             },
 
 
-            "storyboard": [],
+            "storyboard": normalize_storyboard(),
 
 
             "publishing": {
@@ -275,6 +310,7 @@ def normalize_topic_package(
 
         )
 
+
     return result
 
 
@@ -283,6 +319,7 @@ def normalize_editorial_package(
 ) -> dict:
 
     result = dict(package)
+
 
     result.setdefault(
         "schema_version",
