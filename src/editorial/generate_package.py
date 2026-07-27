@@ -153,27 +153,27 @@ def normalize_storyboard() -> dict:
                     "football viral opening moment",
                 ),
 
-                "camera_movement": "Fast zoom",
-                "editing_pace": "Very fast",
+                "camera_movement": "zoom_in",
+                "editing_pace": "very_fast",
                 "sound_effect": "Impact hit",
 
                 "subtitle": (
                     "Atenção: algo incrível aconteceu"
                 ),
 
-                "subtitle_style": "Bold dynamic",
+                "subtitle_style": "headline",
 
                 "visual_description": (
                     "Momento inicial mais forte do tema"
                 ),
 
-                "visual_type": "Video",
+                "visual_type": "video",
 
                 "voiceover": (
                     "Hook inicial para prender o espectador"
                 ),
 
-                "transition": "Fast cut",
+                "transition": "cut",
             },
 
 
@@ -187,25 +187,25 @@ def normalize_storyboard() -> dict:
                     "football player team footage",
                 ),
 
-                "camera_movement": "Tracking movement",
-                "editing_pace": "Fast",
+                "camera_movement": "pan_right",
+                "editing_pace": "fast",
                 "sound_effect": "Crowd reaction",
 
                 "subtitle": "O contexto desta história",
 
-                "subtitle_style": "Modern captions",
+                "subtitle_style": "large_bottom",
 
                 "visual_description": (
                     "Clips que explicam a situação"
                 ),
 
-                "visual_type": "Video",
+                "visual_type": "video",
 
                 "voiceover": (
                     "Explicação rápida do acontecimento"
                 ),
 
-                "transition": "Dynamic cut",
+                "transition": "cut",
             },
 
 
@@ -219,25 +219,25 @@ def normalize_storyboard() -> dict:
                     "football main highlight action",
                 ),
 
-                "camera_movement": "Slow motion",
-                "editing_pace": "Dynamic",
+                "camera_movement": "slow_motion",
+                "editing_pace": "medium",
                 "sound_effect": "Cinematic impact",
 
                 "subtitle": "O momento decisivo",
 
-                "subtitle_style": "High contrast",
+                "subtitle_style": "headline",
 
                 "visual_description": (
                     "A jogada ou momento principal"
                 ),
 
-                "visual_type": "Video",
+                "visual_type": "video",
 
                 "voiceover": (
                     "A parte que mudou tudo"
                 ),
 
-                "transition": "Speed ramp",
+                "transition": "zoom",
             },
 
 
@@ -251,19 +251,19 @@ def normalize_storyboard() -> dict:
                     "football fans reaction statistics",
                 ),
 
-                "camera_movement": "Pan and zoom",
+                "camera_movement": "pan_right",
                 "editing_pace": "Medium",
                 "sound_effect": "Trending sound",
 
                 "subtitle": "A reação dos fãs",
 
-                "subtitle_style": "Social media style",
+                "subtitle_style": "word_by_word",
 
                 "visual_description": (
                     "Reações, comentários e dados"
                 ),
 
-                "visual_type": "Video",
+                "visual_type": "video",
 
                 "voiceover": (
                     "Porque este momento está a gerar debate"
@@ -283,27 +283,27 @@ def normalize_storyboard() -> dict:
                     "football final celebration",
                 ),
 
-                "camera_movement": "Slow zoom out",
-                "editing_pace": "Slow finish",
+                "camera_movement": "zoom_out",
+                "editing_pace": "slow",
                 "sound_effect": "Outro sound",
 
                 "subtitle": (
                     "Qual é a tua opinião?"
                 ),
 
-                "subtitle_style": "Call to action",
+                "subtitle_style": "large_center",
 
                 "visual_description": (
                     "Fecho do Short com chamada à interação"
                 ),
 
-                "visual_type": "Video",
+                "visual_type": "video",
 
                 "voiceover": (
                     "Comenta e segue para mais histórias"
                 ),
 
-                "transition": "Fade out",
+                "transition": "fade",
             },
 
         ],
