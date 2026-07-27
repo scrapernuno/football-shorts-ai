@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from editorial.parser import parse_editorial_package_dict
-from editorial.prompt_builder import build_editorial_prompt
+from editorial.prompt_builder import build_prompt
 from openai_client import call_openai
 
 
@@ -31,39 +31,6 @@ OUTPUT_FILE = (
     / "output"
     / "editorial_package.json"
 )
-
-
-SYSTEM_PROMPT = """
-És o editor-chefe de um canal internacional de YouTube Shorts de futebol.
-
-Não resumas notícias.
-
-Transforma os melhores temas em pacotes editoriais prontos para produção.
-
-Devolve exclusivamente JSON válido.
-
-Nunca uses markdown.
-
-Nunca uses blocos de código.
-
-Cada tema precisa de:
-
-- ranking
-- fonte
-- títulos alternativos
-- hooks
-- guião 45-60 segundos
-- storyboard com cenas
-- sugestões de vídeos
-- thumbnail
-- hashtags
-- comentário fixado
-- previsão de CTR
-- previsão de retenção
-- hora recomendada de publicação
-
-O objetivo é maximizar retenção e comentários.
-"""
 
 
 def load_digest() -> dict:
@@ -95,20 +62,43 @@ def extract_topics(
             "digest.json sem lista topics"
         )
 
-    if len(topics) == 0:
+    if not topics:
         raise ValueError(
-            "Nenhum tema encontrado"
+            "Nenhum tema encontrado no digest"
         )
 
     return topics[:5]
 
 
-def build_request(
+def build_editorial_request(
     topics: list[dict],
-) -> str:
+) -> tuple[str, str]:
 
-    return build_editorial_prompt(
+    return build_prompt(
         topics
+    )
+
+
+def parse_openai_response(
+    response,
+) -> dict:
+
+    if isinstance(
+        response,
+        dict,
+    ):
+        return response
+
+    if isinstance(
+        response,
+        str,
+    ):
+        return json.loads(
+            response
+        )
+
+    raise TypeError(
+        "Resposta OpenAI com formato inválido"
     )
 
 
@@ -139,42 +129,44 @@ def main() -> int:
 
     digest = load_digest()
 
+
     topics = extract_topics(
         digest
     )
 
     logger.info(
-        "Temas enviados para editorial AI: %s",
+        "Temas enviados para Editorial AI: %s",
         len(topics),
     )
 
-    user_prompt = build_request(
-        topics
+
+    system_prompt, user_prompt = (
+        build_editorial_request(
+            topics
+        )
     )
+
 
     logger.info(
-        "A chamar GPT-5.5 editorial."
+        "A chamar GPT-5.5 Editorial."
     )
 
+
     response = call_openai(
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt,
         user_prompt=user_prompt,
     )
 
-    if isinstance(
-        response,
-        str,
-    ):
-        package = json.loads(
-            response
-        )
-    else:
-        package = response
+
+    package = parse_openai_response(
+        response
+    )
 
 
     logger.info(
-        "A validar contrato editorial."
+        "A validar contrato Editorial Package."
     )
+
 
     validated = parse_editorial_package_dict(
         package
@@ -187,21 +179,24 @@ def main() -> int:
 
 
     logger.info(
-        "Editorial package criado."
+        "Editorial Package criado com sucesso."
     )
+
 
     print("=" * 70)
     print("EDITORIAL PACKAGE GENERATED")
     print("=" * 70)
     print(
-        f"Output: {OUTPUT_FILE}"
+        f"Ficheiro: {OUTPUT_FILE}"
     )
-    print(
-        f"Temas: {len(validated.topics)}"
-    )
-    print(
-        f"Top topic: {validated.top_topic_id}"
-    )
+
+    try:
+        print(
+            f"Temas: {len(validated.topics)}"
+        )
+    except AttributeError:
+        pass
+
 
     return 0
 
