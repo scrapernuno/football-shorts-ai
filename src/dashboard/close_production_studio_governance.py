@@ -13,25 +13,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 
 CERTIFICATION_SCRIPT = (
-    ROOT
-    / "src"
-    / "dashboard"
-    / "certify_production_studio.py"
+    ROOT / "src" / "dashboard" / "certify_production_studio.py"
 )
 
 OUTPUT_DIRECTORY = ROOT / "output"
-
 DASHBOARD_DIRECTORY = ROOT / "dashboard"
-
-DASHBOARD_DATA_DIRECTORY = (
-    DASHBOARD_DIRECTORY
-    / "data"
-)
-
-DASHBOARD_ASSETS_DIRECTORY = (
-    DASHBOARD_DIRECTORY
-    / "assets"
-)
+DASHBOARD_DATA_DIRECTORY = DASHBOARD_DIRECTORY / "data"
+DASHBOARD_ASSETS_DIRECTORY = DASHBOARD_DIRECTORY / "assets"
 
 GOVERNANCE_JSON = (
     OUTPUT_DIRECTORY
@@ -48,49 +36,21 @@ GOVERNANCE_DOCUMENT = (
     )
 )
 
-
 CANONICAL_FILES = (
     CERTIFICATION_SCRIPT,
-
-    ROOT
-    / "src"
-    / "dashboard"
-    / "sync_production_studio.py",
-
-    DASHBOARD_DIRECTORY
-    / "index.html",
-
-    DASHBOARD_ASSETS_DIRECTORY
-    / "dashboard.css",
-
-    DASHBOARD_ASSETS_DIRECTORY
-    / "dashboard.js",
-
-    DASHBOARD_DATA_DIRECTORY
-    / "dashboard_model.json",
-
-    DASHBOARD_DATA_DIRECTORY
-    / "content_package.json",
-
-    DASHBOARD_DATA_DIRECTORY
-    / "publishing_package.json",
-
-    DASHBOARD_DATA_DIRECTORY
-    / "analytics_package.json",
-
-    OUTPUT_DIRECTORY
-    / "dashboard_model.json",
-
-    OUTPUT_DIRECTORY
-    / "content_package.json",
-
-    OUTPUT_DIRECTORY
-    / "publishing_package.json",
-
-    OUTPUT_DIRECTORY
-    / "analytics_package.json",
+    ROOT / "src" / "dashboard" / "sync_production_studio.py",
+    DASHBOARD_DIRECTORY / "index.html",
+    DASHBOARD_ASSETS_DIRECTORY / "dashboard.css",
+    DASHBOARD_ASSETS_DIRECTORY / "dashboard.js",
+    DASHBOARD_DATA_DIRECTORY / "dashboard_model.json",
+    DASHBOARD_DATA_DIRECTORY / "content_package.json",
+    DASHBOARD_DATA_DIRECTORY / "publishing_package.json",
+    DASHBOARD_DATA_DIRECTORY / "analytics_package.json",
+    OUTPUT_DIRECTORY / "dashboard_model.json",
+    OUTPUT_DIRECTORY / "content_package.json",
+    OUTPUT_DIRECTORY / "publishing_package.json",
+    OUTPUT_DIRECTORY / "analytics_package.json",
 )
-
 
 REQUIRED_CERTIFICATION_MARKERS = (
     "PACKAGE_CONTRACTS=PASS",
@@ -103,13 +63,9 @@ REQUIRED_CERTIFICATION_MARKERS = (
     "CERTIFICATION_STATUS=CERTIFIED",
 )
 
-
 REQUIRED_PUBLIC_PACKAGES = {
     "dashboard_model": {
-        "path":
-            DASHBOARD_DATA_DIRECTORY
-            / "dashboard_model.json",
-
+        "path": DASHBOARD_DATA_DIRECTORY / "dashboard_model.json",
         "required_keys": {
             "generated_at",
             "channel",
@@ -122,12 +78,8 @@ REQUIRED_PUBLIC_PACKAGES = {
             "ranking",
         },
     },
-
     "content_package": {
-        "path":
-            DASHBOARD_DATA_DIRECTORY
-            / "content_package.json",
-
+        "path": DASHBOARD_DATA_DIRECTORY / "content_package.json",
         "required_keys": {
             "package_version",
             "generated_at",
@@ -140,12 +92,8 @@ REQUIRED_PUBLIC_PACKAGES = {
             "publishing",
         },
     },
-
     "publishing_package": {
-        "path":
-            DASHBOARD_DATA_DIRECTORY
-            / "publishing_package.json",
-
+        "path": DASHBOARD_DATA_DIRECTORY / "publishing_package.json",
         "required_keys": {
             "package_version",
             "generated_at",
@@ -156,12 +104,8 @@ REQUIRED_PUBLIC_PACKAGES = {
             "status",
         },
     },
-
     "analytics_package": {
-        "path":
-            DASHBOARD_DATA_DIRECTORY
-            / "analytics_package.json",
-
+        "path": DASHBOARD_DATA_DIRECTORY / "analytics_package.json",
         "required_keys": {
             "analytics_version",
             "generated_at",
@@ -176,50 +120,31 @@ REQUIRED_PUBLIC_PACKAGES = {
 }
 
 
-def require_file(
-    path: Path,
-) -> None:
-
+def require_file(path: Path) -> None:
     if not path.is_file():
-
         raise FileNotFoundError(
             f"Ficheiro obrigatório em falta: {path}"
         )
 
     if path.stat().st_size <= 0:
-
         raise ValueError(
             f"Ficheiro obrigatório vazio: {path}"
         )
 
 
-def load_json(
-    path: Path,
-) -> dict[str, Any]:
-
-    require_file(
-        path
-    )
+def load_json(path: Path) -> dict[str, Any]:
+    require_file(path)
 
     try:
-
         payload = json.loads(
-            path.read_text(
-                encoding="utf-8"
-            )
+            path.read_text(encoding="utf-8")
         )
-
     except json.JSONDecodeError as exc:
-
         raise ValueError(
             f"JSON inválido em {path}: {exc}"
         ) from exc
 
-    if not isinstance(
-        payload,
-        dict,
-    ):
-
+    if not isinstance(payload, dict):
         raise ValueError(
             f"{path} deve conter um objeto JSON."
         )
@@ -227,33 +152,17 @@ def load_json(
     return payload
 
 
-def sha256_file(
-    path: Path,
-) -> str:
-
-    require_file(
-        path
-    )
+def sha256_file(path: Path) -> str:
+    require_file(path)
 
     digest = hashlib.sha256()
 
-    with path.open(
-        "rb"
-    ) as handle:
-
+    with path.open("rb") as handle:
         while True:
-
-            chunk = handle.read(
-                1024 * 1024
-            )
-
+            chunk = handle.read(1024 * 1024)
             if not chunk:
-
                 break
-
-            digest.update(
-                chunk
-            )
+            digest.update(chunk)
 
     return digest.hexdigest()
 
@@ -261,29 +170,20 @@ def sha256_file(
 def canonical_json_sha256(
     payload: dict[str, Any],
 ) -> str:
-
     encoded = json.dumps(
         payload,
         ensure_ascii=False,
         sort_keys=True,
-        separators=(
-            ",",
-            ":",
-        ),
-    ).encode(
-        "utf-8"
-    )
+        separators=(",", ":"),
+    ).encode("utf-8")
 
-    return hashlib.sha256(
-        encoded
-    ).hexdigest()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def write_text_atomically(
     path: Path,
     content: str,
 ) -> None:
-
     path.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -291,8 +191,7 @@ def write_text_atomically(
 
     temporary_path = (
         path.parent
-        /
-        f".{path.name}.tmp"
+        / f".{path.name}.tmp"
     )
 
     temporary_path.write_text(
@@ -300,16 +199,13 @@ def write_text_atomically(
         encoding="utf-8",
     )
 
-    temporary_path.replace(
-        path
-    )
+    temporary_path.replace(path)
 
 
 def write_json_atomically(
     path: Path,
     payload: dict[str, Any],
 ) -> None:
-
     content = (
         json.dumps(
             payload,
@@ -317,8 +213,7 @@ def write_json_atomically(
             indent=2,
             sort_keys=True,
         )
-        +
-        "\n"
+        + "\n"
     )
 
     write_text_atomically(
@@ -328,41 +223,20 @@ def write_json_atomically(
 
 
 def execute_certification() -> str:
-
-    require_file(
-        CERTIFICATION_SCRIPT
-    )
+    require_file(CERTIFICATION_SCRIPT)
 
     environment = os.environ.copy()
-
-    existing_pythonpath = environment.get(
-        "PYTHONPATH",
-        "",
-    )
-
-    source_path = str(
-        ROOT / "src"
-    )
+    existing_pythonpath = environment.get("PYTHONPATH", "")
+    source_path = str(ROOT / "src")
 
     environment["PYTHONPATH"] = (
         source_path
         if not existing_pythonpath
-        else (
-            source_path
-            +
-            os.pathsep
-            +
-            existing_pythonpath
-        )
+        else source_path + os.pathsep + existing_pythonpath
     )
 
     result = subprocess.run(
-        [
-            sys.executable,
-            str(
-                CERTIFICATION_SCRIPT
-            ),
-        ],
+        [sys.executable, str(CERTIFICATION_SCRIPT)],
         cwd=ROOT,
         env=environment,
         capture_output=True,
@@ -370,19 +244,10 @@ def execute_certification() -> str:
         check=False,
     )
 
-    output = (
-        result.stdout
-        +
-        result.stderr
-    )
-
-    print(
-        output,
-        end="",
-    )
+    output = result.stdout + result.stderr
+    print(output, end="")
 
     if result.returncode != 0:
-
         raise RuntimeError(
             "A certificação 0030C.4 falhou. "
             f"Return code: {result.returncode}"
@@ -390,13 +255,11 @@ def execute_certification() -> str:
 
     missing_markers = [
         marker
-        for marker
-        in REQUIRED_CERTIFICATION_MARKERS
+        for marker in REQUIRED_CERTIFICATION_MARKERS
         if marker not in output
     ]
 
     if missing_markers:
-
         raise ValueError(
             "A certificação não apresentou todos "
             "os marcadores obrigatórios: "
@@ -408,52 +271,28 @@ def execute_certification() -> str:
 
 def validate_public_packages(
 ) -> dict[str, dict[str, Any]]:
+    packages: dict[str, dict[str, Any]] = {}
 
-    packages: dict[
-        str,
-        dict[str, Any],
-    ] = {}
+    for package_name, contract in (
+        REQUIRED_PUBLIC_PACKAGES.items()
+    ):
+        path = contract["path"]
+        required_keys = contract["required_keys"]
 
-    for (
-        package_name,
-        contract,
-    ) in REQUIRED_PUBLIC_PACKAGES.items():
-
-        path = contract[
-            "path"
-        ]
-
-        required_keys = contract[
-            "required_keys"
-        ]
-
-        payload = load_json(
-            path
-        )
-
-        missing = (
-            required_keys
-            -
-            payload.keys()
-        )
+        payload = load_json(path)
+        missing = required_keys - payload.keys()
 
         if missing:
-
             raise ValueError(
                 f"{package_name} incompleto: "
                 f"{sorted(missing)}"
             )
 
-        packages[
-            package_name
-        ] = payload
+        packages[package_name] = payload
 
+        print(f"PUBLIC_PACKAGE={package_name}")
         print(
-            f"PUBLIC_PACKAGE={package_name}"
-        )
-
-        print(
-            f"PUBLIC_PACKAGE_SHA256="
+            "PUBLIC_PACKAGE_SHA256="
             f"{canonical_json_sha256(payload)}"
         )
 
@@ -463,87 +302,44 @@ def validate_public_packages(
 def validate_cross_package_closure(
     packages: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    dashboard = packages["dashboard_model"]
+    content = packages["content_package"]
+    publishing = packages["publishing_package"]
+    analytics = packages["analytics_package"]
 
-    dashboard = packages[
-        "dashboard_model"
-    ]
-
-    content = packages[
-        "content_package"
-    ]
-
-    publishing = packages[
-        "publishing_package"
-    ]
-
-    analytics = packages[
-        "analytics_package"
-    ]
-
-    source_topic = content.get(
-        "source_topic"
-    )
-
-    if not isinstance(
-        source_topic,
-        dict,
-    ):
-
+    source_topic = content.get("source_topic")
+    if not isinstance(source_topic, dict):
         raise ValueError(
             "content_package.source_topic inválido."
         )
 
-    metadata = publishing.get(
-        "metadata"
-    )
-
-    if not isinstance(
-        metadata,
-        dict,
-    ):
-
+    metadata = publishing.get("metadata")
+    if not isinstance(metadata, dict):
         raise ValueError(
             "publishing_package.metadata inválido."
         )
 
-    dashboard_title = dashboard.get(
-        "top_title"
-    )
-
-    content_title = source_topic.get(
-        "title"
-    )
-
-    publishing_title = metadata.get(
-        "title"
-    )
+    dashboard_title = dashboard.get("top_title")
+    content_title = source_topic.get("title")
+    publishing_title = metadata.get("title")
 
     if not all(
-        isinstance(
-            title,
-            str,
-        )
-        and title.strip()
-        for title
-        in (
+        isinstance(title, str) and title.strip()
+        for title in (
             dashboard_title,
             content_title,
             publishing_title,
         )
     ):
-
         raise ValueError(
             "Os títulos canónicos são inválidos."
         )
 
     if not (
         dashboard_title
-        ==
-        content_title
-        ==
-        publishing_title
+        == content_title
+        == publishing_title
     ):
-
         raise ValueError(
             "Dashboard, Content e Publishing "
             "não partilham o mesmo título."
@@ -552,127 +348,62 @@ def validate_cross_package_closure(
     publishing_content_id = publishing.get(
         "source_content_id"
     )
-
-    analytics_content_id = analytics.get(
-        "content_id"
-    )
+    analytics_content_id = analytics.get("content_id")
 
     if (
-        not isinstance(
-            publishing_content_id,
-            str,
-        )
+        not isinstance(publishing_content_id, str)
         or not publishing_content_id.strip()
     ):
-
         raise ValueError(
             "publishing.source_content_id inválido."
         )
 
-    if (
-        publishing_content_id
-        != analytics_content_id
-    ):
-
+    if publishing_content_id != analytics_content_id:
         raise ValueError(
             "Publishing e Analytics não partilham "
             "o mesmo content ID."
         )
 
-    scenes = content.get(
-        "scenes"
-    )
-
-    if (
-        not isinstance(
-            scenes,
-            list,
-        )
-        or not scenes
-    ):
-
+    scenes = content.get("scenes")
+    if not isinstance(scenes, list) or not scenes:
         raise ValueError(
             "Content Package sem cenas."
         )
-
-    publishing_status = publishing.get(
-        "status"
-    )
-
-    analytics_status = analytics.get(
-        "status"
-    )
 
     print(
         "CLOSURE_CROSS_PACKAGE_IDENTITY=PASS"
     )
 
     return {
-        "top_title":
-            dashboard_title,
-
-        "viral_probability":
-            dashboard.get(
-                "viral_probability"
-            ),
-
-        "scene_count":
-            len(
-                scenes
-            ),
-
-        "publishing_status":
-            publishing_status,
-
-        "analytics_status":
-            analytics_status,
-
-        "content_id":
-            publishing_content_id,
+        "top_title": dashboard_title,
+        "viral_probability": dashboard.get(
+            "viral_probability"
+        ),
+        "scene_count": len(scenes),
+        "publishing_status": publishing.get("status"),
+        "analytics_status": analytics.get("status"),
+        "content_id": publishing_content_id,
     }
 
 
 def build_file_manifest(
 ) -> list[dict[str, Any]]:
-
-    manifest = []
+    manifest: list[dict[str, Any]] = []
 
     for path in CANONICAL_FILES:
+        require_file(path)
 
-        require_file(
-            path
-        )
-
-        relative_path = str(
-            path.relative_to(
-                ROOT
-            )
-        )
-
+        relative_path = str(path.relative_to(ROOT))
         entry = {
-            "path":
-                relative_path,
-
-            "size_bytes":
-                path.stat().st_size,
-
-            "sha256":
-                sha256_file(
-                    path
-                ),
+            "path": relative_path,
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
         }
 
-        manifest.append(
-            entry
-        )
+        manifest.append(entry)
 
-        print(
-            f"MANIFEST_FILE={relative_path}"
-        )
-
-        print(
-            f"MANIFEST_SHA256={entry['sha256']}"
-        )
+        print(f"MANIFEST_FILE={relative_path}")
+        print(f"MANIFEST_SHA256={entry['sha256']}")
 
     return manifest
 
@@ -680,22 +411,14 @@ def build_file_manifest(
 def manifest_sha256(
     manifest: list[dict[str, Any]],
 ) -> str:
-
     encoded = json.dumps(
         manifest,
         ensure_ascii=False,
         sort_keys=True,
-        separators=(
-            ",",
-            ":",
-        ),
-    ).encode(
-        "utf-8"
-    )
+        separators=(",", ":"),
+    ).encode("utf-8")
 
-    return hashlib.sha256(
-        encoded
-    ).hexdigest()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def build_governance_payload(
@@ -704,93 +427,43 @@ def build_governance_payload(
     manifest: list[dict[str, Any]],
     package_summary: dict[str, Any],
 ) -> dict[str, Any]:
-
     return {
-        "closure_id":
-            "FOOTBALL-SHORTS-AI-0030C",
-
-        "closure_name":
-            (
-                "Production Studio Interface "
-                "Governance Closure"
-            ),
-
-        "closure_version":
-            "1.0",
-
-        "closed_at":
-            closed_at,
-
-        "status":
-            "CLOSED",
-
-        "certification_status":
-            "CERTIFIED",
-
-        "certification_authority":
-            (
-                "FOOTBALL-SHORTS-AI-0030C.4"
-            ),
-
+        "closure_id": "FOOTBALL-SHORTS-AI-0030C",
+        "closure_name": (
+            "Production Studio Interface "
+            "Governance Closure"
+        ),
+        "closure_version": "1.0",
+        "closed_at": closed_at,
+        "status": "CLOSED",
+        "certification_status": "CERTIFIED",
+        "certification_authority": (
+            "FOOTBALL-SHORTS-AI-0030C.4"
+        ),
         "scope": {
-            "interface":
-                "dashboard/index.html",
-
-            "stylesheet":
-                (
-                    "dashboard/assets/"
-                    "dashboard.css"
-                ),
-
-            "javascript":
-                (
-                    "dashboard/assets/"
-                    "dashboard.js"
-                ),
-
+            "interface": "dashboard/index.html",
+            "stylesheet": (
+                "dashboard/assets/dashboard.css"
+            ),
+            "javascript": (
+                "dashboard/assets/dashboard.js"
+            ),
             "public_data": [
-                (
-                    "dashboard/data/"
-                    "dashboard_model.json"
-                ),
-                (
-                    "dashboard/data/"
-                    "content_package.json"
-                ),
-                (
-                    "dashboard/data/"
-                    "publishing_package.json"
-                ),
-                (
-                    "dashboard/data/"
-                    "analytics_package.json"
-                ),
+                "dashboard/data/dashboard_model.json",
+                "dashboard/data/content_package.json",
+                "dashboard/data/publishing_package.json",
+                "dashboard/data/analytics_package.json",
             ],
         },
-
         "governance_constraints": {
-            "read_only_interface":
-                True,
-
-            "no_external_api":
-                True,
-
-            "no_browser_openai_call":
-                True,
-
-            "no_publication_execution":
-                True,
-
-            "no_database":
-                True,
-
-            "no_persistent_editing":
-                True,
-
-            "provider_neutral":
-                True,
+            "read_only_interface": True,
+            "no_external_api": True,
+            "no_browser_openai_call": True,
+            "no_publication_execution": True,
+            "no_database": True,
+            "no_persistent_editing": True,
+            "provider_neutral": True,
         },
-
         "certified_capabilities": [
             "multi_package_loading",
             "overview_rendering",
@@ -803,38 +476,20 @@ def build_governance_payload(
             "responsive_layout",
             "github_pages_delivery",
         ],
-
-        "package_summary":
-            package_summary,
-
-        "canonical_file_count":
-            len(
-                manifest
-            ),
-
-        "canonical_manifest_sha256":
-            manifest_sha256(
-                manifest
-            ),
-
-        "canonical_files":
-            manifest,
-
+        "package_summary": package_summary,
+        "canonical_file_count": len(manifest),
+        "canonical_manifest_sha256": (
+            manifest_sha256(manifest)
+        ),
+        "canonical_files": manifest,
         "decision": {
-            "production_studio_interface":
-                "ACCEPTED",
-
-            "integration":
-                "CERTIFIED",
-
-            "governance":
-                "CLOSED",
-
-            "next_phase_authorized":
-                True,
-
-            "unauthorized_runtime_activation":
-                False,
+            "production_studio_interface": (
+                "ACCEPTED"
+            ),
+            "integration": "CERTIFIED",
+            "governance": "CLOSED",
+            "next_phase_authorized": True,
+            "unauthorized_runtime_activation": False,
         },
     }
 
@@ -842,72 +497,289 @@ def build_governance_payload(
 def build_governance_document(
     payload: dict[str, Any],
 ) -> str:
-
-    summary = payload[
-        "package_summary"
-    ]
-
+    summary = payload["package_summary"]
     manifest_hash = payload[
         "canonical_manifest_sha256"
     ]
 
-    return f"""# FOOTBALL-SHORTS-AI-0030C
+    lines = [
+        "# FOOTBALL-SHORTS-AI-0030C",
+        "",
+        "# Production Studio Interface Governance Closure",
+        "",
+        "## Status",
+        "",
+        "**CLOSED**",
+        "",
+        "## Certification status",
+        "",
+        "**CERTIFIED**",
+        "",
+        "## Closure date",
+        "",
+        f'`{payload["closed_at"]}`',
+        "",
+        "---",
+        "",
+        "## Scope",
+        "",
+        (
+            "This governance closure formally closes "
+            "the implementation, integration and "
+            "certification of the Football Shorts AI "
+            "Production Studio interface."
+        ),
+        "",
+        "The closed scope includes:",
+        "",
+        "- `dashboard/index.html`",
+        "- `dashboard/assets/dashboard.css`",
+        "- `dashboard/assets/dashboard.js`",
+        "- `dashboard/data/dashboard_model.json`",
+        "- `dashboard/data/content_package.json`",
+        "- `dashboard/data/publishing_package.json`",
+        "- `dashboard/data/analytics_package.json`",
+        "- `src/dashboard/sync_production_studio.py`",
+        "- `src/dashboard/certify_production_studio.py`",
+        "",
+        "---",
+        "",
+        "## Certified architecture",
+        "",
+        "```text",
+        "Dashboard Model",
+        "Content Package",
+        "Publishing Package",
+        "Analytics Package",
+        "        |",
+        "        v",
+        "Production Studio Multi-Package Loader",
+        "        |",
+        "        v",
+        "Overview",
+        "Ranking",
+        "Script Studio",
+        "Storyboard Timeline",
+        "Asset Planner",
+        "Publishing Readiness",
+        "Analytics Preview",
+        "        |",
+        "        v",
+        "GitHub Pages",
+        "```",
+        "",
+        "---",
+        "",
+        "## Certified package identity",
+        "",
+        f'- Top title: `{summary["top_title"]}`',
+        (
+            "- Viral probability: "
+            f'`{summary["viral_probability"]}`'
+        ),
+        f'- Scene count: `{summary["scene_count"]}`',
+        (
+            "- Publishing status: "
+            f'`{summary["publishing_status"]}`'
+        ),
+        (
+            "- Analytics status: "
+            f'`{summary["analytics_status"]}`'
+        ),
+        f'- Content ID: `{summary["content_id"]}`',
+        "",
+        "---",
+        "",
+        "## Canonical evidence",
+        "",
+        (
+            "- Canonical file count: "
+            f'`{payload["canonical_file_count"]}`'
+        ),
+        (
+            "- Canonical manifest SHA-256: "
+            f"`{manifest_hash}`"
+        ),
+        (
+            "- Integration certification: "
+            "`FOOTBALL-SHORTS-AI-0030C.4`"
+        ),
+        "- Certification status: `CERTIFIED`",
+        "",
+        "---",
+        "",
+        "## Final governance decision",
+        "",
+        "```text",
+        "FOOTBALL-SHORTS-AI-0030C",
+        "",
+        "PRODUCTION STUDIO INTERFACE",
+        "",
+        "IMPLEMENTATION: COMPLETE",
+        "INTEGRATION: CERTIFIED",
+        "GOVERNANCE: CLOSED",
+        "STATUS: ACCEPTED",
+        "```",
+        "",
+        (
+            "No runtime publication authority is "
+            "granted by this closure."
+        ),
+        "",
+        (
+            "No external provider activation is "
+            "granted by this closure."
+        ),
+        "",
+        "The next governed phase is authorized.",
+        "",
+    ]
 
-# Production Studio Interface Governance Closure
+    return "\n".join(lines)
 
-## Status
 
-**CLOSED**
+def verify_written_artifacts(
+    expected_payload: dict[str, Any],
+) -> None:
+    observed_payload = load_json(GOVERNANCE_JSON)
 
-## Certification status
+    expected_hash = canonical_json_sha256(
+        expected_payload
+    )
+    observed_hash = canonical_json_sha256(
+        observed_payload
+    )
 
-**CERTIFIED**
+    if expected_hash != observed_hash:
+        raise ValueError(
+            "O artefacto JSON de governação "
+            "não corresponde ao payload esperado."
+        )
 
-## Closure date
+    require_file(GOVERNANCE_DOCUMENT)
 
-`{payload["closed_at"]}`
+    document = GOVERNANCE_DOCUMENT.read_text(
+        encoding="utf-8"
+    )
 
----
+    required_document_markers = (
+        (
+            "Production Studio Interface "
+            "Governance Closure"
+        ),
+        "**CLOSED**",
+        "**CERTIFIED**",
+        "IMPLEMENTATION: COMPLETE",
+        "INTEGRATION: CERTIFIED",
+        "GOVERNANCE: CLOSED",
+        "STATUS: ACCEPTED",
+    )
 
-## Scope
+    missing_markers = [
+        marker
+        for marker in required_document_markers
+        if marker not in document
+    ]
 
-This governance closure formally closes the implementation,
-integration and certification of the Football Shorts AI
-Production Studio interface.
+    if missing_markers:
+        raise ValueError(
+            "O documento de governação "
+            "está incompleto: "
+            f"{missing_markers}"
+        )
 
-The closed scope includes:
+    print(
+        "GOVERNANCE_ARTIFACT_VERIFICATION=PASS"
+    )
 
-- `dashboard/index.html`
-- `dashboard/assets/dashboard.css`
-- `dashboard/assets/dashboard.js`
-- `dashboard/data/dashboard_model.json`
-- `dashboard/data/content_package.json`
-- `dashboard/data/publishing_package.json`
-- `dashboard/data/analytics_package.json`
-- `src/dashboard/sync_production_studio.py`
-- `src/dashboard/certify_production_studio.py`
 
----
+def main() -> int:
+    print("=" * 70)
+    print("FOOTBALL-SHORTS-AI-0030C")
+    print(
+        "PRODUCTION STUDIO INTERFACE "
+        "GOVERNANCE CLOSURE"
+    )
+    print("CERTIFICATION-BOUND CLOSURE")
+    print("ARTIFACT-ONLY WRITE")
+    print("NO FUNCTIONAL SOURCE MODIFICATION")
+    print("NO EXTERNAL API")
+    print("NO PUBLICATION EXECUTION")
+    print("=" * 70)
 
-## Certified architecture
+    for path in CANONICAL_FILES:
+        require_file(path)
 
-```text
-Dashboard Model
-Content Package
-Publishing Package
-Analytics Package
-        |
-        v
-Production Studio Multi-Package Loader
-        |
-        v
-Overview
-Ranking
-Script Studio
-Storyboard Timeline
-Asset Planner
-Publishing Readiness
-Analytics Preview
-        |
-        v
-GitHub Pages
+    print("CANONICAL_FILE_PRESENCE=PASS")
+
+    execute_certification()
+
+    print("PRIOR_CERTIFICATION_AUTHORITY=PASS")
+
+    packages = validate_public_packages()
+    package_summary = (
+        validate_cross_package_closure(packages)
+    )
+    manifest = build_file_manifest()
+
+    closed_at = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    payload = build_governance_payload(
+        closed_at=closed_at,
+        manifest=manifest,
+        package_summary=package_summary,
+    )
+
+    document = build_governance_document(
+        payload
+    )
+
+    write_json_atomically(
+        GOVERNANCE_JSON,
+        payload,
+    )
+
+    write_text_atomically(
+        GOVERNANCE_DOCUMENT,
+        document,
+    )
+
+    verify_written_artifacts(payload)
+
+    print("=" * 70)
+    print(
+        "PRODUCTION_STUDIO_INTERFACE=COMPLETE"
+    )
+    print(
+        "PRODUCTION_STUDIO_INTEGRATION=CERTIFIED"
+    )
+    print(
+        "PRODUCTION_STUDIO_GOVERNANCE=CLOSED"
+    )
+    print("CLOSURE_STATUS=ACCEPTED")
+    print("NEXT_PHASE_AUTHORIZED=YES")
+    print(
+        "CANONICAL_FILE_COUNT="
+        f"{payload['canonical_file_count']}"
+    )
+    print(
+        "CANONICAL_MANIFEST_SHA256="
+        f"{payload['canonical_manifest_sha256']}"
+    )
+    print(
+        "GOVERNANCE_JSON="
+        f"{GOVERNANCE_JSON.relative_to(ROOT)}"
+    )
+    print(
+        "GOVERNANCE_DOCUMENT="
+        f"{GOVERNANCE_DOCUMENT.relative_to(ROOT)}"
+    )
+    print("=" * 70)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
