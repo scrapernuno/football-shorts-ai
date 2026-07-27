@@ -269,7 +269,7 @@ def normalize_storyboard() -> dict:
                     "Porque este momento está a gerar debate"
                 ),
 
-                "transition": "Zoom",
+                "transition": "zoom",
             },
 
 
