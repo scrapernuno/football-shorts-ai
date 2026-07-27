@@ -18,9 +18,17 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
-DIGEST_FILE = ROOT / "output" / "digest.json"
+DIGEST_FILE = (
+    ROOT
+    / "output"
+    / "digest.json"
+)
 
-OUTPUT_FILE = ROOT / "output" / "editorial_package.json"
+OUTPUT_FILE = (
+    ROOT
+    / "output"
+    / "editorial_package.json"
+)
 
 
 CHANNEL = "@dinamegaz2014"
@@ -29,6 +37,12 @@ SCHEMA_VERSION = "2.0"
 
 
 def load_digest() -> dict:
+
+    if not DIGEST_FILE.exists():
+
+        raise FileNotFoundError(
+            f"Digest inexistente: {DIGEST_FILE}"
+        )
 
     return json.loads(
         DIGEST_FILE.read_text(
@@ -43,12 +57,13 @@ def extract_topics(
 
     topics = digest.get(
         "topics",
-        []
+        [],
     )
 
     if not topics:
+
         raise ValueError(
-            "Sem temas"
+            "Digest sem temas"
         )
 
     return topics[:5]
@@ -69,10 +84,12 @@ def normalize_topics(
             item.get(
                 "viral_score",
                 0,
-            )
+            ),
         )
 
-        result.append(item)
+        result.append(
+            item
+        )
 
     return result
 
@@ -97,7 +114,9 @@ def normalize_storyboard() -> dict:
 
     return {
 
-        "duration_seconds": 45,
+        "estimated_duration_seconds": 45,
+
+        "required_clip_count": 5,
 
         "scenes": [
 
@@ -112,20 +131,38 @@ def normalize_storyboard() -> dict:
 
             {
                 "start_second": 3,
-                "end_second": 35,
-                "voice": "Desenvolvimento da história",
-                "caption": "Informação principal",
-                "visual": "Clips relacionados",
-                "transition": "Dynamic",
+                "end_second": 15,
+                "voice": "Apresentação da história",
+                "caption": "O contexto que todos precisam saber",
+                "visual": "Clips principais do jogador ou equipa",
+                "transition": "Dynamic cut",
             },
 
             {
-                "start_second": 35,
+                "start_second": 15,
+                "end_second": 30,
+                "voice": "Momento decisivo",
+                "caption": "A parte que mudou tudo",
+                "visual": "Melhores momentos de ação",
+                "transition": "Speed ramp",
+            },
+
+            {
+                "start_second": 30,
+                "end_second": 40,
+                "voice": "Análise final",
+                "caption": "A reação dos fãs",
+                "visual": "Reações e estatísticas",
+                "transition": "Zoom",
+            },
+
+            {
+                "start_second": 40,
                 "end_second": 45,
-                "voice": "Conclusão e chamada à ação",
+                "voice": "Conclusão",
                 "caption": "Comenta a tua opinião",
-                "visual": "Momento final forte",
-                "transition": "Zoom out",
+                "visual": "Imagem final forte",
+                "transition": "Fade out",
             },
 
         ],
@@ -161,7 +198,7 @@ def normalize_topic_package(
             title.lower()
             .replace(
                 " ",
-                "-"
+                "-",
             )
         )
 
@@ -170,141 +207,140 @@ def normalize_topic_package(
 
             {
 
-            "topic_id": topic_id,
+                "topic_id": topic_id,
 
 
-            "source": {
+                "source": {
 
-                "title": topic.get(
-                    "source_title",
-                    title,
-                ),
-
-                "name": topic.get(
-                    "source_name",
-                    "Unknown",
-                ),
-
-                "url": topic.get(
-                    "source_url",
-                    "",
-                ),
-
-                "confirmation_status": "CONFIRMED",
-
-                "published": "YES",
-
-            },
-
-
-            "ranking": {
-
-                "viral_probability": viral_score,
-
-                "breaking": (
-                    topic.get(
-                        "urgency"
-                    )
-                    ==
-                    "HIGH"
-                ),
-
-                "competition": "HIGH",
-
-                "priority": viral_score,
-
-                "publish_today": True,
-
-                "reason": topic.get(
-                    "reason",
-                    "",
-                ),
-
-            },
-
-
-            "editorial": {
-
-                "primary_title": title,
-
-                "primary_hook": topic.get(
-                    "hook",
-                    "",
-                ),
-
-                "alternative_titles": scored_options(
-                    [
+                    "title": topic.get(
+                        "source_title",
                         title,
-                        f"{title} - A história que ninguém esperava",
-                        "O momento que está a incendiar o futebol",
-                    ]
-                ),
+                    ),
 
-                "alternative_hooks": scored_options(
-                    [
+                    "name": topic.get(
+                        "source_name",
+                        "Unknown",
+                    ),
+
+                    "url": topic.get(
+                        "source_url",
+                        "",
+                    ),
+
+                    "confirmation_status": "CONFIRMED",
+
+                    "published": "YES",
+
+                },
+
+
+                "ranking": {
+
+                    "viral_probability": viral_score,
+
+                    "breaking": (
                         topic.get(
-                            "hook",
-                            ""
-                        ),
-                        "Espera até veres o que aconteceu...",
-                        "O futebol acabou de mudar tudo...",
-                    ]
-                ),
+                            "urgency",
+                            "MEDIUM",
+                        )
+                        == "HIGH"
+                    ),
 
-                "description": topic.get(
-                    "reason",
-                    "",
-                ),
+                    "competition": "HIGH",
 
-                "script": topic.get(
-                    "script",
-                    "",
-                ),
+                    "priority": viral_score,
 
-                "hashtags": topic.get(
-                    "hashtags",
-                    [],
-                ),
+                    "publish_today": True,
 
-                "pinned_comment": (
-                    "Qual é a tua opinião?"
-                ),
+                    "reason": topic.get(
+                        "reason",
+                        "",
+                    ),
 
-                "call_to_action": (
-                    "Segue o canal para mais histórias."
-                ),
-
-            },
+                },
 
 
-            "storyboard": normalize_storyboard(),
+                "editorial": {
+
+                    "primary_title": title,
+
+                    "primary_hook": topic.get(
+                        "hook",
+                        "",
+                    ),
+
+                    "alternative_titles": scored_options(
+                        [
+                            title,
+                            f"{title} - A história que ninguém esperava",
+                            "O momento que está a incendiar o futebol",
+                        ]
+                    ),
+
+                    "alternative_hooks": scored_options(
+                        [
+                            topic.get(
+                                "hook",
+                                "",
+                            ),
+                            "Espera até veres o que aconteceu...",
+                            "O futebol acabou de mudar tudo...",
+                        ]
+                    ),
+
+                    "description": topic.get(
+                        "reason",
+                        "",
+                    ),
+
+                    "script": topic.get(
+                        "script",
+                        "",
+                    ),
+
+                    "hashtags": topic.get(
+                        "hashtags",
+                        [],
+                    ),
+
+                    "pinned_comment": (
+                        "Qual é a tua opinião?"
+                    ),
+
+                    "call_to_action": (
+                        "Segue o canal para mais histórias."
+                    ),
+
+                },
 
 
-            "publishing": {
-
-                "urgency": topic.get(
-                    "urgency",
-                    "MEDIUM",
-                ),
-
-                "best_publish_time": "18:30",
-
-                "recommended_window": "18:00-20:00",
-
-            },
+                "storyboard": normalize_storyboard(),
 
 
-            "analytics": {
+                "publishing": {
 
-                "predicted_ctr_percent": 0,
+                    "urgency": topic.get(
+                        "urgency",
+                        "MEDIUM",
+                    ),
 
-                "predicted_retention_percent": 0,
+                    "best_publish_time": "18:30",
 
-            },
+                    "recommended_window": "18:00-20:00",
+
+                },
 
 
-            "checklist": [],
+                "analytics": {
 
+                    "predicted_ctr_percent": 0,
+
+                    "predicted_retention_percent": 0,
+
+                },
+
+
+                "checklist": [],
 
             }
 
@@ -326,10 +362,12 @@ def normalize_editorial_package(
         SCHEMA_VERSION,
     )
 
+
     result.setdefault(
         "channel",
         CHANNEL,
     )
+
 
     result.setdefault(
         "timezone",
@@ -360,6 +398,12 @@ def save_package(
     package: dict,
 ):
 
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
     OUTPUT_FILE.write_text(
         json.dumps(
             package,
@@ -371,6 +415,10 @@ def save_package(
 
 
 def main() -> int:
+
+    logger.info(
+        "A carregar digest."
+    )
 
 
     digest = load_digest()
@@ -394,8 +442,18 @@ def main() -> int:
     )
 
 
+    logger.info(
+        "Normalizar Editorial Package."
+    )
+
+
     response = normalize_editorial_package(
         response
+    )
+
+
+    logger.info(
+        "Validar Editorial Package."
     )
 
 
