@@ -165,9 +165,25 @@ def normalize_topic_package(
 
             "ranking": {
 
-                "viral_probability": topic.get(
+                "breaking": (
+                    topic.get(
+                        "urgency",
+                        "MEDIUM",
+                    ) == "HIGH"
+                ),
+
+                "competition": "HIGH",
+
+                "priority": topic.get(
                     "viral_score",
                     0,
+                ),
+
+                "publish_today": True,
+
+                "reason": topic.get(
+                    "reason",
+                    "Tema com elevado potencial editorial.",
                 ),
 
             },
@@ -376,6 +392,11 @@ def main() -> int:
 
     save_package(
         validated.to_dict()
+    )
+
+
+    logger.info(
+        "Editorial Package criado com sucesso."
     )
 
 
