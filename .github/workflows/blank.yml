@@ -46,7 +46,9 @@ jobs:
             src/generate_digest.py \
             src/render_email.py \
             src/editorial/__init__.py \
-            src/editorial/schema.py
+            src/editorial/schema.py \
+            src/editorial/prompt_builder.py \
+            src/editorial/parser.py
 
       - name: Confirmar segredo OpenAI
         shell: bash
@@ -135,19 +137,21 @@ jobs:
                       f"{sorted(missing)}"
                   )
 
-          html = html_path.read_text(encoding="utf-8")
+          html_content = html_path.read_text(
+              encoding="utf-8"
+          )
 
-          if "<!doctype html>" not in html.lower():
+          if "<!doctype html>" not in html_content.lower():
               raise SystemExit(
                   "O ficheiro HTML não tem uma estrutura válida."
               )
 
-          if "Football Shorts AI" not in html:
+          if "Football Shorts AI" not in html_content:
               raise SystemExit(
                   "O título esperado não existe no HTML."
               )
 
-          if "@dinamegaz2014" not in html:
+          if "@dinamegaz2014" not in html_content:
               raise SystemExit(
                   "O canal esperado não aparece no HTML."
               )
@@ -155,9 +159,13 @@ jobs:
           print("Digest JSON validado.")
           print("Email HTML validado.")
           print("Snapshot do prompt validado.")
-          print("Schema editorial compilado.")
+          print("Contrato editorial compilado.")
+          print("Prompt Builder editorial compilado.")
+          print("Parser editorial compilado.")
           print(f"Temas: {len(topics)}")
-          print(f"HTML: {len(html)} caracteres")
+          print(
+              f"HTML: {len(html_content)} caracteres"
+          )
           PY
 
       - name: Publicar artefactos
