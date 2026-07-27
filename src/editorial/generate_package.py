@@ -6,7 +6,7 @@ from pathlib import Path
 
 from editorial.parser import parse_editorial_package_dict
 from editorial.prompt_builder import build_prompt
-from openai_client import call_openai
+from openai_client import generate_json
 
 
 logging.basicConfig(
@@ -21,15 +21,15 @@ logger = logging.getLogger(
 ROOT = Path(__file__).resolve().parents[2]
 
 DIGEST_FILE = (
-    ROOT
-    / "output"
-    / "digest.json"
+    ROOT /
+    "output" /
+    "digest.json"
 )
 
 OUTPUT_FILE = (
-    ROOT
-    / "output"
-    / "editorial_package.json"
+    ROOT /
+    "output" /
+    "editorial_package.json"
 )
 
 
@@ -59,47 +59,10 @@ def extract_topics(
         list,
     ):
         raise ValueError(
-            "digest.json sem lista topics"
-        )
-
-    if not topics:
-        raise ValueError(
-            "Nenhum tema encontrado no digest"
+            "digest.json sem topics"
         )
 
     return topics[:5]
-
-
-def build_editorial_request(
-    topics: list[dict],
-) -> tuple[str, str]:
-
-    return build_prompt(
-        topics
-    )
-
-
-def parse_openai_response(
-    response,
-) -> dict:
-
-    if isinstance(
-        response,
-        dict,
-    ):
-        return response
-
-    if isinstance(
-        response,
-        str,
-    ):
-        return json.loads(
-            response
-        )
-
-    raise TypeError(
-        "Resposta OpenAI com formato inválido"
-    )
 
 
 def save_package(
@@ -134,42 +97,35 @@ def main() -> int:
         digest
     )
 
+
     logger.info(
-        "Temas enviados para Editorial AI: %s",
-        len(topics),
+        "A construir prompt editorial."
     )
 
 
-    system_prompt, user_prompt = (
-        build_editorial_request(
-            topics
-        )
+    system_prompt, user_prompt = build_prompt(
+        topics
     )
 
 
     logger.info(
-        "A chamar GPT-5.5 Editorial."
+        "A chamar OpenAI generate_json."
     )
 
 
-    response = call_openai(
+    response = generate_json(
         system_prompt=system_prompt,
         user_prompt=user_prompt,
     )
 
 
-    package = parse_openai_response(
-        response
-    )
-
-
     logger.info(
-        "A validar contrato Editorial Package."
+        "A validar Editorial Package."
     )
 
 
     validated = parse_editorial_package_dict(
-        package
+        response
     )
 
 
@@ -178,24 +134,12 @@ def main() -> int:
     )
 
 
-    logger.info(
-        "Editorial Package criado com sucesso."
-    )
-
-
     print("=" * 70)
     print("EDITORIAL PACKAGE GENERATED")
     print("=" * 70)
     print(
-        f"Ficheiro: {OUTPUT_FILE}"
+        f"Output: {OUTPUT_FILE}"
     )
-
-    try:
-        print(
-            f"Temas: {len(validated.topics)}"
-        )
-    except AttributeError:
-        pass
 
 
     return 0
