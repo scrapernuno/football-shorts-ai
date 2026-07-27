@@ -385,7 +385,7 @@ def normalize_topic_package(
 
                     "competition": "HIGH",
 
-                    "priority": viral_score,
+                    "priority": index,
 
                     "publish_today": True,
 
