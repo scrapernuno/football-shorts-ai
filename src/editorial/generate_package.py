@@ -9,9 +9,7 @@ from editorial.prompt_builder import build_prompt
 from openai_client import generate_json
 
 
-logging.basicConfig(
-    level=logging.INFO,
-)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(
     "football_shorts.generate_package"
@@ -20,13 +18,7 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
-DIGEST_FILE = (
-    ROOT
-    / "output"
-    / "digest.json"
-)
-
+DIGEST_FILE = ROOT / "output" / "digest.json"
 
 OUTPUT_FILE = (
     ROOT
@@ -36,19 +28,11 @@ OUTPUT_FILE = (
 
 
 CHANNEL = "@dinamegaz2014"
-
 TIMEZONE = "Europe/Lisbon"
-
 SCHEMA_VERSION = "2.0"
 
 
 def load_digest() -> dict:
-
-    if not DIGEST_FILE.exists():
-
-        raise FileNotFoundError(
-            f"Digest inexistente: {DIGEST_FILE}"
-        )
 
     return json.loads(
         DIGEST_FILE.read_text(
@@ -62,22 +46,13 @@ def extract_topics(
 ) -> list[dict]:
 
     topics = digest.get(
-        "topics"
+        "topics",
+        []
     )
 
-    if not isinstance(
-        topics,
-        list,
-    ):
-
-        raise ValueError(
-            "digest.json sem topics"
-        )
-
     if not topics:
-
         raise ValueError(
-            "digest.json sem temas"
+            "Sem temas no digest"
         )
 
     return topics[:5]
@@ -87,7 +62,7 @@ def normalize_topics(
     topics: list[dict],
 ) -> list[dict]:
 
-    normalized = []
+    result = []
 
     for topic in topics:
 
@@ -97,22 +72,33 @@ def normalize_topics(
             "score",
             item.get(
                 "viral_score",
-                0,
-            ),
+                0
+            )
         )
 
-        normalized.append(
-            item
-        )
+        result.append(item)
 
-    return normalized
+    return result
+
+
+def scored_options(
+    values: list[str],
+) -> list[dict]:
+
+    return [
+        {
+            "text": value,
+            "score": 90 - index * 5,
+        }
+        for index, value in enumerate(values)
+    ]
 
 
 def normalize_topic_package(
     topics: list[dict],
 ) -> list[dict]:
 
-    normalized = []
+    result = []
 
 
     for index, topic in enumerate(
@@ -133,10 +119,6 @@ def normalize_topic_package(
 
 
         topic_id = (
-            topic.get(
-                "topic_id"
-            )
-            or
             title.lower()
             .replace(
                 " ",
@@ -145,7 +127,9 @@ def normalize_topic_package(
         )
 
 
-        item = {
+        result.append(
+
+            {
 
             "topic_id": topic_id,
 
@@ -169,10 +153,6 @@ def normalize_topic_package(
 
                 "confirmation_status": (
                     "CONFIRMED"
-                    if topic.get(
-                        "source_url"
-                    )
-                    else "UNKNOWN"
                 ),
 
                 "published": "YES",
@@ -186,9 +166,10 @@ def normalize_topic_package(
 
                 "breaking": (
                     topic.get(
-                        "urgency",
-                        "MEDIUM",
-                    ) == "HIGH"
+                        "urgency"
+                    )
+                    ==
+                    "HIGH"
                 ),
 
                 "competition": "HIGH",
@@ -199,7 +180,7 @@ def normalize_topic_package(
 
                 "reason": topic.get(
                     "reason",
-                    "Tema com elevado potencial editorial.",
+                    "",
                 ),
 
             },
@@ -214,32 +195,28 @@ def normalize_topic_package(
                     "",
                 ),
 
-                "alternative_titles": [
+                "alternative_titles": scored_options(
+                    [
+                        title,
+                        f"{title} - A história que ninguém esperava",
+                        "O momento que está a incendiar o futebol",
+                    ]
+                ),
 
-                    title,
-
-                    f"{title} - A história que ninguém esperava",
-
-                    "O momento que está a incendiar o futebol",
-
-                ],
-
-                "alternative_hooks": [
-
-                    topic.get(
-                        "hook",
-                        "",
-                    ),
-
-                    "Espera até veres o que aconteceu...",
-
-                    "O futebol acabou de mudar tudo...",
-
-                ],
+                "alternative_hooks": scored_options(
+                    [
+                        topic.get(
+                            "hook",
+                            ""
+                        ),
+                        "Espera até veres o que aconteceu...",
+                        "O futebol acabou de mudar tudo...",
+                    ]
+                ),
 
                 "description": topic.get(
                     "reason",
-                    "Conteúdo editorial para YouTube Shorts.",
+                    "",
                 ),
 
                 "script": topic.get(
@@ -277,9 +254,7 @@ def normalize_topic_package(
 
                 "best_publish_time": "18:30",
 
-                "recommended_window": (
-                    "18:00-20:00"
-                ),
+                "recommended_window": "18:00-20:00",
 
             },
 
@@ -295,71 +270,58 @@ def normalize_topic_package(
 
             "checklist": [],
 
-        }
 
+            }
 
-        normalized.append(
-            item
         )
 
-
-    return normalized
+    return result
 
 
 def normalize_editorial_package(
     package: dict,
 ) -> dict:
 
-    normalized = dict(package)
+    result = dict(package)
 
-
-    normalized.setdefault(
+    result.setdefault(
         "schema_version",
         SCHEMA_VERSION,
     )
 
-
-    normalized.setdefault(
+    result.setdefault(
         "channel",
         CHANNEL,
     )
 
-
-    normalized.setdefault(
+    result.setdefault(
         "timezone",
         TIMEZONE,
     )
 
 
-    normalized["topics"] = normalize_topic_package(
-        normalized.get(
+    result["topics"] = normalize_topic_package(
+        result.get(
             "topics",
             [],
         )
     )
 
 
-    if normalized["topics"]:
+    if result["topics"]:
 
-        normalized.setdefault(
+        result.setdefault(
             "top_topic_id",
-            normalized["topics"][0]["topic_id"],
+            result["topics"][0]["topic_id"],
         )
 
 
-    return normalized
+    return result
 
 
 def save_package(
     package: dict,
-) -> None:
-
-
-    OUTPUT_FILE.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
+):
 
     OUTPUT_FILE.write_text(
         json.dumps(
@@ -374,37 +336,18 @@ def save_package(
 def main() -> int:
 
 
-    logger.info(
-        "A carregar digest."
-    )
-
-
     digest = load_digest()
 
 
-    topics = extract_topics(
-        digest
-    )
-
-
     topics = normalize_topics(
-        topics
-    )
-
-
-    logger.info(
-        "Temas enviados para Editorial AI: %s",
-        len(topics),
+        extract_topics(
+            digest
+        )
     )
 
 
     system_prompt, user_prompt = build_prompt(
         topics
-    )
-
-
-    logger.info(
-        "A chamar OpenAI generate_json."
     )
 
 
@@ -414,18 +357,8 @@ def main() -> int:
     )
 
 
-    logger.info(
-        "Normalizar Editorial Package."
-    )
-
-
     response = normalize_editorial_package(
         response
-    )
-
-
-    logger.info(
-        "Validar Editorial Package."
     )
 
 
@@ -439,16 +372,8 @@ def main() -> int:
     )
 
 
-    logger.info(
-        "Editorial Package criado com sucesso."
-    )
-
-
-    print("=" * 70)
-    print("EDITORIAL PACKAGE GENERATED")
-    print("=" * 70)
     print(
-        f"Output: {OUTPUT_FILE}"
+        "EDITORIAL PACKAGE GENERATED"
     )
 
 
