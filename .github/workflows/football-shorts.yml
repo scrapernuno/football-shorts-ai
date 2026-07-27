@@ -105,29 +105,6 @@ jobs:
 
 
 
-      - name: Inspect Editorial Schema
-
-        run: |
-
-          echo "=============================================="
-
-          echo "SCHEMA VISUAL TYPE INSPECTION"
-
-          echo "=============================================="
-
-          grep -n "visual_type" -A20 -B20 src/editorial/schema.py || true
-
-
-          echo "=============================================="
-
-          echo "STORYBOARD SCENE SCHEMA"
-
-          echo "=============================================="
-
-          grep -n "class StoryboardScene" -A120 src/editorial/schema.py || true
-
-
-
       - name: Generate Editorial Package
 
         run: |
