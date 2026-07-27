@@ -21,6 +21,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Testar pontuação viral
+      - name: Selecionar temas únicos
         run: |
-          python src/score_news.py
+          python src/select_topics.py
