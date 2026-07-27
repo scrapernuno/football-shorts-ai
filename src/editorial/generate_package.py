@@ -479,6 +479,20 @@ def normalize_topic_package(
 
                 "analytics": {
 
+                    "confidence_score": 0.75,
+
+                    "predicted_comment_rate_percent": 5.0,
+
+                    "predicted_views_high": 1000000,
+
+                    "predicted_views_low": 10000,
+
+                    "prediction_basis": (
+                        "Estimativa baseada em potencial viral, "
+                        "urgência editorial e comportamento esperado "
+                        "da audiência de Shorts."
+                    ),
+
                     "predicted_ctr_percent": 0,
 
                     "predicted_retention_percent": 0,
