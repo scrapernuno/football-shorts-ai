@@ -463,8 +463,6 @@ def normalize_topic_package(
 
                     "best_publish_time": "18:30",
 
-                    "recommended_window": "18:00-20:00",
-
                     "publication_reason": (
                         "Publicar no pico de audiência "
                         "para maximizar alcance e retenção."
