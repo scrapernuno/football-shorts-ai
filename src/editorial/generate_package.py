@@ -57,7 +57,6 @@ def extract_topics(
     )
 
     if not topics:
-
         raise ValueError(
             "Digest sem temas"
         )
@@ -111,11 +110,27 @@ def asset(
 
     return {
 
-        "type": "VIDEO",
+        "asset_type": "VIDEO",
 
-        "description": description,
+        "copyright_note": (
+            "Utilizar apenas material autorizado, "
+            "licenciado ou permitido para publicação."
+        ),
 
-        "search_query": query,
+        "fallback_description": description,
+
+        "preferred_source": (
+            "Official club channels, "
+            "league channels and licensed footage providers"
+        ),
+
+        "search_queries": [
+
+            query,
+
+            description,
+
+        ],
 
     }
 
@@ -179,7 +194,7 @@ def normalize_storyboard() -> dict:
                 "end_second": 15,
 
                 "asset": asset(
-                    "Player/team footage",
+                    "Player team footage",
                     "football player team footage",
                 ),
 
@@ -259,7 +274,7 @@ def normalize_storyboard() -> dict:
                 "end_second": 40,
 
                 "asset": asset(
-                    "Reaction/statistics footage",
+                    "Reaction statistics footage",
                     "football fans reaction statistics",
                 ),
 
@@ -299,7 +314,7 @@ def normalize_storyboard() -> dict:
                 "end_second": 45,
 
                 "asset": asset(
-                    "Final football video",
+                    "Final football celebration video",
                     "football final celebration",
                 ),
 
@@ -520,7 +535,6 @@ def normalize_editorial_package(
 
     result = dict(package)
 
-
     result.setdefault(
         "schema_version",
         SCHEMA_VERSION,
@@ -582,9 +596,7 @@ def main() -> int:
         "A carregar digest."
     )
 
-
     digest = load_digest()
-
 
     topics = normalize_topics(
         extract_topics(
