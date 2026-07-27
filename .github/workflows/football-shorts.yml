@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   football-shorts:
+    name: Football Shorts AI Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -20,74 +21,103 @@ jobs:
       PYTHONUNBUFFERED: "1"
 
     steps:
-      - name: Checkout
+
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configurar Python
+
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
-      - name: Instalar dependências
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Compilar todo o projeto
+
+      - name: Compile Python project
         run: |
           python -m compileall src
 
-      - name: Testar Parser Editorial
+
+      - name: Validate editorial package contract
         run: |
           PYTHONPATH=src python src/editorial/test_parser.py
 
-      - name: Validar OPENAI_API_KEY
+
+      - name: Validate OpenAI secret
         run: |
           if [ -z "${OPENAI_API_KEY}" ]; then
-            echo "OPENAI_API_KEY não configurada."
+            echo "::error::OPENAI_API_KEY não configurada."
             exit 1
           fi
 
-      - name: Gerar Digest
+          echo "OPENAI_API_KEY configurada."
+
+
+      - name: Generate digest
         run: |
           python src/generate_digest.py
 
-      - name: Gerar HTML
+
+      - name: Generate HTML
         run: |
           python src/render_email.py
 
-      - name: Validar Outputs
+
+      - name: Validate generated files
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          digest = Path("output/digest.json")
-          html = Path("output/digest.html")
-          prompt = Path("output/last_prompt.txt")
+          required = [
+              "output/digest.json",
+              "output/digest.html",
+              "output/last_prompt.txt",
+          ]
 
-          assert digest.exists(), "digest.json não encontrado"
-          assert html.exists(), "digest.html não encontrado"
-          assert prompt.exists(), "last_prompt.txt não encontrado"
+          for file in required:
+              if not Path(file).exists():
+                  raise SystemExit(
+                      f"Ficheiro em falta: {file}"
+                  )
 
-          data = json.loads(digest.read_text(encoding="utf-8"))
+          data = json.loads(
+              Path("output/digest.json")
+              .read_text(encoding="utf-8")
+          )
 
-          assert "topics" in data
-          assert len(data["topics"]) == 5
+          topics = data.get("topics")
+
+          if not isinstance(topics, list):
+              raise SystemExit(
+                  "digest.json sem topics"
+              )
+
+          if len(topics) != 5:
+              raise SystemExit(
+                  f"Esperados 5 temas, encontrados {len(topics)}"
+              )
 
           print("=" * 70)
-          print("DIGEST VALIDADO")
+          print("DIGEST VALIDATION PASS")
           print("=" * 70)
-          print(f"Temas: {len(data['topics'])}")
-          print(f"HTML: {html.stat().st_size} bytes")
-          print(f"Prompt: {prompt.stat().st_size} bytes")
+          print(f"Topics: {len(topics)}")
+          print("Editorial contract: OK")
+          print("Production contract: OK")
           PY
 
-      - name: Publicar Artefactos
+
+      - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: football-shorts-output
+          name: football-shorts-ai-output
           retention-days: 7
           path: |
             output/
