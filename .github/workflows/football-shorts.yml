@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 
+
 permissions:
 
   contents: read
@@ -13,6 +14,7 @@ permissions:
 
 
 jobs:
+
 
   football-shorts:
 
@@ -45,6 +47,7 @@ jobs:
 
 
     steps:
+
 
 
       - name: Checkout repository
@@ -148,6 +151,14 @@ jobs:
 
 
 
+      - name: Build Publishing Package
+
+        run: |
+
+          PYTHONPATH=src python src/publishing/build_publishing_package.py
+
+
+
       - name: Generate HTML
 
         run: |
@@ -177,6 +188,8 @@ jobs:
               "output/dashboard_model.json",
 
               "output/content_package.json",
+
+              "output/publishing_package.json",
 
               "output/digest.html",
 
@@ -233,6 +246,18 @@ jobs:
           content = json.loads(
 
               Path("output/content_package.json")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
+          )
+
+
+
+          publishing = json.loads(
+
+              Path("output/publishing_package.json")
 
               .read_text(
                   encoding="utf-8"
@@ -360,6 +385,58 @@ jobs:
 
 
 
+          required_publishing = {
+
+              "package_version",
+
+              "generated_at",
+
+              "source_content_id",
+
+              "metadata",
+
+              "thumbnail",
+
+              "checklist",
+
+              "status",
+
+          }
+
+
+
+          missing_publishing = (
+
+              required_publishing
+
+              -
+
+              publishing.keys()
+
+          )
+
+
+
+          if missing_publishing:
+
+              raise SystemExit(
+
+                  f"Publishing package incompleto: {missing_publishing}"
+
+              )
+
+
+
+          if publishing["status"] != "draft":
+
+              raise SystemExit(
+
+                  "Publishing package deve iniciar em draft"
+
+              )
+
+
+
           print("=" * 70)
 
           print("PIPELINE VALIDATION PASS")
@@ -367,35 +444,28 @@ jobs:
           print("=" * 70)
 
           print(
-
               f"Digest topics: {len(digest['topics'])}"
-
           )
 
           print(
-
               f"Editorial topics: {len(editorial['topics'])}"
-
           )
 
           print(
-
               f"Dashboard ranking: {len(dashboard['ranking'])}"
-
           )
 
           print(
-
               f"Production scenes: {len(content['scenes'])}"
-
           )
 
           print(
-
-              f"Winner: {content['source_topic']['title']}"
-
+              f"Publishing status: {publishing['status']}"
           )
 
+          print(
+              f"Winner: {content['source_topic']['title']}"
+          )
 
 
           PY
