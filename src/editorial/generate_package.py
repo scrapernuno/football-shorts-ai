@@ -74,6 +74,11 @@ def extract_topics(
             "digest.json sem topics"
         )
 
+    if not topics:
+
+        raise ValueError(
+            "digest.json sem temas"
+        )
 
     return topics[:5]
 
@@ -99,7 +104,6 @@ def normalize_topics(
             item
         )
 
-
     return normalized
 
 
@@ -115,118 +119,118 @@ def normalize_topic_package(
         start=1,
     ):
 
-        item = dict(topic)
-
-
-        title = item.get(
+        title = topic.get(
             "title",
             f"topic-{index}",
         )
 
 
         topic_id = (
-
-            item.get(
+            topic.get(
                 "topic_id"
             )
-
             or
-
-            item.get(
-                "id"
-            )
-
-            or
-
             title.lower()
             .replace(
                 " ",
                 "-",
             )
-
         )
 
 
-        item.setdefault(
-            "topic_id",
-            topic_id,
-        )
+        item = {
+
+            "topic_id": topic_id,
 
 
-        item.setdefault(
-            "source",
-            {
-                "title": item.get(
+            "source": {
+
+                "title": topic.get(
                     "source_title",
                     title,
                 ),
-                "name": item.get(
+
+                "name": topic.get(
                     "source_name",
                     "Unknown",
                 ),
-                "url": item.get(
+
+                "url": topic.get(
                     "source_url",
                     "",
                 ),
+
             },
-        )
 
 
-        item.setdefault(
-            "ranking",
-            {
-                "viral_probability": item.get(
+            "ranking": {
+
+                "viral_probability": topic.get(
                     "viral_score",
                     0,
                 ),
+
             },
-        )
 
 
-        item.setdefault(
-            "editorial",
-            {
+            "editorial": {
+
                 "primary_title": title,
-                "primary_hook": item.get(
+
+                "primary_hook": topic.get(
                     "hook",
                     "",
                 ),
+
+                "script": topic.get(
+                    "script",
+                    "",
+                ),
+
+                "thumbnail": topic.get(
+                    "thumbnail",
+                    "",
+                ),
+
+                "hashtags": topic.get(
+                    "hashtags",
+                    [],
+                ),
+
             },
-        )
 
 
-        item.setdefault(
-            "storyboard",
-            [],
-        )
+            "storyboard": [],
 
 
-        item.setdefault(
-            "publishing",
-            {
-                "urgency": item.get(
+            "publishing": {
+
+                "urgency": topic.get(
                     "urgency",
                     "MEDIUM",
                 ),
+
                 "best_publish_time": "18:30",
-                "recommended_window": "18:00-20:00",
+
+                "recommended_window": (
+                    "18:00-20:00"
+                ),
+
             },
-        )
 
 
-        item.setdefault(
-            "analytics",
-            {
+            "analytics": {
+
                 "predicted_ctr_percent": 0,
+
                 "predicted_retention_percent": 0,
+
             },
-        )
 
 
-        item.setdefault(
-            "checklist",
-            [],
-        )
+            "checklist": [],
+
+        }
 
 
         normalized.append(
@@ -262,7 +266,7 @@ def normalize_editorial_package(
     )
 
 
-    topics = normalize_topic_package(
+    normalized["topics"] = normalize_topic_package(
         normalized.get(
             "topics",
             [],
@@ -270,19 +274,11 @@ def normalize_editorial_package(
     )
 
 
-    normalized["topics"] = topics
-
-
-    if topics:
-
-        first_topic = topics[0]
-
+    if normalized["topics"]:
 
         normalized.setdefault(
             "top_topic_id",
-            first_topic[
-                "topic_id"
-            ],
+            normalized["topics"][0]["topic_id"],
         )
 
 
