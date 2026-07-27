@@ -1,0 +1,125 @@
+name: Football Shorts AI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-digest:
+    name: Gerar briefing de Shorts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: gpt-5.5
+      OPENAI_TIMEOUT_SECONDS: "120"
+      OPENAI_MAX_RETRIES: "3"
+      OPENAI_MAX_OUTPUT_TOKENS: "7000"
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Obter repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Verificar estrutura Python
+        run: |
+          python -m py_compile \
+            src/collect_news.py \
+            src/score_news.py \
+            src/select_topics.py \
+            src/build_prompt.py \
+            src/openai_client.py \
+            src/generate_digest.py \
+            src/render_email.py
+
+      - name: Confirmar segredo OpenAI
+        shell: bash
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "::error::O segredo OPENAI_API_KEY não está configurado."
+            exit 1
+          fi
+
+          echo "OPENAI_API_KEY está configurado."
+
+      - name: Gerar digest com GPT-5.5
+        run: |
+          python src/generate_digest.py
+
+      - name: Gerar email HTML
+        run: |
+          python src/render_email.py
+
+      - name: Validar ficheiros produzidos
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          digest_path = Path("output/digest.json")
+          html_path = Path("output/digest.html")
+
+          if not digest_path.is_file():
+              raise SystemExit(
+                  "output/digest.json não foi criado."
+              )
+
+          if not html_path.is_file():
+              raise SystemExit(
+                  "output/digest.html não foi criado."
+              )
+
+          payload = json.loads(
+              digest_path.read_text(encoding="utf-8")
+          )
+
+          topics = payload.get("topics")
+
+          if not isinstance(topics, list) or len(topics) != 5:
+              raise SystemExit(
+                  "O digest não contém exatamente cinco temas."
+              )
+
+          html = html_path.read_text(encoding="utf-8")
+
+          if "<!doctype html>" not in html.lower():
+              raise SystemExit(
+                  "O ficheiro HTML não tem uma estrutura válida."
+              )
+
+          if "Football Shorts AI" not in html:
+              raise SystemExit(
+                  "O título esperado não existe no HTML."
+              )
+
+          print("Digest JSON validado.")
+          print("Email HTML validado.")
+          print(f"Temas: {len(topics)}")
+          print(f"HTML: {len(html)} caracteres")
+          PY
+
+      - name: Publicar artefactos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-digest
+          path: |
+            output/digest.json
+            output/digest.html
+            output/last_prompt.txt
+          if-no-files-found: warn
+          retention-days: 7
