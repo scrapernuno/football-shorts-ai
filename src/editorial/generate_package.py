@@ -9,7 +9,9 @@ from editorial.prompt_builder import build_prompt
 from openai_client import generate_json
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+)
 
 logger = logging.getLogger(
     "football_shorts.generate_package"
@@ -18,7 +20,13 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
-DIGEST_FILE = ROOT / "output" / "digest.json"
+
+DIGEST_FILE = (
+    ROOT
+    / "output"
+    / "digest.json"
+)
+
 
 OUTPUT_FILE = (
     ROOT
@@ -36,6 +44,12 @@ SCHEMA_VERSION = "2.0"
 
 def load_digest() -> dict:
 
+    if not DIGEST_FILE.exists():
+
+        raise FileNotFoundError(
+            f"Digest inexistente: {DIGEST_FILE}"
+        )
+
     return json.loads(
         DIGEST_FILE.read_text(
             encoding="utf-8"
@@ -48,16 +62,18 @@ def extract_topics(
 ) -> list[dict]:
 
     topics = digest.get(
-        "topics",
+        "topics"
     )
 
     if not isinstance(
         topics,
         list,
     ):
+
         raise ValueError(
-            "digest sem topics"
+            "digest.json sem topics"
         )
+
 
     return topics[:5]
 
@@ -66,7 +82,7 @@ def normalize_topics(
     topics: list[dict],
 ) -> list[dict]:
 
-    result = []
+    normalized = []
 
     for topic in topics:
 
@@ -79,11 +95,146 @@ def normalize_topics(
                 0,
             )
 
-        result.append(
+        normalized.append(
             item
         )
 
-    return result
+
+    return normalized
+
+
+def normalize_topic_package(
+    topics: list[dict],
+) -> list[dict]:
+
+    normalized = []
+
+
+    for index, topic in enumerate(
+        topics,
+        start=1,
+    ):
+
+        item = dict(topic)
+
+
+        title = item.get(
+            "title",
+            f"topic-{index}",
+        )
+
+
+        topic_id = (
+
+            item.get(
+                "topic_id"
+            )
+
+            or
+
+            item.get(
+                "id"
+            )
+
+            or
+
+            title.lower()
+            .replace(
+                " ",
+                "-",
+            )
+
+        )
+
+
+        item.setdefault(
+            "topic_id",
+            topic_id,
+        )
+
+
+        item.setdefault(
+            "source",
+            {
+                "title": item.get(
+                    "source_title",
+                    title,
+                ),
+                "name": item.get(
+                    "source_name",
+                    "Unknown",
+                ),
+                "url": item.get(
+                    "source_url",
+                    "",
+                ),
+            },
+        )
+
+
+        item.setdefault(
+            "ranking",
+            {
+                "viral_probability": item.get(
+                    "viral_score",
+                    0,
+                ),
+            },
+        )
+
+
+        item.setdefault(
+            "editorial",
+            {
+                "primary_title": title,
+                "primary_hook": item.get(
+                    "hook",
+                    "",
+                ),
+            },
+        )
+
+
+        item.setdefault(
+            "storyboard",
+            [],
+        )
+
+
+        item.setdefault(
+            "publishing",
+            {
+                "urgency": item.get(
+                    "urgency",
+                    "MEDIUM",
+                ),
+                "best_publish_time": "18:30",
+                "recommended_window": "18:00-20:00",
+            },
+        )
+
+
+        item.setdefault(
+            "analytics",
+            {
+                "predicted_ctr_percent": 0,
+                "predicted_retention_percent": 0,
+            },
+        )
+
+
+        item.setdefault(
+            "checklist",
+            [],
+        )
+
+
+        normalized.append(
+            item
+        )
+
+
+    return normalized
 
 
 def normalize_editorial_package(
@@ -98,10 +249,12 @@ def normalize_editorial_package(
         SCHEMA_VERSION,
     )
 
+
     normalized.setdefault(
         "channel",
         CHANNEL,
     )
+
 
     normalized.setdefault(
         "timezone",
@@ -109,41 +262,27 @@ def normalize_editorial_package(
     )
 
 
-    topics = normalized.get(
-        "topics",
-        [],
+    topics = normalize_topic_package(
+        normalized.get(
+            "topics",
+            [],
+        )
     )
+
+
+    normalized["topics"] = topics
 
 
     if topics:
 
-        first = topics[0]
-
-
-        topic_id = (
-            first.get(
-                "id"
-            )
-            or
-            first.get(
-                "slug"
-            )
-            or
-            first.get(
-                "title",
-                "top-topic",
-            )
-            .lower()
-            .replace(
-                " ",
-                "-",
-            )
-        )
+        first_topic = topics[0]
 
 
         normalized.setdefault(
             "top_topic_id",
-            topic_id,
+            first_topic[
+                "topic_id"
+            ],
         )
 
 
@@ -152,7 +291,14 @@ def normalize_editorial_package(
 
 def save_package(
     package: dict,
-):
+) -> None:
+
+
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
 
     OUTPUT_FILE.write_text(
         json.dumps(
@@ -164,19 +310,35 @@ def save_package(
     )
 
 
-def main():
+def main() -> int:
+
 
     logger.info(
         "A carregar digest."
     )
 
+
     digest = load_digest()
 
 
+    topics = extract_topics(
+        digest
+    )
+
+
     topics = normalize_topics(
-        extract_topics(
-            digest
-        )
+        topics
+    )
+
+
+    logger.info(
+        "Temas enviados para Editorial AI: %s",
+        len(topics),
+    )
+
+
+    logger.info(
+        "A construir prompt editorial."
     )
 
 
@@ -225,11 +387,15 @@ def main():
     print("EDITORIAL PACKAGE GENERATED")
     print("=" * 70)
     print(
-        OUTPUT_FILE
+        f"Output: {OUTPUT_FILE}"
     )
 
 
+    return 0
+
+
 if __name__ == "__main__":
+
     raise SystemExit(
         main()
     )
