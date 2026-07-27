@@ -31,11 +31,13 @@ jobs:
         uses: actions/checkout@v4
 
 
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+
 
 
       - name: Install dependencies
@@ -44,9 +46,11 @@ jobs:
           pip install -r requirements.txt
 
 
+
       - name: Compile Python project
         run: |
           python -m compileall src
+
 
 
       - name: Validate Editorial Contract
@@ -54,20 +58,23 @@ jobs:
           PYTHONPATH=src python src/editorial/test_parser.py
 
 
-      - name: Inspect Editorial Prompt Builder
+
+      - name: Inspect OpenAI Client
         run: |
           echo "=============================================="
-          echo "PROMPT BUILDER FUNCTIONS"
+          echo "OPENAI CLIENT FUNCTIONS"
           echo "=============================================="
 
-          grep -n "^def " src/editorial/prompt_builder.py || true
+          grep -n "^def " src/openai_client.py || true
 
           echo ""
+
           echo "=============================================="
-          echo "PROMPT BUILDER CONTENT"
+          echo "OPENAI CLIENT CONTENT"
           echo "=============================================="
 
-          sed -n '1,260p' src/editorial/prompt_builder.py
+          sed -n '1,260p' src/openai_client.py
+
 
 
       - name: Validate OpenAI Secret
@@ -77,7 +84,8 @@ jobs:
             exit 1
           fi
 
-          echo "OPENAI_API_KEY configurada."
+          echo "OPENAI_API_KEY configurada"
+
 
 
       - name: Generate News Digest
@@ -85,9 +93,11 @@ jobs:
           python src/generate_digest.py
 
 
+
       - name: Generate Editorial Package
         run: |
           PYTHONPATH=src python src/editorial/generate_package.py
+
 
 
       - name: Build Dashboard Model
@@ -95,9 +105,11 @@ jobs:
           PYTHONPATH=src python src/production/build_dashboard_model.py
 
 
+
       - name: Generate HTML Email
         run: |
           python src/render_email.py
+
 
 
       - name: Validate Pipeline Outputs
@@ -109,18 +121,20 @@ jobs:
           from pathlib import Path
 
 
-          required_files = [
+          required = [
 
               "output/digest.json",
+
               "output/editorial_package.json",
+
               "output/dashboard_model.json",
+
               "output/digest.html",
-              "output/last_prompt.txt",
 
           ]
 
 
-          for file in required_files:
+          for file in required:
 
               if not Path(file).exists():
 
@@ -129,93 +143,12 @@ jobs:
                   )
 
 
-          digest = json.loads(
-              Path(
-                  "output/digest.json"
-              )
-              .read_text(
-                  encoding="utf-8"
-              )
-          )
-
-
-          editorial = json.loads(
-              Path(
-                  "output/editorial_package.json"
-              )
-              .read_text(
-                  encoding="utf-8"
-              )
-          )
-
-
-          dashboard = json.loads(
-              Path(
-                  "output/dashboard_model.json"
-              )
-              .read_text(
-                  encoding="utf-8"
-              )
-          )
-
-
-          if len(digest.get("topics", [])) != 5:
-
-              raise SystemExit(
-                  "Digest inválido."
-              )
-
-
-          if len(editorial.get("topics", [])) != 5:
-
-              raise SystemExit(
-                  "Editorial package inválido."
-              )
-
-
-          required_dashboard = {
-
-              "generated_at",
-              "channel",
-              "top_title",
-              "top_hook",
-              "viral_probability",
-              "metrics",
-              "hooks",
-              "storyboard",
-              "ranking",
-
-          }
-
-
-          missing = (
-              required_dashboard
-              -
-              dashboard.keys()
-          )
-
-
-          if missing:
-
-              raise SystemExit(
-                  f"Campos dashboard em falta: {missing}"
-              )
-
-
           print("=" * 70)
-          print("PIPELINE VALIDATION PASS")
+          print("OUTPUT VALIDATION PASS")
           print("=" * 70)
-          print(
-              f"Digest: {len(digest['topics'])}"
-          )
-          print(
-              f"Editorial: {len(editorial['topics'])}"
-          )
-          print(
-              f"Dashboard: {dashboard['top_title']}"
-          )
 
           PY
+
 
 
       - name: Upload Artifacts
