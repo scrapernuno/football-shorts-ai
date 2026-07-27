@@ -9,9 +9,7 @@ from editorial.prompt_builder import build_prompt
 from openai_client import generate_json
 
 
-logging.basicConfig(
-    level=logging.INFO,
-)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(
     "football_shorts.generate_package"
@@ -20,13 +18,7 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
-DIGEST_FILE = (
-    ROOT
-    / "output"
-    / "digest.json"
-)
-
+DIGEST_FILE = ROOT / "output" / "digest.json"
 
 OUTPUT_FILE = (
     ROOT
@@ -35,11 +27,14 @@ OUTPUT_FILE = (
 )
 
 
+CHANNEL = "@dinamegaz2014"
+
+TIMEZONE = "Europe/Lisbon"
+
+SCHEMA_VERSION = "2.0"
+
+
 def load_digest() -> dict:
-    if not DIGEST_FILE.exists():
-        raise FileNotFoundError(
-            f"Digest inexistente: {DIGEST_FILE}"
-        )
 
     return json.loads(
         DIGEST_FILE.read_text(
@@ -53,7 +48,7 @@ def extract_topics(
 ) -> list[dict]:
 
     topics = digest.get(
-        "topics"
+        "topics",
     )
 
     if not isinstance(
@@ -61,12 +56,7 @@ def extract_topics(
         list,
     ):
         raise ValueError(
-            "digest.json sem lista topics"
-        )
-
-    if not topics:
-        raise ValueError(
-            "Nenhum tema encontrado no digest"
+            "digest sem topics"
         )
 
     return topics[:5]
@@ -75,18 +65,8 @@ def extract_topics(
 def normalize_topics(
     topics: list[dict],
 ) -> list[dict]:
-    """
-    Normaliza o contrato entre digest
-    e editorial prompt builder.
 
-    O prompt_builder espera:
-        topic["score"]
-
-    O digest pode fornecer:
-        viral_score
-    """
-
-    normalized = []
+    result = []
 
     for topic in topics:
 
@@ -94,19 +74,76 @@ def normalize_topics(
 
         if "score" not in item:
 
-            if "viral_score" in item:
+            item["score"] = item.get(
+                "viral_score",
+                0,
+            )
 
-                item["score"] = (
-                    item["viral_score"]
-                )
-
-            else:
-
-                item["score"] = 0
-
-
-        normalized.append(
+        result.append(
             item
+        )
+
+    return result
+
+
+def normalize_editorial_package(
+    package: dict,
+) -> dict:
+
+    normalized = dict(package)
+
+
+    normalized.setdefault(
+        "schema_version",
+        SCHEMA_VERSION,
+    )
+
+    normalized.setdefault(
+        "channel",
+        CHANNEL,
+    )
+
+    normalized.setdefault(
+        "timezone",
+        TIMEZONE,
+    )
+
+
+    topics = normalized.get(
+        "topics",
+        [],
+    )
+
+
+    if topics:
+
+        first = topics[0]
+
+
+        topic_id = (
+            first.get(
+                "id"
+            )
+            or
+            first.get(
+                "slug"
+            )
+            or
+            first.get(
+                "title",
+                "top-topic",
+            )
+            .lower()
+            .replace(
+                " ",
+                "-",
+            )
+        )
+
+
+        normalized.setdefault(
+            "top_topic_id",
+            topic_id,
         )
 
 
@@ -115,12 +152,7 @@ def normalize_topics(
 
 def save_package(
     package: dict,
-) -> None:
-
-    OUTPUT_FILE.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+):
 
     OUTPUT_FILE.write_text(
         json.dumps(
@@ -132,34 +164,19 @@ def save_package(
     )
 
 
-def main() -> int:
+def main():
 
     logger.info(
         "A carregar digest."
     )
 
-
     digest = load_digest()
 
 
-    topics = extract_topics(
-        digest
-    )
-
-
     topics = normalize_topics(
-        topics
-    )
-
-
-    logger.info(
-        "Temas enviados para Editorial AI: %s",
-        len(topics),
-    )
-
-
-    logger.info(
-        "A construir prompt editorial."
+        extract_topics(
+            digest
+        )
     )
 
 
@@ -180,7 +197,17 @@ def main() -> int:
 
 
     logger.info(
-        "A validar Editorial Package."
+        "Normalizar Editorial Package."
+    )
+
+
+    response = normalize_editorial_package(
+        response
+    )
+
+
+    logger.info(
+        "Validar Editorial Package."
     )
 
 
@@ -194,31 +221,12 @@ def main() -> int:
     )
 
 
-    logger.info(
-        "Editorial Package criado com sucesso."
-    )
-
-
     print("=" * 70)
     print("EDITORIAL PACKAGE GENERATED")
     print("=" * 70)
     print(
-        f"Output: {OUTPUT_FILE}"
+        OUTPUT_FILE
     )
-
-
-    try:
-
-        print(
-            f"Temas: {len(validated.topics)}"
-        )
-
-    except AttributeError:
-
-        pass
-
-
-    return 0
 
 
 if __name__ == "__main__":
