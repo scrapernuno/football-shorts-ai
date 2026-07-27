@@ -159,6 +159,14 @@ jobs:
 
 
 
+      - name: Build Analytics Package
+
+        run: |
+
+          PYTHONPATH=src python src/analytics/build_analytics_package.py
+
+
+
       - name: Generate HTML
 
         run: |
@@ -190,6 +198,8 @@ jobs:
               "output/content_package.json",
 
               "output/publishing_package.json",
+
+              "output/analytics_package.json",
 
               "output/digest.html",
 
@@ -258,6 +268,18 @@ jobs:
           publishing = json.loads(
 
               Path("output/publishing_package.json")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
+          )
+
+
+
+          analytics = json.loads(
+
+              Path("output/analytics_package.json")
 
               .read_text(
                   encoding="utf-8"
@@ -437,6 +459,60 @@ jobs:
 
 
 
+          required_analytics = {
+
+              "analytics_version",
+
+              "generated_at",
+
+              "content_id",
+
+              "platform",
+
+              "status",
+
+              "metrics",
+
+              "growth_signals",
+
+              "recommendation",
+
+          }
+
+
+
+          missing_analytics = (
+
+              required_analytics
+
+              -
+
+              analytics.keys()
+
+          )
+
+
+
+          if missing_analytics:
+
+              raise SystemExit(
+
+                  f"Analytics package incompleto: {missing_analytics}"
+
+              )
+
+
+
+          if analytics["status"] != "pending":
+
+              raise SystemExit(
+
+                  "Analytics inicial deve estar pending"
+
+              )
+
+
+
           print("=" * 70)
 
           print("PIPELINE VALIDATION PASS")
@@ -444,28 +520,47 @@ jobs:
           print("=" * 70)
 
           print(
+
               f"Digest topics: {len(digest['topics'])}"
+
           )
 
           print(
+
               f"Editorial topics: {len(editorial['topics'])}"
+
           )
 
           print(
+
               f"Dashboard ranking: {len(dashboard['ranking'])}"
+
           )
 
           print(
+
               f"Production scenes: {len(content['scenes'])}"
+
           )
 
           print(
+
               f"Publishing status: {publishing['status']}"
+
           )
 
           print(
-              f"Winner: {content['source_topic']['title']}"
+
+              f"Analytics status: {analytics['status']}"
+
           )
+
+          print(
+
+              f"Winner: {content['source_topic']['title']}"
+
+          )
+
 
 
           PY
