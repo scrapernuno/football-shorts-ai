@@ -122,6 +122,8 @@ def normalize_storyboard() -> dict:
 
             {
                 "scene_number": 1,
+                "start_second": 0,
+                "end_second": 3,
                 "asset": "Opening football clip",
                 "camera_movement": "Fast zoom",
                 "editing_pace": "Very fast",
@@ -131,11 +133,13 @@ def normalize_storyboard() -> dict:
                 "visual_description": "Momento inicial mais forte do tema",
                 "visual_type": "Video",
                 "voiceover": "Hook inicial para prender o espectador",
+                "transition": "Fast cut",
             },
-
 
             {
                 "scene_number": 2,
+                "start_second": 3,
+                "end_second": 15,
                 "asset": "Player/team footage",
                 "camera_movement": "Tracking movement",
                 "editing_pace": "Fast",
@@ -145,11 +149,13 @@ def normalize_storyboard() -> dict:
                 "visual_description": "Clips que explicam a situação",
                 "visual_type": "Video",
                 "voiceover": "Explicação rápida do acontecimento",
+                "transition": "Dynamic cut",
             },
-
 
             {
                 "scene_number": 3,
+                "start_second": 15,
+                "end_second": 30,
                 "asset": "Main highlight clip",
                 "camera_movement": "Slow motion",
                 "editing_pace": "Dynamic",
@@ -159,11 +165,13 @@ def normalize_storyboard() -> dict:
                 "visual_description": "A jogada ou momento principal",
                 "visual_type": "Video",
                 "voiceover": "A parte que mudou tudo",
+                "transition": "Speed ramp",
             },
-
 
             {
                 "scene_number": 4,
+                "start_second": 30,
+                "end_second": 40,
                 "asset": "Reaction/statistics footage",
                 "camera_movement": "Pan and zoom",
                 "editing_pace": "Medium",
@@ -173,11 +181,13 @@ def normalize_storyboard() -> dict:
                 "visual_description": "Reações, comentários e dados",
                 "visual_type": "Video",
                 "voiceover": "Porque este momento está a gerar debate",
+                "transition": "Zoom",
             },
-
 
             {
                 "scene_number": 5,
+                "start_second": 40,
+                "end_second": 45,
                 "asset": "Final football video",
                 "camera_movement": "Slow zoom out",
                 "editing_pace": "Slow finish",
@@ -187,6 +197,7 @@ def normalize_storyboard() -> dict:
                 "visual_description": "Fecho do Short com chamada à interação",
                 "visual_type": "Video",
                 "voiceover": "Comenta e segue para mais histórias",
+                "transition": "Fade out",
             },
 
         ],
@@ -232,7 +243,6 @@ def normalize_topic_package(
             {
 
                 "topic_id": topic_id,
-
 
                 "source": {
 
@@ -386,12 +396,10 @@ def normalize_editorial_package(
         SCHEMA_VERSION,
     )
 
-
     result.setdefault(
         "channel",
         CHANNEL,
     )
-
 
     result.setdefault(
         "timezone",
@@ -439,7 +447,6 @@ def save_package(
 
 
 def main() -> int:
-
 
     logger.info(
         "A carregar digest."
