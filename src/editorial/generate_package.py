@@ -20,16 +20,18 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
+
 DIGEST_FILE = (
-    ROOT /
-    "output" /
-    "digest.json"
+    ROOT
+    / "output"
+    / "digest.json"
 )
 
+
 OUTPUT_FILE = (
-    ROOT /
-    "output" /
-    "editorial_package.json"
+    ROOT
+    / "output"
+    / "editorial_package.json"
 )
 
 
@@ -59,10 +61,56 @@ def extract_topics(
         list,
     ):
         raise ValueError(
-            "digest.json sem topics"
+            "digest.json sem lista topics"
+        )
+
+    if not topics:
+        raise ValueError(
+            "Nenhum tema encontrado no digest"
         )
 
     return topics[:5]
+
+
+def normalize_topics(
+    topics: list[dict],
+) -> list[dict]:
+    """
+    Normaliza o contrato entre digest
+    e editorial prompt builder.
+
+    O prompt_builder espera:
+        topic["score"]
+
+    O digest pode fornecer:
+        viral_score
+    """
+
+    normalized = []
+
+    for topic in topics:
+
+        item = dict(topic)
+
+        if "score" not in item:
+
+            if "viral_score" in item:
+
+                item["score"] = (
+                    item["viral_score"]
+                )
+
+            else:
+
+                item["score"] = 0
+
+
+        normalized.append(
+            item
+        )
+
+
+    return normalized
 
 
 def save_package(
@@ -90,11 +138,23 @@ def main() -> int:
         "A carregar digest."
     )
 
+
     digest = load_digest()
 
 
     topics = extract_topics(
         digest
+    )
+
+
+    topics = normalize_topics(
+        topics
+    )
+
+
+    logger.info(
+        "Temas enviados para Editorial AI: %s",
+        len(topics),
     )
 
 
@@ -134,12 +194,28 @@ def main() -> int:
     )
 
 
+    logger.info(
+        "Editorial Package criado com sucesso."
+    )
+
+
     print("=" * 70)
     print("EDITORIAL PACKAGE GENERATED")
     print("=" * 70)
     print(
         f"Output: {OUTPUT_FILE}"
     )
+
+
+    try:
+
+        print(
+            f"Temas: {len(validated.topics)}"
+        )
+
+    except AttributeError:
+
+        pass
 
 
     return 0
