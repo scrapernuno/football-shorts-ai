@@ -20,13 +20,11 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
-
 DIGEST_FILE = (
     ROOT
     / "output"
     / "digest.json"
 )
-
 
 OUTPUT_FILE = (
     ROOT
@@ -36,9 +34,7 @@ OUTPUT_FILE = (
 
 
 CHANNEL = "@dinamegaz2014"
-
 TIMEZONE = "Europe/Lisbon"
-
 SCHEMA_VERSION = "2.0"
 
 
@@ -74,6 +70,7 @@ def extract_topics(
         )
 
     if not topics:
+
         raise ValueError(
             "digest.json sem temas"
         )
@@ -91,12 +88,13 @@ def normalize_topics(
 
         item = dict(topic)
 
-        if "score" not in item:
-
-            item["score"] = item.get(
+        item.setdefault(
+            "score",
+            item.get(
                 "viral_score",
                 0,
-            )
+            ),
+        )
 
         normalized.append(
             item
@@ -206,24 +204,71 @@ def normalize_topic_package(
 
                 "primary_title": title,
 
+
                 "primary_hook": topic.get(
                     "hook",
                     "",
                 ),
+
+
+                "alternative_titles": [
+
+                    title,
+
+                    f"{title} - A história que ninguém esperava",
+
+                    "O momento que está a incendiar o futebol",
+
+                ],
+
+
+                "alternative_hooks": [
+
+                    topic.get(
+                        "hook",
+                        "",
+                    ),
+
+                    "Espera até veres o que aconteceu...",
+
+                    "O futebol acabou de mudar tudo...",
+
+                ],
+
+
+                "description": topic.get(
+                    "reason",
+                    "Conteúdo editorial para YouTube Shorts.",
+                ),
+
 
                 "script": topic.get(
                     "script",
                     "",
                 ),
 
+
                 "thumbnail": topic.get(
                     "thumbnail",
                     "",
                 ),
 
+
                 "hashtags": topic.get(
                     "hashtags",
                     [],
+                ),
+
+
+                "pinned_comment": (
+                    "Qual é a tua opinião? "
+                    "Comenta abaixo 👇"
+                ),
+
+
+                "call_to_action": (
+                    "Segue o canal para mais "
+                    "histórias de futebol."
                 ),
 
             },
@@ -316,7 +361,7 @@ def normalize_editorial_package(
 
 def save_package(
     package: dict,
-) -> None:
+):
 
     OUTPUT_FILE.parent.mkdir(
         parents=True,
@@ -361,11 +406,6 @@ def main() -> int:
     )
 
 
-    logger.info(
-        "A construir prompt editorial."
-    )
-
-
     system_prompt, user_prompt = build_prompt(
         topics
     )
@@ -404,11 +444,6 @@ def main() -> int:
 
     save_package(
         validated.to_dict()
-    )
-
-
-    logger.info(
-        "Editorial Package criado com sucesso."
     )
 
 
