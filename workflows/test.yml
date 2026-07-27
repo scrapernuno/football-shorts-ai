@@ -1,0 +1,14 @@
+name: Teste inicial
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Mostrar mensagem
+        run: |
+          echo "Football Shorts AI iniciado com sucesso."
+          echo "Data UTC: $(date -u)"
