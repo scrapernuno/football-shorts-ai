@@ -479,7 +479,7 @@ def normalize_topic_package(
 
                 "analytics": {
 
-                    "confidence_score": 0.75,
+                    "confidence_score": 75,
 
                     "predicted_comment_rate_percent": 5.0,
 
