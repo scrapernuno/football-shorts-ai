@@ -20,11 +20,13 @@ logger = logging.getLogger(
 
 ROOT = Path(__file__).resolve().parents[2]
 
+
 DIGEST_FILE = (
     ROOT
     / "output"
     / "digest.json"
 )
+
 
 OUTPUT_FILE = (
     ROOT
@@ -34,7 +36,9 @@ OUTPUT_FILE = (
 
 
 CHANNEL = "@dinamegaz2014"
+
 TIMEZONE = "Europe/Lisbon"
+
 SCHEMA_VERSION = "2.0"
 
 
@@ -65,6 +69,7 @@ def extract_topics(
         topics,
         list,
     ):
+
         raise ValueError(
             "digest.json sem topics"
         )
@@ -204,12 +209,10 @@ def normalize_topic_package(
 
                 "primary_title": title,
 
-
                 "primary_hook": topic.get(
                     "hook",
                     "",
                 ),
-
 
                 "alternative_titles": [
 
@@ -220,7 +223,6 @@ def normalize_topic_package(
                     "O momento que está a incendiar o futebol",
 
                 ],
-
 
                 "alternative_hooks": [
 
@@ -235,36 +237,25 @@ def normalize_topic_package(
 
                 ],
 
-
                 "description": topic.get(
                     "reason",
                     "Conteúdo editorial para YouTube Shorts.",
                 ),
-
 
                 "script": topic.get(
                     "script",
                     "",
                 ),
 
-
-                "thumbnail": topic.get(
-                    "thumbnail",
-                    "",
-                ),
-
-
                 "hashtags": topic.get(
                     "hashtags",
                     [],
                 ),
 
-
                 "pinned_comment": (
                     "Qual é a tua opinião? "
                     "Comenta abaixo 👇"
                 ),
-
 
                 "call_to_action": (
                     "Segue o canal para mais "
@@ -361,7 +352,8 @@ def normalize_editorial_package(
 
 def save_package(
     package: dict,
-):
+) -> None:
+
 
     OUTPUT_FILE.parent.mkdir(
         parents=True,
@@ -444,6 +436,11 @@ def main() -> int:
 
     save_package(
         validated.to_dict()
+    )
+
+
+    logger.info(
+        "Editorial Package criado com sucesso."
     )
 
 
