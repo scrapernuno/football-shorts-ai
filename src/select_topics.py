@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -79,6 +78,27 @@ DISTINCTIVE_TERMS = {
 }
 
 
+# Uma correspondência num destes tokens é suficiente para considerar
+# que duas notícias representam a mesma história principal.
+PRIMARY_ENTITY_TERMS = {
+    "barcola",
+    "chiesa",
+    "cristiano",
+    "diomande",
+    "infantino",
+    "mbappe",
+    "messi",
+    "miura",
+    "neymar",
+    "palmer",
+    "rodri",
+    "ronaldo",
+    "scaloni",
+    "vinicius",
+    "yamal",
+}
+
+
 CONFLICTING_TOKEN_GROUPS = (
     frozenset({"men", "mens", "male"}),
     frozenset({"women", "womens", "female"}),
@@ -147,16 +167,28 @@ def represents_same_topic(
     ):
         return False, 0.0
 
-    overlap = overlap_coefficient(
-        candidate.topic_tokens,
-        existing.topic_tokens,
-    )
-
     common_tokens = (
         candidate.topic_tokens
         & existing.topic_tokens
     )
 
+    overlap = overlap_coefficient(
+        candidate.topic_tokens,
+        existing.topic_tokens,
+    )
+
+    # Uma entidade principal igual, como Barcola, Vinícius ou Diomande,
+    # é suficiente para considerar as notícias parte da mesma história.
+    common_primary_entities = (
+        common_tokens
+        & PRIMARY_ENTITY_TERMS
+    )
+
+    if common_primary_entities:
+        return True, overlap
+
+    # Para clubes ou termos mais genéricos, exigimos pelo menos dois
+    # tokens comuns para evitar remover histórias diferentes do mesmo clube.
     same_topic = (
         overlap >= 0.66
         and len(common_tokens) >= 2
@@ -197,15 +229,15 @@ def select_unique_topics(
             print()
             print("[INFO] Tema repetido removido")
             print(
-                f"       Removido: "
+                "       Removido: "
                 f"{candidate.ranked_item.item.title}"
             )
             print(
-                f"       Mantido: "
+                "       Mantido: "
                 f"{duplicate_of.ranked_item.item.title}"
             )
             print(
-                f"       Tokens comuns: "
+                "       Tokens comuns: "
                 f"{sorted(candidate.topic_tokens & duplicate_of.topic_tokens)}"
             )
             print(
