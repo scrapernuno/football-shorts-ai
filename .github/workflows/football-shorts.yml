@@ -44,12 +44,12 @@ jobs:
           python -m compileall src
 
 
-      - name: Validate editorial package contract
+      - name: Validate Editorial Package Contract
         run: |
           PYTHONPATH=src python src/editorial/test_parser.py
 
 
-      - name: Validate OpenAI secret
+      - name: Validate OpenAI Secret
         run: |
           if [ -z "${OPENAI_API_KEY}" ]; then
             echo "::error::OPENAI_API_KEY não configurada."
@@ -59,44 +59,63 @@ jobs:
           echo "OPENAI_API_KEY configurada."
 
 
-      - name: Generate digest
+      - name: Generate Digest
         run: |
           python src/generate_digest.py
 
 
-      - name: Generate HTML
+      - name: Generate HTML Email
         run: |
           python src/render_email.py
 
 
-      - name: Validate generated files
+      - name: Build Dashboard Model
+        run: |
+          PYTHONPATH=src python src/production/build_dashboard_model.py
+
+
+      - name: Validate Outputs
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          required = [
+          required_files = [
               "output/digest.json",
               "output/digest.html",
               "output/last_prompt.txt",
+              "output/dashboard_model.json",
           ]
 
-          for file in required:
-              if not Path(file).exists():
+          for file in required_files:
+              path = Path(file)
+
+              if not path.exists():
                   raise SystemExit(
                       f"Ficheiro em falta: {file}"
                   )
 
-          data = json.loads(
-              Path("output/digest.json")
-              .read_text(encoding="utf-8")
+          digest = json.loads(
+              Path(
+                  "output/digest.json"
+              ).read_text(
+                  encoding="utf-8"
+              )
           )
 
-          topics = data.get("topics")
+          dashboard = json.loads(
+              Path(
+                  "output/dashboard_model.json"
+              ).read_text(
+                  encoding="utf-8"
+              )
+          )
+
+          topics = digest.get("topics")
 
           if not isinstance(topics, list):
               raise SystemExit(
-                  "digest.json sem topics"
+                  "digest.json inválido: topics"
               )
 
           if len(topics) != 5:
@@ -104,16 +123,64 @@ jobs:
                   f"Esperados 5 temas, encontrados {len(topics)}"
               )
 
+          dashboard_required = {
+              "generated_at",
+              "channel",
+              "top_title",
+              "top_hook",
+              "viral_probability",
+              "predicted_ctr",
+              "predicted_retention",
+              "recommended_publish_time",
+              "metrics",
+              "hooks",
+              "storyboard",
+              "ranking",
+          }
+
+          missing = (
+              dashboard_required
+              -
+              dashboard.keys()
+          )
+
+          if missing:
+              raise SystemExit(
+                  f"dashboard_model.json sem campos: {missing}"
+              )
+
+          if len(dashboard["hooks"]) != 3:
+              raise SystemExit(
+                  "Dashboard deve conter 3 hooks."
+              )
+
+          if len(dashboard["ranking"]) != 5:
+              raise SystemExit(
+                  "Dashboard deve conter ranking de 5 temas."
+              )
+
           print("=" * 70)
-          print("DIGEST VALIDATION PASS")
+          print("PIPELINE VALIDATION PASS")
           print("=" * 70)
-          print(f"Topics: {len(topics)}")
-          print("Editorial contract: OK")
-          print("Production contract: OK")
+          print(
+              f"Digest topics: {len(topics)}"
+          )
+          print(
+              f"Dashboard title: {dashboard['top_title']}"
+          )
+          print(
+              f"Hooks: {len(dashboard['hooks'])}"
+          )
+          print(
+              f"Scenes: {len(dashboard['storyboard'])}"
+          )
+          print(
+              f"Ranking: {len(dashboard['ranking'])}"
+          )
           PY
 
 
-      - name: Upload artifacts
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
