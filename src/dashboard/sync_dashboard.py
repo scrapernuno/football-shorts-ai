@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 
@@ -38,7 +37,9 @@ REQUIRED_KEYS = {
 
 
 
-def load_json(path: Path) -> dict:
+def load_json(
+    path: Path,
+) -> dict:
 
     if not path.exists():
 
@@ -60,7 +61,10 @@ def validate_dashboard_model(
 ) -> None:
 
 
-    if not isinstance(payload, dict):
+    if not isinstance(
+        payload,
+        dict,
+    ):
 
         raise ValueError(
             "Dashboard model deve ser um objeto JSON."
@@ -91,28 +95,83 @@ def validate_dashboard_model(
         )
 
 
-    priorities = [
+    if len(payload["ranking"]) == 0:
 
-        item.get("priority")
-
-        for item in payload["ranking"]
-
-    ]
-
-
-    expected = list(
-        range(
-            1,
-            len(priorities) + 1,
+        raise ValueError(
+            "Ranking vazio."
         )
+
+
+
+def normalize_ranking(
+    payload: dict,
+) -> None:
+
+
+    ranking = payload["ranking"]
+
+
+    for item in ranking:
+
+        if not isinstance(
+            item,
+            dict,
+        ):
+
+            raise ValueError(
+                "Ranking item inválido."
+            )
+
+
+        if "title" not in item:
+
+            raise ValueError(
+                "Ranking item sem title."
+            )
+
+
+    ranking.sort(
+        key=lambda item: item.get(
+            "viral_probability",
+            0,
+        ),
+        reverse=True,
     )
 
 
-    if priorities != expected:
+    for index, item in enumerate(
+        ranking,
+        start=1,
+    ):
 
-        raise ValueError(
-            "Ranking inválido: prioridades devem ser sequenciais."
-        )
+        item["priority"] = index
+
+
+    payload["ranking"] = ranking
+
+
+
+def save_dashboard(
+    payload: dict,
+) -> None:
+
+
+    TARGET.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
+    TARGET.write_text(
+
+        json.dumps(
+            payload,
+            indent=2,
+            ensure_ascii=False,
+        ),
+
+        encoding="utf-8",
+    )
 
 
 
@@ -142,15 +201,13 @@ def sync_dashboard() -> int:
     )
 
 
-    TARGET.parent.mkdir(
-        parents=True,
-        exist_ok=True,
+    normalize_ranking(
+        payload
     )
 
 
-    shutil.copyfile(
-        SOURCE,
-        TARGET,
+    save_dashboard(
+        payload
     )
 
 
