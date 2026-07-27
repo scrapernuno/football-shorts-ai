@@ -121,48 +121,72 @@ def normalize_storyboard() -> dict:
         "scenes": [
 
             {
-                "start_second": 0,
-                "end_second": 3,
-                "voice": "Hook inicial forte",
-                "caption": "Atenção máxima nos primeiros segundos",
-                "visual": "Vídeo principal do tema",
-                "transition": "Fast cut",
+                "scene_number": 1,
+                "asset": "Opening football clip",
+                "camera_movement": "Fast zoom",
+                "editing_pace": "Very fast",
+                "sound_effect": "Impact hit",
+                "subtitle": "Atenção: algo incrível aconteceu",
+                "subtitle_style": "Bold dynamic",
+                "visual_description": "Momento inicial mais forte do tema",
+                "visual_type": "Video",
+                "voiceover": "Hook inicial para prender o espectador",
             },
 
-            {
-                "start_second": 3,
-                "end_second": 15,
-                "voice": "Apresentação da história",
-                "caption": "O contexto que todos precisam saber",
-                "visual": "Clips principais do jogador ou equipa",
-                "transition": "Dynamic cut",
-            },
 
             {
-                "start_second": 15,
-                "end_second": 30,
-                "voice": "Momento decisivo",
-                "caption": "A parte que mudou tudo",
-                "visual": "Melhores momentos de ação",
-                "transition": "Speed ramp",
+                "scene_number": 2,
+                "asset": "Player/team footage",
+                "camera_movement": "Tracking movement",
+                "editing_pace": "Fast",
+                "sound_effect": "Crowd reaction",
+                "subtitle": "O contexto desta história",
+                "subtitle_style": "Modern captions",
+                "visual_description": "Clips que explicam a situação",
+                "visual_type": "Video",
+                "voiceover": "Explicação rápida do acontecimento",
             },
 
-            {
-                "start_second": 30,
-                "end_second": 40,
-                "voice": "Análise final",
-                "caption": "A reação dos fãs",
-                "visual": "Reações e estatísticas",
-                "transition": "Zoom",
-            },
 
             {
-                "start_second": 40,
-                "end_second": 45,
-                "voice": "Conclusão",
-                "caption": "Comenta a tua opinião",
-                "visual": "Imagem final forte",
-                "transition": "Fade out",
+                "scene_number": 3,
+                "asset": "Main highlight clip",
+                "camera_movement": "Slow motion",
+                "editing_pace": "Dynamic",
+                "sound_effect": "Cinematic impact",
+                "subtitle": "O momento decisivo",
+                "subtitle_style": "High contrast",
+                "visual_description": "A jogada ou momento principal",
+                "visual_type": "Video",
+                "voiceover": "A parte que mudou tudo",
+            },
+
+
+            {
+                "scene_number": 4,
+                "asset": "Reaction/statistics footage",
+                "camera_movement": "Pan and zoom",
+                "editing_pace": "Medium",
+                "sound_effect": "Trending sound",
+                "subtitle": "A reação dos fãs",
+                "subtitle_style": "Social media style",
+                "visual_description": "Reações, comentários e dados",
+                "visual_type": "Video",
+                "voiceover": "Porque este momento está a gerar debate",
+            },
+
+
+            {
+                "scene_number": 5,
+                "asset": "Final football video",
+                "camera_movement": "Slow zoom out",
+                "editing_pace": "Slow finish",
+                "sound_effect": "Outro sound",
+                "subtitle": "Qual é a tua opinião?",
+                "subtitle_style": "Call to action",
+                "visual_description": "Fecho do Short com chamada à interação",
+                "visual_type": "Video",
+                "voiceover": "Comenta e segue para mais histórias",
             },
 
         ],
@@ -415,6 +439,7 @@ def save_package(
 
 
 def main() -> int:
+
 
     logger.info(
         "A carregar digest."
