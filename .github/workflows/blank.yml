@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   generate-digest:
-    name: Gerar digest com GPT-5.5
+    name: Gerar briefing de Shorts
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -43,7 +43,8 @@ jobs:
             src/select_topics.py \
             src/build_prompt.py \
             src/openai_client.py \
-            src/generate_digest.py
+            src/generate_digest.py \
+            src/render_email.py
 
       - name: Confirmar segredo OpenAI
         shell: bash
@@ -59,30 +60,101 @@ jobs:
         run: |
           python src/generate_digest.py
 
-      - name: Validar digest produzido
+      - name: Gerar email HTML
+        run: |
+          python src/render_email.py
+
+      - name: Validar ficheiros produzidos
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          path = Path("output/digest.json")
+          digest_path = Path("output/digest.json")
+          html_path = Path("output/digest.html")
+          prompt_path = Path("output/last_prompt.txt")
 
-          if not path.is_file():
-              raise SystemExit("output/digest.json não foi criado.")
+          if not digest_path.is_file():
+              raise SystemExit(
+                  "output/digest.json não foi criado."
+              )
 
-          payload = json.loads(path.read_text(encoding="utf-8"))
+          if not html_path.is_file():
+              raise SystemExit(
+                  "output/digest.html não foi criado."
+              )
+
+          if not prompt_path.is_file():
+              raise SystemExit(
+                  "output/last_prompt.txt não foi criado."
+              )
+
+          payload = json.loads(
+              digest_path.read_text(encoding="utf-8")
+          )
+
           topics = payload.get("topics")
 
           if not isinstance(topics, list):
-              raise SystemExit("O campo topics não é uma lista.")
+              raise SystemExit(
+                  "O campo topics não é uma lista."
+              )
 
           if len(topics) != 5:
               raise SystemExit(
                   f"Esperados 5 temas; encontrados {len(topics)}."
               )
 
+          required_fields = {
+              "title",
+              "hook",
+              "script",
+              "thumbnail",
+              "hashtags",
+              "viral_score",
+              "urgency",
+              "reason",
+              "source_title",
+              "source_name",
+              "source_url",
+          }
+
+          for index, topic in enumerate(topics, start=1):
+              if not isinstance(topic, dict):
+                  raise SystemExit(
+                      f"O tema {index} não é um objeto JSON."
+                  )
+
+              missing = required_fields - topic.keys()
+
+              if missing:
+                  raise SystemExit(
+                      f"O tema {index} não contém os campos: "
+                      f"{sorted(missing)}"
+                  )
+
+          html = html_path.read_text(encoding="utf-8")
+
+          if "<!doctype html>" not in html.lower():
+              raise SystemExit(
+                  "O ficheiro HTML não tem uma estrutura válida."
+              )
+
+          if "Football Shorts AI" not in html:
+              raise SystemExit(
+                  "O título esperado não existe no HTML."
+              )
+
+          if "@dinamegaz2014" not in html:
+              raise SystemExit(
+                  "O canal esperado não aparece no HTML."
+              )
+
           print("Digest JSON validado.")
+          print("Email HTML validado.")
+          print("Snapshot do prompt validado.")
           print(f"Temas: {len(topics)}")
+          print(f"HTML: {len(html)} caracteres")
           PY
 
       - name: Publicar artefactos
@@ -92,6 +164,7 @@ jobs:
           name: football-shorts-digest
           path: |
             output/digest.json
+            output/digest.html
             output/last_prompt.txt
           if-no-files-found: warn
           retention-days: 7
