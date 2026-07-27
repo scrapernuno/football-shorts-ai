@@ -154,6 +154,11 @@ jobs:
           ]
 
 
+          allowed_empty_files = {
+              "dashboard/.nojekyll",
+          }
+
+
           for filename in required_files:
               path = Path(filename)
 
@@ -162,7 +167,10 @@ jobs:
                       f"Ficheiro em falta: {filename}"
                   )
 
-              if path.stat().st_size <= 0:
+              if (
+                  path.stat().st_size <= 0
+                  and filename not in allowed_empty_files
+              ):
                   raise SystemExit(
                       f"Ficheiro vazio: {filename}"
                   )
