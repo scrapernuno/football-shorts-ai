@@ -252,7 +252,7 @@ def normalize_storyboard() -> dict:
                 ),
 
                 "camera_movement": "pan_right",
-                "editing_pace": "Medium",
+                "editing_pace": "medium",
                 "sound_effect": "Trending sound",
 
                 "subtitle": "A reação dos fãs",
