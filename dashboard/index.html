@@ -1,140 +1,565 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
-
 <head>
+    <meta charset="UTF-8">
 
-<meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="description"
+        content="Football Shorts AI editorial and production dashboard"
+    >
 
-<title>
-Football Shorts AI Dashboard
-</title>
+    <title>Football Shorts AI</title>
 
-<link rel="stylesheet" href="assets/dashboard.css">
-
+    <link
+        rel="stylesheet"
+        href="assets/dashboard.css"
+    >
 </head>
-
 
 <body>
 
+    <div
+        id="loading-screen"
+        class="loading-screen"
+        role="status"
+        aria-live="polite"
+    >
+        <div class="loading-spinner"></div>
 
-<header class="header">
-
-<h1>
-⚽ Football Shorts AI
-</h1>
-
-<div id="status">
-A carregar...
-</div>
-
-</header>
-
-
-
-<main>
+        <p>
+            A carregar Football Shorts AI…
+        </p>
+    </div>
 
 
-<section class="card hero">
+    <div
+        id="application"
+        class="application hidden"
+    >
 
-<h2>
-Top Short
-</h2>
+        <header class="topbar">
 
+            <div class="brand">
 
-<div id="top-short">
-</div>
+                <div
+                    class="brand-icon"
+                    aria-hidden="true"
+                >
+                    ⚽
+                </div>
 
+                <div>
+                    <p class="eyebrow">
+                        CONTENT INTELLIGENCE PLATFORM
+                    </p>
 
-</section>
+                    <h1>
+                        Football Shorts AI
+                    </h1>
+                </div>
 
-
-
-
-<section class="grid">
-
-
-<div class="card">
-
-<h2>
-Metrics
-</h2>
-
-<div id="metrics">
-</div>
-
-</div>
+            </div>
 
 
+            <div class="topbar-status">
 
-<div class="card">
+                <div class="status-pill">
+                    <span class="status-dot"></span>
 
-<h2>
-Hooks
-</h2>
+                    <span>
+                        ONLINE
+                    </span>
+                </div>
 
-<div id="hooks">
-</div>
+                <p id="generated-at">
+                    —
+                </p>
 
-</div>
+            </div>
 
-
-</section>
-
-
-
-
-<section class="card">
-
-<h2>
-Ranking
-</h2>
-
-<div id="ranking">
-</div>
-
-</section>
+        </header>
 
 
+        <nav
+            class="navigation"
+            aria-label="Navegação da dashboard"
+        >
+            <a href="#overview">
+                Overview
+            </a>
+
+            <a href="#ranking">
+                Ranking
+            </a>
+
+            <a href="#storyboard">
+                Storyboard
+            </a>
+
+            <a href="#production">
+                Production
+            </a>
+        </nav>
 
 
+        <main class="dashboard">
 
-<section class="card">
+            <section
+                id="overview"
+                class="hero-card"
+            >
 
-<h2>
-Storyboard
-</h2>
+                <div class="hero-copy">
 
-<div id="storyboard">
-</div>
+                    <div class="section-heading">
 
-</section>
+                        <div>
+                            <p class="eyebrow">
+                                EDITORIAL WINNER
+                            </p>
 
+                            <h2>
+                                Top Short
+                            </h2>
+                        </div>
 
+                        <span
+                            id="winner-priority"
+                            class="rank-badge"
+                        >
+                            #1
+                        </span>
 
-
-
-<section class="card">
-
-<h2>
-Assets
-</h2>
-
-<div id="assets">
-</div>
-
-</section>
-
-
-
-</main>
-
+                    </div>
 
 
-<script src="assets/dashboard.js"></script>
+                    <h3 id="top-title">
+                        —
+                    </h3>
 
+                    <p
+                        id="top-hook"
+                        class="hero-hook"
+                    >
+                        —
+                    </p>
+
+
+                    <div class="hero-meta">
+
+                        <span id="channel-name">
+                            —
+                        </span>
+
+                        <span>
+                            YouTube Shorts
+                        </span>
+
+                        <span>
+                            45 segundos
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="viral-score-panel">
+
+                    <p class="metric-label">
+                        Viral Probability
+                    </p>
+
+                    <div class="score-ring">
+
+                        <div class="score-ring-inner">
+
+                            <strong id="viral-probability">
+                                0%
+                            </strong>
+
+                            <span>
+                                score
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="progress-track">
+                        <div
+                            id="viral-progress"
+                            class="progress-value"
+                        ></div>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="metric-grid">
+
+                <article class="metric-card">
+
+                    <p class="metric-label">
+                        Views previstas
+                    </p>
+
+                    <strong id="views-range">
+                        Dados indisponíveis
+                    </strong>
+
+                    <span>
+                        Intervalo estimado
+                    </span>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <p class="metric-label">
+                        Confiança
+                    </p>
+
+                    <strong id="confidence-score">
+                        Dados indisponíveis
+                    </strong>
+
+                    <span>
+                        Confiança editorial
+                    </span>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <p class="metric-label">
+                        Comment Rate
+                    </p>
+
+                    <strong id="comment-rate">
+                        Dados indisponíveis
+                    </strong>
+
+                    <span>
+                        Engagement previsto
+                    </span>
+
+                </article>
+
+
+                <article class="metric-card">
+
+                    <p class="metric-label">
+                        Cenas
+                    </p>
+
+                    <strong id="scene-count">
+                        0
+                    </strong>
+
+                    <span>
+                        Storyboard planeado
+                    </span>
+
+                </article>
+
+            </section>
+
+
+            <section class="two-column-grid">
+
+                <article class="panel">
+
+                    <div class="section-heading">
+
+                        <div>
+                            <p class="eyebrow">
+                                EDITORIAL
+                            </p>
+
+                            <h2>
+                                Hooks
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    <div id="hooks-list">
+                        <p class="empty-state">
+                            Sem hooks disponíveis.
+                        </p>
+                    </div>
+
+                </article>
+
+
+                <article class="panel">
+
+                    <div class="section-heading">
+
+                        <div>
+                            <p class="eyebrow">
+                                PERFORMANCE
+                            </p>
+
+                            <h2>
+                                Readiness
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    <div class="readiness-list">
+
+                        <div class="readiness-item">
+                            <span>
+                                Editorial package
+                            </span>
+
+                            <strong class="status-success">
+                                READY
+                            </strong>
+                        </div>
+
+                        <div class="readiness-item">
+                            <span>
+                                Content production
+                            </span>
+
+                            <strong class="status-success">
+                                READY
+                            </strong>
+                        </div>
+
+                        <div class="readiness-item">
+                            <span>
+                                Publishing
+                            </span>
+
+                            <strong class="status-warning">
+                                DRAFT
+                            </strong>
+                        </div>
+
+                        <div class="readiness-item">
+                            <span>
+                                Analytics
+                            </span>
+
+                            <strong class="status-neutral">
+                                PENDING
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <section
+                id="ranking"
+                class="panel"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="eyebrow">
+                            EDITORIAL PRIORITY
+                        </p>
+
+                        <h2>
+                            Ranking de conteúdos
+                        </h2>
+                    </div>
+
+                    <span
+                        id="ranking-count"
+                        class="count-badge"
+                    >
+                        0 temas
+                    </span>
+
+                </div>
+
+                <div
+                    id="ranking-list"
+                    class="ranking-list"
+                >
+                    <p class="empty-state">
+                        Sem ranking disponível.
+                    </p>
+                </div>
+
+            </section>
+
+
+            <section
+                id="storyboard"
+                class="panel"
+            >
+
+                <div class="section-heading">
+
+                    <div>
+                        <p class="eyebrow">
+                            VIDEO PRODUCTION
+                        </p>
+
+                        <h2>
+                            Storyboard
+                        </h2>
+                    </div>
+
+                    <span
+                        id="storyboard-duration"
+                        class="count-badge"
+                    >
+                        0 segundos
+                    </span>
+
+                </div>
+
+                <div
+                    id="storyboard-list"
+                    class="storyboard-list"
+                >
+                    <p class="empty-state">
+                        Sem storyboard disponível.
+                    </p>
+                </div>
+
+            </section>
+
+
+            <section
+                id="production"
+                class="two-column-grid"
+            >
+
+                <article class="panel">
+
+                    <div class="section-heading">
+
+                        <div>
+                            <p class="eyebrow">
+                                ASSET PLANNING
+                            </p>
+
+                            <h2>
+                                Recursos visuais
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    <div id="assets-list">
+                        <p class="empty-state">
+                            Os assets serão apresentados a partir
+                            do storyboard.
+                        </p>
+                    </div>
+
+                </article>
+
+
+                <article class="panel">
+
+                    <div class="section-heading">
+
+                        <div>
+                            <p class="eyebrow">
+                                SYSTEM
+                            </p>
+
+                            <h2>
+                                Pipeline
+                            </h2>
+                        </div>
+
+                    </div>
+
+                    <ol class="pipeline-list">
+
+                        <li class="pipeline-complete">
+                            News Digest
+                        </li>
+
+                        <li class="pipeline-complete">
+                            Editorial Intelligence
+                        </li>
+
+                        <li class="pipeline-complete">
+                            Dashboard Model
+                        </li>
+
+                        <li class="pipeline-complete">
+                            Content Production
+                        </li>
+
+                        <li class="pipeline-complete">
+                            Publishing Package
+                        </li>
+
+                        <li class="pipeline-complete">
+                            Analytics Package
+                        </li>
+
+                    </ol>
+
+                </article>
+
+            </section>
+
+
+            <section
+                id="dashboard-error"
+                class="error-panel hidden"
+                role="alert"
+            >
+                <h2>
+                    Não foi possível carregar a dashboard
+                </h2>
+
+                <p id="dashboard-error-message">
+                    Erro desconhecido.
+                </p>
+            </section>
+
+        </main>
+
+
+        <footer class="footer">
+
+            <span>
+                Football Shorts AI
+            </span>
+
+            <span>
+                Pipeline v1.0
+            </span>
+
+            <span>
+                Read-only dashboard
+            </span>
+
+        </footer>
+
+    </div>
+
+
+    <script src="assets/dashboard.js"></script>
 
 </body>
-
 </html>
