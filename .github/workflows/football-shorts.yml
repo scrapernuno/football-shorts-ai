@@ -121,6 +121,14 @@ jobs:
 
 
 
+      - name: Sync Dashboard Data
+
+        run: |
+
+          PYTHONPATH=src python src/dashboard/sync_dashboard.py
+
+
+
       - name: Generate HTML
 
         run: |
@@ -149,6 +157,8 @@ jobs:
               "output/dashboard_model.json",
 
               "output/digest.html",
+
+              "dashboard/data/dashboard_model.json",
 
           ]
 
@@ -273,3 +283,5 @@ jobs:
           path: |
 
             output/
+
+            dashboard/
