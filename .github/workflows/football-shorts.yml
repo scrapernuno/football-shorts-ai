@@ -1,24 +1,34 @@
 name: Football Shorts AI Pipeline
 
+
 on:
+
   workflow_dispatch:
 
+
 permissions:
+
   contents: read
+
 
 
 jobs:
 
   football-shorts:
 
+
     name: Football Shorts AI Pipeline
 
+
     runs-on: ubuntu-latest
+
 
     timeout-minutes: 25
 
 
+
     env:
+
 
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
@@ -31,6 +41,7 @@ jobs:
       OPENAI_MAX_OUTPUT_TOKENS: "7000"
 
       PYTHONUNBUFFERED: "1"
+
 
 
     steps:
@@ -129,6 +140,14 @@ jobs:
 
 
 
+      - name: Build Content Production Package
+
+        run: |
+
+          PYTHONPATH=src python src/production/build_content_package.py
+
+
+
       - name: Generate HTML
 
         run: |
@@ -148,6 +167,7 @@ jobs:
           from pathlib import Path
 
 
+
           files = [
 
               "output/digest.json",
@@ -156,11 +176,12 @@ jobs:
 
               "output/dashboard_model.json",
 
+              "output/content_package.json",
+
               "output/digest.html",
 
-              "dashboard/data/dashboard_model.json",
-
           ]
+
 
 
           for file in files:
@@ -172,22 +193,53 @@ jobs:
                   )
 
 
+
           digest = json.loads(
+
               Path("output/digest.json")
-              .read_text(encoding="utf-8")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
           )
+
 
 
           editorial = json.loads(
+
               Path("output/editorial_package.json")
-              .read_text(encoding="utf-8")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
           )
+
 
 
           dashboard = json.loads(
+
               Path("output/dashboard_model.json")
-              .read_text(encoding="utf-8")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
           )
+
+
+
+          content = json.loads(
+
+              Path("output/content_package.json")
+
+              .read_text(
+                  encoding="utf-8"
+              )
+
+          )
+
 
 
           if len(digest.get("topics", [])) != 5:
@@ -197,11 +249,13 @@ jobs:
               )
 
 
+
           if len(editorial.get("topics", [])) != 5:
 
               raise SystemExit(
                   "Editorial package inválido"
               )
+
 
 
           required_dashboard = {
@@ -227,18 +281,83 @@ jobs:
           }
 
 
-          missing = (
+
+          missing_dashboard = (
+
               required_dashboard
+
               -
+
               dashboard.keys()
+
           )
 
 
-          if missing:
+
+          if missing_dashboard:
 
               raise SystemExit(
-                  f"Dashboard incompleta: {missing}"
+
+                  f"Dashboard incompleta: {missing_dashboard}"
+
               )
+
+
+
+          required_content = {
+
+              "package_version",
+
+              "generated_at",
+
+              "source_topic",
+
+              "script",
+
+              "voiceover",
+
+              "scenes",
+
+              "captions",
+
+              "assets",
+
+              "publishing",
+
+          }
+
+
+
+          missing_content = (
+
+              required_content
+
+              -
+
+              content.keys()
+
+          )
+
+
+
+          if missing_content:
+
+              raise SystemExit(
+
+                  f"Content package incompleto: {missing_content}"
+
+              )
+
+
+
+          if content["source_topic"]["priority"] != 1:
+
+              raise SystemExit(
+
+                  "Content package não usa winner priority 1"
+
+              )
+
 
 
           print("=" * 70)
@@ -248,20 +367,35 @@ jobs:
           print("=" * 70)
 
           print(
+
               f"Digest topics: {len(digest['topics'])}"
+
           )
 
           print(
+
               f"Editorial topics: {len(editorial['topics'])}"
+
           )
 
           print(
+
               f"Dashboard ranking: {len(dashboard['ranking'])}"
+
           )
 
           print(
-              f"Top Short: {dashboard['top_title']}"
+
+              f"Production scenes: {len(content['scenes'])}"
+
           )
+
+          print(
+
+              f"Winner: {content['source_topic']['title']}"
+
+          )
+
 
 
           PY
@@ -272,16 +406,20 @@ jobs:
 
         if: always()
 
+
         uses: actions/upload-artifact@v4
+
 
         with:
 
+
           name: football-shorts-ai-output
+
 
           retention-days: 7
 
+
           path: |
 
-            output/
 
-            dashboard/
+            output/
