@@ -17,18 +17,35 @@ class NewsItem:
 RSS_FEEDS = {
     "BBC Sport Football": "https://feeds.bbci.co.uk/sport/football/rss.xml",
     "ESPN FC": "https://www.espn.com/espn/rss/soccer/news",
+    "The Guardian Football": "https://www.theguardian.com/football/rss",
 }
 
 
 def collect_feed(source: str, url: str) -> list[NewsItem]:
-    feed = feedparser.parse(url)
+    print(f"[INFO] A recolher notícias de: {source}")
+
+    feed = feedparser.parse(
+        url,
+        request_headers={
+            "User-Agent": (
+                "Mozilla/5.0 FootballShortsAI/1.0 "
+                "(GitHub Actions; news aggregation)"
+            )
+        },
+    )
+
+    status = getattr(feed, "status", "desconhecido")
+    entries = list(getattr(feed, "entries", []))
+
+    print(f"[INFO] {source}: HTTP={status}, entradas={len(entries)}")
 
     if getattr(feed, "bozo", False):
-        print(f"[AVISO] Não foi possível ler corretamente: {source}")
+        error = getattr(feed, "bozo_exception", "erro desconhecido")
+        print(f"[AVISO] Feed com erro em {source}: {error}")
 
     items: list[NewsItem] = []
 
-    for entry in feed.entries[:20]:
+    for entry in entries[:20]:
         title = str(entry.get("title", "")).strip()
         link = str(entry.get("link", "")).strip()
         published = str(
@@ -47,7 +64,13 @@ def collect_feed(source: str, url: str) -> list[NewsItem]:
             )
         )
 
+    print(f"[INFO] {source}: notícias válidas={len(items)}")
+
     return items
+
+
+def normalize_title(title: str) -> str:
+    return " ".join(title.casefold().split())
 
 
 def remove_duplicates(items: Iterable[NewsItem]) -> list[NewsItem]:
@@ -55,7 +78,7 @@ def remove_duplicates(items: Iterable[NewsItem]) -> list[NewsItem]:
     seen_titles: set[str] = set()
 
     for item in items:
-        normalized_title = item.title.casefold()
+        normalized_title = normalize_title(item.title)
 
         if normalized_title in seen_titles:
             continue
@@ -70,8 +93,10 @@ def collect_all_news() -> list[NewsItem]:
     collected: list[NewsItem] = []
 
     for source, url in RSS_FEEDS.items():
-        print(f"[INFO] A recolher notícias de: {source}")
-        collected.extend(collect_feed(source, url))
+        try:
+            collected.extend(collect_feed(source, url))
+        except Exception as exc:
+            print(f"[ERRO] Falha inesperada em {source}: {exc}")
 
     return remove_duplicates(collected)
 
@@ -84,7 +109,24 @@ def main() -> None:
     print(f"TOTAL DE NOTÍCIAS RECOLHIDAS: {len(news)}")
     print("=" * 70)
 
-    for index, item in enumerate(news[:15], start=1):
+    if not news:
+        raise SystemExit("Nenhuma notícia foi recolhida.")
+
+    source_totals: dict[str, int] = {}
+
+    for item in news:
+        source_totals[item.source] = source_totals.get(item.source, 0) + 1
+
+    print("NOTÍCIAS POR FONTE")
+
+    for source, total in sorted(source_totals.items()):
+        print(f"- {source}: {total}")
+
+    print()
+    print("PRIMEIRAS 20 NOTÍCIAS")
+    print()
+
+    for index, item in enumerate(news[:20], start=1):
         print(f"{index}. [{item.source}] {item.title}")
         print(f"   Data: {item.published}")
         print(f"   Link: {item.link}")
