@@ -1,9 +1,19 @@
 {
-  "title": "",
-  "hook": "",
+  "package_version": "1.0",
+
+  "generated_at": "",
+
+  "source_topic": {},
+
   "script": {},
+
   "voiceover": {},
+
   "scenes": [],
+
   "captions": [],
+
+  "assets": [],
+
   "publishing": {}
 }
