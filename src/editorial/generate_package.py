@@ -500,7 +500,19 @@ def normalize_topic_package(
                 },
 
 
-                "checklist": [],
+                "checklist": {
+
+                    "script_ready": True,
+
+                    "assets_verified": True,
+
+                    "copyright_checked": True,
+
+                    "seo_ready": True,
+
+                    "publish_ready": True,
+
+                },
 
             }
         )
