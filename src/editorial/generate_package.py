@@ -502,15 +502,19 @@ def normalize_topic_package(
 
                 "checklist": {
 
-                    "script_ready": True,
+                    "call_to_action_present": True,
 
-                    "assets_verified": True,
+                    "duration_valid": True,
 
-                    "copyright_checked": True,
+                    "hook_first_two_seconds": True,
 
-                    "seo_ready": True,
+                    "missing_assets": [],
 
-                    "publish_ready": True,
+                    "pinned_comment_present": True,
+
+                    "sources_require_confirmation": False,
+
+                    "thumbnail_short": True,
 
                 },
 
