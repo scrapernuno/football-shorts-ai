@@ -1,12 +1,15 @@
 "use strict";
 
 
-const DASHBOARD_MODEL_URL =
-    "data/dashboard_model.json";
+const DATA_FILES = {
+    dashboard: "data/dashboard_model.json",
+    content: "data/content_package.json",
+    publishing: "data/publishing_package.json",
+    analytics: "data/analytics_package.json",
+};
 
 
 function isObject(value) {
-
     return (
         value !== null
         &&
@@ -14,16 +17,11 @@ function isObject(value) {
         &&
         !Array.isArray(value)
     );
-
 }
 
 
-function firstDefined(
-    ...values
-) {
-
+function firstDefined(...values) {
     for (const value of values) {
-
         if (
             value !== undefined
             &&
@@ -31,15 +29,11 @@ function firstDefined(
             &&
             value !== ""
         ) {
-
             return value;
-
         }
-
     }
 
     return null;
-
 }
 
 
@@ -47,42 +41,28 @@ function toNumber(
     value,
     fallback = 0,
 ) {
-
     if (
         typeof value === "number"
         &&
         Number.isFinite(value)
     ) {
-
         return value;
-
     }
 
-
     if (typeof value === "string") {
-
         const normalized = value
             .replace("%", "")
             .replace(",", ".")
             .trim();
 
-
-        const parsed = Number(
-            normalized
-        );
-
+        const parsed = Number(normalized);
 
         if (Number.isFinite(parsed)) {
-
             return parsed;
-
         }
-
     }
 
-
     return fallback;
-
 }
 
 
@@ -91,7 +71,6 @@ function clamp(
     minimum,
     maximum,
 ) {
-
     return Math.min(
         Math.max(
             value,
@@ -99,7 +78,6 @@ function clamp(
         ),
         maximum,
     );
-
 }
 
 
@@ -107,60 +85,45 @@ function safeText(
     value,
     fallback = "Dados indisponíveis",
 ) {
-
     if (
         typeof value === "string"
         &&
         value.trim()
     ) {
-
         return value.trim();
-
     }
-
 
     if (
         typeof value === "number"
         &&
         Number.isFinite(value)
     ) {
-
         return String(value);
-
     }
 
-
     return fallback;
-
 }
 
 
 function escapeHtml(value) {
-
     return String(value)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
-
 }
 
 
 function formatInteger(value) {
-
     const number = toNumber(
         value,
         NaN,
     );
 
-
     if (!Number.isFinite(number)) {
-
-        return null;
-
+        return "0";
     }
-
 
     return new Intl.NumberFormat(
         "pt-PT",
@@ -168,24 +131,18 @@ function formatInteger(value) {
             maximumFractionDigits: 0,
         },
     ).format(number);
-
 }
 
 
 function formatPercent(value) {
-
     const number = toNumber(
         value,
         NaN,
     );
 
-
     if (!Number.isFinite(number)) {
-
-        return null;
-
+        return "0%";
     }
-
 
     return (
         new Intl.NumberFormat(
@@ -197,36 +154,46 @@ function formatPercent(value) {
         +
         "%"
     );
+}
 
+
+function formatSeconds(value) {
+    const number = toNumber(
+        value,
+        0,
+    );
+
+    return (
+        new Intl.NumberFormat(
+            "pt-PT",
+            {
+                maximumFractionDigits: 1,
+            },
+        ).format(number)
+        +
+        "s"
+    );
 }
 
 
 function formatDate(value) {
-
     if (
         typeof value !== "string"
         ||
         !value.trim()
     ) {
-
         return "Data indisponível";
-
     }
 
-
     const date = new Date(value);
-
 
     if (
         Number.isNaN(
             date.getTime()
         )
     ) {
-
         return value;
-
     }
-
 
     return new Intl.DateTimeFormat(
         "pt-PT",
@@ -236,425 +203,6 @@ function formatDate(value) {
             timeZone: "Europe/Lisbon",
         },
     ).format(date);
-
-}
-
-
-function getMetrics(model) {
-
-    const metrics = isObject(
-        model.metrics
-    )
-        ? model.metrics
-        : {};
-
-
-    const analytics = isObject(
-        model.analytics
-    )
-        ? model.analytics
-        : {};
-
-
-    return {
-
-        viewsLow: firstDefined(
-            metrics.predicted_views_low,
-            metrics.views_low,
-            metrics.low_views,
-            analytics.predicted_views_low,
-            model.predicted_views_low,
-        ),
-
-
-        viewsHigh: firstDefined(
-            metrics.predicted_views_high,
-            metrics.views_high,
-            metrics.high_views,
-            analytics.predicted_views_high,
-            model.predicted_views_high,
-        ),
-
-
-        confidence: firstDefined(
-            metrics.confidence_score,
-            metrics.confidence,
-            analytics.confidence_score,
-            model.confidence_score,
-        ),
-
-
-        commentRate: firstDefined(
-            metrics.predicted_comment_rate_percent,
-            metrics.comment_rate_percent,
-            metrics.comments_percent,
-            analytics.predicted_comment_rate_percent,
-            model.predicted_comment_rate_percent,
-        ),
-
-    };
-
-}
-
-
-function getHooks(model) {
-
-    const hooks = model.hooks;
-
-
-    let primary = firstDefined(
-        model.top_hook,
-        model.primary_hook,
-    );
-
-
-    let alternatives = [];
-
-
-    if (isObject(hooks)) {
-
-        primary = firstDefined(
-            hooks.primary,
-            hooks.primary_hook,
-            hooks.main,
-            primary,
-        );
-
-
-        const candidateAlternatives = firstDefined(
-            hooks.alternatives,
-            hooks.alternative_hooks,
-            hooks.items,
-        );
-
-
-        if (
-            Array.isArray(
-                candidateAlternatives
-            )
-        ) {
-
-            alternatives =
-                candidateAlternatives;
-
-        }
-
-    }
-
-
-    if (Array.isArray(hooks)) {
-
-        alternatives = hooks;
-
-    }
-
-
-    alternatives = alternatives
-        .map((item) => {
-
-            if (typeof item === "string") {
-
-                return item;
-
-            }
-
-
-            if (isObject(item)) {
-
-                return firstDefined(
-                    item.text,
-                    item.hook,
-                    item.value,
-                    item.title,
-                );
-
-            }
-
-
-            return null;
-
-        })
-        .filter(Boolean);
-
-
-    return {
-        primary:
-            safeText(
-                primary,
-                "Hook principal indisponível.",
-            ),
-
-        alternatives:
-            alternatives,
-    };
-
-}
-
-
-function getRanking(model) {
-
-    if (
-        !Array.isArray(
-            model.ranking
-        )
-    ) {
-
-        return [];
-
-    }
-
-
-    return model.ranking
-        .filter(isObject)
-        .map(
-            (
-                item,
-                index,
-            ) => {
-
-                const probability = clamp(
-                    toNumber(
-                        firstDefined(
-                            item.viral_probability,
-                            item.viral_score,
-                            item.score,
-                        ),
-                        0,
-                    ),
-                    0,
-                    100,
-                );
-
-
-                return {
-
-                    priority:
-                        toNumber(
-                            firstDefined(
-                                item.priority,
-                                item.position,
-                                item.rank,
-                            ),
-                            index + 1,
-                        ),
-
-
-                    title:
-                        safeText(
-                            firstDefined(
-                                item.title,
-                                item.primary_title,
-                                item.topic,
-                            ),
-                            `Tema ${index + 1}`,
-                        ),
-
-
-                    hook:
-                        safeText(
-                            firstDefined(
-                                item.hook,
-                                item.primary_hook,
-                                item.reason,
-                            ),
-                            "Sem descrição editorial.",
-                        ),
-
-
-                    viralProbability:
-                        probability,
-
-                };
-
-            },
-        )
-        .sort(
-            (
-                left,
-                right,
-            ) => {
-
-                return (
-                    left.priority
-                    -
-                    right.priority
-                );
-
-            },
-        );
-
-}
-
-
-function getStoryboard(model) {
-
-    const source = model.storyboard;
-
-
-    if (Array.isArray(source)) {
-
-        return source;
-
-    }
-
-
-    if (
-        isObject(source)
-        &&
-        Array.isArray(
-            source.scenes
-        )
-    ) {
-
-        return source.scenes;
-
-    }
-
-
-    return [];
-
-}
-
-
-function normalizeScene(
-    scene,
-    index,
-) {
-
-    const startSecond = toNumber(
-        firstDefined(
-            scene.start_second,
-            scene.start,
-        ),
-        0,
-    );
-
-
-    const endSecond = toNumber(
-        firstDefined(
-            scene.end_second,
-            scene.end,
-        ),
-        startSecond,
-    );
-
-
-    const asset = isObject(
-        scene.asset
-    )
-        ? scene.asset
-        : {};
-
-
-    return {
-
-        number:
-            toNumber(
-                firstDefined(
-                    scene.scene_number,
-                    scene.number,
-                ),
-                index + 1,
-            ),
-
-
-        startSecond:
-            startSecond,
-
-
-        endSecond:
-            endSecond,
-
-
-        title:
-            safeText(
-                firstDefined(
-                    scene.subtitle,
-                    scene.caption_text,
-                    scene.title,
-                ),
-                `Cena ${index + 1}`,
-            ),
-
-
-        description:
-            safeText(
-                firstDefined(
-                    scene.visual_description,
-                    scene.visual_instruction,
-                    scene.voiceover,
-                    scene.description,
-                ),
-                "Descrição visual indisponível.",
-            ),
-
-
-        voiceover:
-            safeText(
-                firstDefined(
-                    scene.voiceover,
-                    scene.voiceover_segment,
-                ),
-                "Voice-over não definido.",
-            ),
-
-
-        visualType:
-            safeText(
-                firstDefined(
-                    scene.visual_type,
-                    asset.asset_type,
-                ),
-                "video",
-            ),
-
-
-        cameraMovement:
-            safeText(
-                firstDefined(
-                    scene.camera_movement,
-                    scene.camera_direction,
-                ),
-                "static",
-            ),
-
-
-        editingPace:
-            safeText(
-                scene.editing_pace,
-                "medium",
-            ),
-
-
-        transition:
-            safeText(
-                scene.transition,
-                "cut",
-            ),
-
-
-        assetDescription:
-            safeText(
-                firstDefined(
-                    asset.description,
-                    asset.fallback_description,
-                    scene.asset_reference,
-                ),
-                "Asset por definir.",
-            ),
-
-
-        assetSource:
-            safeText(
-                firstDefined(
-                    asset.preferred_source,
-                    asset.source,
-                ),
-                "Fonte por confirmar.",
-            ),
-
-    };
-
 }
 
 
@@ -662,192 +210,547 @@ function setText(
     id,
     value,
 ) {
-
     const element =
         document.getElementById(id);
 
-
     if (element) {
-
         element.textContent = value;
-
     }
-
 }
 
 
-function renderHeader(model) {
+function setStatus(
+    id,
+    value,
+) {
+    const element =
+        document.getElementById(id);
 
+    if (!element) {
+        return;
+    }
+
+    const normalized = safeText(
+        value,
+        "UNKNOWN",
+    ).toUpperCase();
+
+    element.textContent = normalized;
+
+    element.classList.remove(
+        "status-success",
+        "status-warning",
+        "status-neutral",
+    );
+
+    if (
+        normalized === "READY"
+        ||
+        normalized === "COMPLETE"
+        ||
+        normalized === "PUBLISHED"
+    ) {
+        element.classList.add(
+            "status-success"
+        );
+        return;
+    }
+
+    if (
+        normalized === "DRAFT"
+        ||
+        normalized === "SCHEDULED"
+    ) {
+        element.classList.add(
+            "status-warning"
+        );
+        return;
+    }
+
+    element.classList.add(
+        "status-neutral"
+    );
+}
+
+
+async function fetchJson(
+    name,
+    url,
+) {
+    const response = await fetch(
+        url,
+        {
+            cache: "no-store",
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `${name}: HTTP ${response.status}`
+        );
+    }
+
+    const payload = await response.json();
+
+    if (!isObject(payload)) {
+        throw new Error(
+            `${name} não contém um objeto JSON válido.`
+        );
+    }
+
+    return payload;
+}
+
+
+async function loadProductionStudioData() {
+    const entries = await Promise.all(
+        Object.entries(DATA_FILES)
+            .map(
+                async (
+                    [name, url],
+                ) => {
+                    const payload =
+                        await fetchJson(
+                            name,
+                            url,
+                        );
+
+                    return [
+                        name,
+                        payload,
+                    ];
+                },
+            ),
+    );
+
+    return Object.fromEntries(
+        entries
+    );
+}
+
+
+function getDashboardMetrics(
+    dashboard,
+) {
+    const metrics = isObject(
+        dashboard.metrics
+    )
+        ? dashboard.metrics
+        : {};
+
+    return {
+        viewsLow: firstDefined(
+            metrics.predicted_views_low,
+            metrics.views_low,
+            metrics.low_views,
+            dashboard.predicted_views_low,
+        ),
+
+        viewsHigh: firstDefined(
+            metrics.predicted_views_high,
+            metrics.views_high,
+            metrics.high_views,
+            dashboard.predicted_views_high,
+        ),
+
+        confidence: firstDefined(
+            metrics.confidence_score,
+            metrics.confidence,
+            dashboard.confidence_score,
+        ),
+
+        commentRate: firstDefined(
+            metrics.predicted_comment_rate_percent,
+            metrics.comment_rate_percent,
+            metrics.comments_percent,
+            dashboard.predicted_comment_rate_percent,
+        ),
+    };
+}
+
+
+function renderHeader(
+    dashboard,
+) {
     setText(
         "generated-at",
         formatDate(
-            model.generated_at
+            dashboard.generated_at
         ),
     );
-
 
     setText(
         "channel-name",
         safeText(
-            model.channel,
+            dashboard.channel,
             "Canal não definido",
         ),
     );
-
 }
 
 
-function renderWinner(model) {
+function renderOverview(
+    dashboard,
+    content,
+) {
+    const sourceTopic = isObject(
+        content.source_topic
+    )
+        ? content.source_topic
+        : {};
 
-    const probability = clamp(
+    const title = firstDefined(
+        sourceTopic.title,
+        dashboard.top_title,
+    );
+
+    const hook = firstDefined(
+        sourceTopic.hook,
+        dashboard.top_hook,
+    );
+
+    const viralProbability = clamp(
         toNumber(
-            model.viral_probability,
+            firstDefined(
+                sourceTopic.viral_probability,
+                dashboard.viral_probability,
+            ),
             0,
         ),
         0,
         100,
     );
 
-
     setText(
         "top-title",
         safeText(
-            model.top_title,
+            title,
             "Título indisponível",
         ),
     );
 
-
     setText(
         "top-hook",
         safeText(
-            model.top_hook,
+            hook,
             "Hook indisponível",
         ),
     );
 
-
     setText(
         "viral-probability",
-        `${Math.round(probability)}%`,
+        `${Math.round(viralProbability)}%`,
     );
 
+    setText(
+        "winner-priority",
+        `#${toNumber(
+            sourceTopic.priority,
+            1,
+        )}`,
+    );
+
+    const publishing = isObject(
+        content.publishing
+    )
+        ? content.publishing
+        : {};
+
+    setText(
+        "content-platform",
+        safeText(
+            publishing.platform,
+            "YouTube Shorts",
+        ),
+    );
+
+    const scenes = Array.isArray(
+        content.scenes
+    )
+        ? content.scenes
+        : [];
+
+    const totalDuration = scenes.reduce(
+        (
+            total,
+            scene,
+        ) => {
+            if (!isObject(scene)) {
+                return total;
+            }
+
+            return (
+                total
+                +
+                toNumber(
+                    scene.duration_seconds,
+                    0,
+                )
+            );
+        },
+        0,
+    );
+
+    setText(
+        "content-duration",
+        `${totalDuration} segundos`,
+    );
 
     const progress =
         document.getElementById(
             "viral-progress"
         );
 
-
     if (progress) {
-
         progress.style.width =
-            `${probability}%`;
-
+            `${viralProbability}%`;
     }
-
 
     const ring =
         document.querySelector(
             ".score-ring"
         );
 
-
     if (ring) {
-
         ring.style.setProperty(
             "--score-angle",
-            `${probability * 3.6}deg`,
+            `${viralProbability * 3.6}deg`,
         );
-
     }
-
 }
 
 
-function renderMetrics(
-    model,
-    sceneCount,
+function renderPipelineStatus(
+    content,
+    publishing,
+    analytics,
 ) {
-
-    const metrics =
-        getMetrics(model);
-
-
-    const low = formatInteger(
-        metrics.viewsLow
-    );
-
-
-    const high = formatInteger(
-        metrics.viewsHigh
-    );
-
-
-    const viewsText = (
-        low !== null
-        &&
-        high !== null
+    const scenes = Array.isArray(
+        content.scenes
     )
-        ? `${low} – ${high}`
-        : "Dados indisponíveis";
+        ? content.scenes
+        : [];
 
+    const publishingStatus = safeText(
+        publishing.status,
+        "draft",
+    );
+
+    const analyticsStatus = safeText(
+        analytics.status,
+        "pending",
+    );
+
+    setStatus(
+        "editorial-status",
+        "ready",
+    );
+
+    setStatus(
+        "production-status",
+        "ready",
+    );
+
+    setText(
+        "production-scene-count",
+        (
+            scenes.length === 1
+                ? "1 cena"
+                : `${scenes.length} cenas`
+        ),
+    );
+
+    setStatus(
+        "publishing-status",
+        publishingStatus,
+    );
+
+    setStatus(
+        "analytics-status",
+        analyticsStatus,
+    );
+
+    setStatus(
+        "readiness-editorial",
+        "ready",
+    );
+
+    setStatus(
+        "readiness-content",
+        "ready",
+    );
+
+    setStatus(
+        "readiness-publishing",
+        publishingStatus,
+    );
+
+    setStatus(
+        "readiness-analytics",
+        analyticsStatus,
+    );
+
+    setText(
+        "publishing-state-badge",
+        publishingStatus.toUpperCase(),
+    );
+
+    setText(
+        "analytics-state-badge",
+        analyticsStatus.toUpperCase(),
+    );
+}
+
+
+function renderPerformanceSummary(
+    dashboard,
+    content,
+) {
+    const metrics =
+        getDashboardMetrics(
+            dashboard
+        );
+
+    const low = (
+        metrics.viewsLow !== null
+        &&
+        metrics.viewsLow !== undefined
+    )
+        ? formatInteger(
+            metrics.viewsLow
+        )
+        : null;
+
+    const high = (
+        metrics.viewsHigh !== null
+        &&
+        metrics.viewsHigh !== undefined
+    )
+        ? formatInteger(
+            metrics.viewsHigh
+        )
+        : null;
 
     setText(
         "views-range",
-        viewsText,
+        (
+            low !== null
+            &&
+            high !== null
+        )
+            ? `${low} – ${high}`
+            : "Dados indisponíveis",
     );
-
 
     setText(
         "confidence-score",
-        formatPercent(
-            metrics.confidence
+        (
+            metrics.confidence !== null
+            &&
+            metrics.confidence !== undefined
         )
-        ??
-        "Dados indisponíveis",
+            ? formatPercent(
+                metrics.confidence
+            )
+            : "Dados indisponíveis",
     );
-
 
     setText(
         "comment-rate",
-        formatPercent(
-            metrics.commentRate
+        (
+            metrics.commentRate !== null
+            &&
+            metrics.commentRate !== undefined
         )
-        ??
-        "Dados indisponíveis",
+            ? formatPercent(
+                metrics.commentRate
+            )
+            : "Dados indisponíveis",
     );
 
+    const scenes = Array.isArray(
+        content.scenes
+    )
+        ? content.scenes
+        : [];
 
     setText(
         "scene-count",
-        String(sceneCount),
+        String(
+            scenes.length
+        ),
     );
-
 }
 
 
-function renderHooks(model) {
+function normalizeHookItem(item) {
+    if (typeof item === "string") {
+        return item;
+    }
 
-    const hooks =
-        getHooks(model);
+    if (isObject(item)) {
+        return firstDefined(
+            item.text,
+            item.hook,
+            item.value,
+            item.title,
+        );
+    }
 
+    return null;
+}
+
+
+function renderHooks(
+    dashboard,
+) {
+    const hooks = dashboard.hooks;
+
+    let primary = firstDefined(
+        dashboard.top_hook,
+        dashboard.primary_hook,
+    );
+
+    let alternatives = [];
+
+    if (isObject(hooks)) {
+        primary = firstDefined(
+            hooks.primary,
+            hooks.primary_hook,
+            hooks.main,
+            primary,
+        );
+
+        const values = firstDefined(
+            hooks.alternatives,
+            hooks.alternative_hooks,
+            hooks.items,
+        );
+
+        if (Array.isArray(values)) {
+            alternatives = values;
+        }
+    }
+
+    if (Array.isArray(hooks)) {
+        alternatives = hooks;
+    }
+
+    alternatives = alternatives
+        .map(normalizeHookItem)
+        .filter(Boolean);
 
     const container =
         document.getElementById(
             "hooks-list"
         );
 
-
     if (!container) {
-
         return;
-
     }
 
-
-    const alternatives =
-        hooks.alternatives
+    const alternativesHtml =
+        alternatives
             .map(
                 (
                     hook,
@@ -866,7 +769,6 @@ function renderHooks(model) {
             )
             .join("");
 
-
     container.innerHTML = `
         <article class="hook-card hook-card-primary">
             <span class="hook-label">
@@ -874,27 +776,89 @@ function renderHooks(model) {
             </span>
 
             <p>
-                ${escapeHtml(hooks.primary)}
+                ${escapeHtml(
+                    safeText(
+                        primary,
+                        "Hook principal indisponível.",
+                    ),
+                )}
             </p>
         </article>
 
-        ${alternatives}
+        ${alternativesHtml}
     `;
-
 }
 
 
-function renderRanking(model) {
+function renderRanking(
+    dashboard,
+) {
+    const source = Array.isArray(
+        dashboard.ranking
+    )
+        ? dashboard.ranking
+        : [];
 
-    const ranking =
-        getRanking(model);
+    const ranking = source
+        .filter(isObject)
+        .map(
+            (
+                item,
+                index,
+            ) => {
+                return {
+                    priority: toNumber(
+                        firstDefined(
+                            item.priority,
+                            item.position,
+                            item.rank,
+                        ),
+                        index + 1,
+                    ),
 
+                    title: safeText(
+                        firstDefined(
+                            item.title,
+                            item.primary_title,
+                            item.topic,
+                        ),
+                        `Tema ${index + 1}`,
+                    ),
 
-    const container =
-        document.getElementById(
-            "ranking-list"
+                    hook: safeText(
+                        firstDefined(
+                            item.hook,
+                            item.primary_hook,
+                            item.reason,
+                        ),
+                        "Sem descrição editorial.",
+                    ),
+
+                    viralProbability: clamp(
+                        toNumber(
+                            firstDefined(
+                                item.viral_probability,
+                                item.viral_score,
+                                item.score,
+                            ),
+                            0,
+                        ),
+                        0,
+                        100,
+                    ),
+                };
+            },
+        )
+        .sort(
+            (
+                left,
+                right,
+            ) => (
+                left.priority
+                -
+                right.priority
+            ),
         );
-
 
     setText(
         "ranking-count",
@@ -905,26 +869,23 @@ function renderRanking(model) {
         ),
     );
 
+    const container =
+        document.getElementById(
+            "ranking-list"
+        );
 
     if (!container) {
-
         return;
-
     }
 
-
     if (!ranking.length) {
-
         container.innerHTML = `
             <p class="empty-state">
                 Sem ranking disponível.
             </p>
         `;
-
         return;
-
     }
-
 
     container.innerHTML =
         ranking
@@ -961,338 +922,873 @@ function renderRanking(model) {
                 `,
             )
             .join("");
-
 }
 
 
-function renderStoryboard(model) {
+function renderScriptStudio(
+    content,
+) {
+    const script = isObject(
+        content.script
+    )
+        ? content.script
+        : {};
 
-    const rawScenes =
-        getStoryboard(model);
+    setText(
+        "script-hook",
+        safeText(
+            script.hook,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    setText(
+        "script-introduction",
+        safeText(
+            script.introduction,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    setText(
+        "script-development",
+        safeText(
+            script.development,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    setText(
+        "script-climax",
+        safeText(
+            script.climax,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    setText(
+        "script-ending",
+        safeText(
+            script.ending,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    setText(
+        "script-call-to-action",
+        safeText(
+            script.call_to_action,
+            "Dados indisponíveis.",
+        ),
+    );
+
+    const voiceover = isObject(
+        content.voiceover
+    )
+        ? content.voiceover
+        : {};
+
+    const segments = Array.isArray(
+        voiceover.segments
+    )
+        ? voiceover.segments
+        : [];
+
+    const language = safeText(
+        voiceover.language,
+        "pt-PT",
+    );
+
+    setText(
+        "script-language",
+        language,
+    );
+
+    setText(
+        "voice-language",
+        language,
+    );
+
+    setText(
+        "voice-style",
+        safeText(
+            voiceover.style,
+            "—",
+        ),
+    );
+
+    setText(
+        "voice-segment-count",
+        String(
+            segments.length
+        ),
+    );
+}
 
 
-    const scenes =
-        rawScenes
-            .filter(isObject)
-            .map(normalizeScene);
-
+function renderStoryboard(
+    content,
+) {
+    const scenes = Array.isArray(
+        content.scenes
+    )
+        ? content.scenes
+        : [];
 
     const container =
         document.getElementById(
             "storyboard-list"
         );
 
-
-    const duration = scenes.reduce(
+    const totalDuration = scenes.reduce(
         (
-            highest,
+            total,
             scene,
         ) => {
+            if (!isObject(scene)) {
+                return total;
+            }
 
-            return Math.max(
-                highest,
-                scene.endSecond,
+            return (
+                total
+                +
+                toNumber(
+                    scene.duration_seconds,
+                    0,
+                )
             );
-
         },
         0,
     );
 
-
     setText(
         "storyboard-duration",
-        `${duration} segundos`,
+        `${totalDuration} segundos`,
     );
 
-
     if (!container) {
-
-        return scenes;
-
+        return;
     }
 
-
     if (!scenes.length) {
-
         container.innerHTML = `
             <p class="empty-state">
                 Sem storyboard disponível.
             </p>
         `;
-
-        return scenes;
-
+        return;
     }
 
+    let currentSecond = 0;
 
     container.innerHTML =
         scenes
+            .filter(isObject)
             .map(
-                (scene) => `
-                    <article class="scene-card">
+                (
+                    scene,
+                    index,
+                ) => {
+                    const duration = toNumber(
+                        scene.duration_seconds,
+                        0,
+                    );
 
-                        <div class="scene-header">
+                    const startSecond =
+                        currentSecond;
 
-                            <span class="scene-number">
-                                CENA ${scene.number}
-                            </span>
+                    const endSecond =
+                        currentSecond
+                        +
+                        duration;
 
-                            <span class="scene-time">
-                                ${scene.startSecond}s – ${scene.endSecond}s
-                            </span>
+                    currentSecond =
+                        endSecond;
 
-                        </div>
+                    return `
+                        <article class="scene-card">
 
-                        <h3>
-                            ${escapeHtml(scene.title)}
-                        </h3>
+                            <div class="scene-header">
 
-                        <p>
-                            ${escapeHtml(scene.description)}
-                        </p>
+                                <span class="scene-number">
+                                    CENA ${escapeHtml(
+                                        firstDefined(
+                                            scene.scene_number,
+                                            index + 1,
+                                        ),
+                                    )}
+                                </span>
 
-                        <div class="scene-tags">
+                                <span class="scene-time">
+                                    ${startSecond}s – ${endSecond}s
+                                </span>
 
-                            <span>
-                                ${escapeHtml(scene.visualType)}
-                            </span>
+                            </div>
 
-                            <span>
-                                ${escapeHtml(scene.cameraMovement)}
-                            </span>
+                            <h3>
+                                ${escapeHtml(
+                                    safeText(
+                                        scene.caption_text,
+                                        `Cena ${index + 1}`,
+                                    ),
+                                )}
+                            </h3>
 
-                            <span>
-                                ${escapeHtml(scene.editingPace)}
-                            </span>
+                            <p>
+                                ${escapeHtml(
+                                    safeText(
+                                        scene.visual_instruction,
+                                        "Descrição visual indisponível.",
+                                    ),
+                                )}
+                            </p>
 
-                            <span>
-                                ${escapeHtml(scene.transition)}
-                            </span>
+                            <div class="scene-tags">
 
-                        </div>
+                                <span>
+                                    ${escapeHtml(
+                                        safeText(
+                                            scene.camera_direction,
+                                            "static",
+                                        ),
+                                    )}
+                                </span>
 
-                        <p class="scene-caption">
-                            ${escapeHtml(scene.voiceover)}
-                        </p>
+                                <span>
+                                    ${duration}s
+                                </span>
 
-                    </article>
-                `,
+                                <span>
+                                    ${escapeHtml(
+                                        safeText(
+                                            scene.asset_reference,
+                                            "asset pendente",
+                                        ),
+                                    )}
+                                </span>
+
+                            </div>
+
+                            <p class="scene-caption">
+                                ${escapeHtml(
+                                    safeText(
+                                        scene.voiceover_segment,
+                                        "Voice-over não definido.",
+                                    ),
+                                )}
+                            </p>
+
+                        </article>
+                    `;
+                },
             )
             .join("");
-
-
-    return scenes;
-
 }
 
 
-function renderAssets(scenes) {
+function renderAssets(
+    content,
+) {
+    const scenes = Array.isArray(
+        content.scenes
+    )
+        ? content.scenes
+        : [];
+
+    const explicitAssets = Array.isArray(
+        content.assets
+    )
+        ? content.assets
+        : [];
+
+    const assets = explicitAssets.length
+        ? explicitAssets
+        : scenes
+            .filter(isObject)
+            .map(
+                (
+                    scene,
+                    index,
+                ) => ({
+                    asset_type: "video",
+                    description: firstDefined(
+                        scene.visual_instruction,
+                        `Asset da cena ${index + 1}`,
+                    ),
+                    reference: firstDefined(
+                        scene.asset_reference,
+                        `scene-${index + 1}`,
+                    ),
+                    scene_number: firstDefined(
+                        scene.scene_number,
+                        index + 1,
+                    ),
+                }),
+            );
+
+    setText(
+        "asset-count",
+        (
+            assets.length === 1
+                ? "1 asset"
+                : `${assets.length} assets`
+        ),
+    );
 
     const container =
         document.getElementById(
             "assets-list"
         );
 
-
     if (!container) {
-
         return;
-
     }
 
-
-    if (!scenes.length) {
-
+    if (!assets.length) {
         container.innerHTML = `
             <p class="empty-state">
                 Nenhum asset disponível.
             </p>
         `;
-
         return;
-
     }
 
-
     container.innerHTML =
-        scenes
+        assets
             .map(
-                (scene) => `
+                (
+                    asset,
+                    index,
+                ) => `
                     <article class="asset-card">
 
                         <strong>
-                            Cena ${scene.number} ·
-                            ${escapeHtml(scene.assetDescription)}
+                            Cena ${escapeHtml(
+                                firstDefined(
+                                    asset.scene_number,
+                                    index + 1,
+                                ),
+                            )}
+                            ·
+                            ${escapeHtml(
+                                safeText(
+                                    asset.asset_type,
+                                    "video",
+                                ),
+                            )}
                         </strong>
 
                         <span>
-                            ${escapeHtml(scene.assetSource)}
+                            ${escapeHtml(
+                                safeText(
+                                    firstDefined(
+                                        asset.description,
+                                        asset.visual_instruction,
+                                    ),
+                                    "Asset por definir.",
+                                ),
+                            )}
+                        </span>
+
+                        <span>
+                            Ref:
+                            ${escapeHtml(
+                                safeText(
+                                    firstDefined(
+                                        asset.reference,
+                                        asset.asset_reference,
+                                        asset.search_query,
+                                    ),
+                                    "sem referência",
+                                ),
+                            )}
                         </span>
 
                     </article>
                 `,
             )
             .join("");
-
 }
 
 
-function renderDashboard(model) {
+function renderPublishing(
+    publishing,
+) {
+    const metadata = isObject(
+        publishing.metadata
+    )
+        ? publishing.metadata
+        : {};
 
-    if (!isObject(model)) {
+    const thumbnail = isObject(
+        publishing.thumbnail
+    )
+        ? publishing.thumbnail
+        : {};
 
-        throw new Error(
-            "O dashboard_model.json não contém "
-            +
-            "um objeto JSON válido."
-        );
+    const checklist = isObject(
+        publishing.checklist
+    )
+        ? publishing.checklist
+        : {};
 
-    }
-
-
-    renderHeader(model);
-
-    renderWinner(model);
-
-    renderHooks(model);
-
-    renderRanking(model);
-
-
-    const scenes =
-        renderStoryboard(model);
-
-
-    renderMetrics(
-        model,
-        scenes.length,
+    setText(
+        "publishing-title",
+        safeText(
+            metadata.title,
+            "Dados indisponíveis",
+        ),
     );
 
+    setText(
+        "publishing-description",
+        safeText(
+            metadata.description,
+            "Dados indisponíveis.",
+        ),
+    );
 
-    renderAssets(scenes);
+    setText(
+        "publishing-window",
+        safeText(
+            metadata.scheduled_window,
+            "—",
+        ),
+    );
 
+    setText(
+        "thumbnail-text-overlay",
+        safeText(
+            thumbnail.text_overlay,
+            "THUMBNAIL",
+        ),
+    );
+
+    setText(
+        "thumbnail-visual-direction",
+        safeText(
+            thumbnail.visual_direction,
+            "—",
+        ),
+    );
+
+    setText(
+        "thumbnail-emotion-target",
+        safeText(
+            thumbnail.emotion_target,
+            "—",
+        ),
+    );
+
+    const hashtags = Array.isArray(
+        metadata.hashtags
+    )
+        ? metadata.hashtags
+        : [];
+
+    const hashtagsContainer =
+        document.getElementById(
+            "publishing-hashtags"
+        );
+
+    if (hashtagsContainer) {
+        hashtagsContainer.innerHTML =
+            hashtags.length
+                ? hashtags
+                    .map(
+                        (hashtag) => `
+                            <span>
+                                ${escapeHtml(hashtag)}
+                            </span>
+                        `,
+                    )
+                    .join("")
+                : `
+                    <span>
+                        Sem hashtags
+                    </span>
+                `;
+    }
+
+    const checklistContainer =
+        document.getElementById(
+            "publishing-checklist-list"
+        );
+
+    if (!checklistContainer) {
+        return;
+    }
+
+    const checklistItems =
+        Object.entries(checklist);
+
+    if (!checklistItems.length) {
+        checklistContainer.innerHTML = `
+            <p class="empty-state">
+                Checklist indisponível.
+            </p>
+        `;
+        return;
+    }
+
+    checklistContainer.innerHTML =
+        checklistItems
+            .map(
+                (
+                    [key, value],
+                ) => {
+                    const normalizedLabel =
+                        key
+                            .replaceAll("_", " ")
+                            .replace(
+                                /\b\w/g,
+                                (
+                                    character,
+                                ) => (
+                                    character.toUpperCase()
+                                ),
+                            );
+
+                    const isPositive =
+                        value === true;
+
+                    return `
+                        <article class="readiness-item">
+
+                            <span>
+                                ${escapeHtml(normalizedLabel)}
+                            </span>
+
+                            <strong class="${
+                                isPositive
+                                    ? "status-success"
+                                    : "status-warning"
+                            }">
+                                ${
+                                    isPositive
+                                        ? "YES"
+                                        : "NO"
+                                }
+                            </strong>
+
+                        </article>
+                    `;
+                },
+            )
+            .join("");
+}
+
+
+function renderAnalytics(
+    analytics,
+) {
+    const metrics = isObject(
+        analytics.metrics
+    )
+        ? analytics.metrics
+        : {};
+
+    const growthSignals = isObject(
+        analytics.growth_signals
+    )
+        ? analytics.growth_signals
+        : {};
+
+    const recommendation = isObject(
+        analytics.recommendation
+    )
+        ? analytics.recommendation
+        : {};
+
+    setText(
+        "analytics-views",
+        formatInteger(
+            metrics.views
+        ),
+    );
+
+    setText(
+        "analytics-likes",
+        formatInteger(
+            metrics.likes
+        ),
+    );
+
+    setText(
+        "analytics-comments",
+        formatInteger(
+            metrics.comments
+        ),
+    );
+
+    setText(
+        "analytics-shares",
+        formatInteger(
+            metrics.shares
+        ),
+    );
+
+    setText(
+        "analytics-watch-time",
+        formatSeconds(
+            metrics.average_watch_time_seconds
+        ),
+    );
+
+    setText(
+        "analytics-retention",
+        formatPercent(
+            metrics.retention_percent
+        ),
+    );
+
+    setText(
+        "analytics-subscribers",
+        formatInteger(
+            metrics.subscribers_gained
+        ),
+    );
+
+    setText(
+        "next-topic-direction",
+        safeText(
+            recommendation.next_topic_direction,
+            "—",
+        ),
+    );
+
+    setText(
+        "recommended-improvement",
+        safeText(
+            recommendation.recommended_improvement,
+            "—",
+        ),
+    );
+
+    setText(
+        "recommendation-confidence",
+        formatPercent(
+            recommendation.confidence_score
+        ),
+    );
+
+    const growthContainer =
+        document.getElementById(
+            "growth-signals-list"
+        );
+
+    if (!growthContainer) {
+        return;
+    }
+
+    const signals =
+        Object.entries(
+            growthSignals
+        );
+
+    if (!signals.length) {
+        growthContainer.innerHTML = `
+            <p class="empty-state">
+                Sem sinais disponíveis.
+            </p>
+        `;
+        return;
+    }
+
+    growthContainer.innerHTML =
+        signals
+            .map(
+                (
+                    [key, value],
+                ) => {
+                    const label = key
+                        .replaceAll("_", " ")
+                        .replace(
+                            /\b\w/g,
+                            (
+                                character,
+                            ) => (
+                                character.toUpperCase()
+                            ),
+                        );
+
+                    const score = clamp(
+                        toNumber(
+                            value,
+                            0,
+                        ),
+                        0,
+                        100,
+                    );
+
+                    return `
+                        <article class="growth-signal">
+
+                            <div class="readiness-item">
+
+                                <span>
+                                    ${escapeHtml(label)}
+                                </span>
+
+                                <strong>
+                                    ${Math.round(score)}%
+                                </strong>
+
+                            </div>
+
+                            <div class="progress-track">
+
+                                <div
+                                    class="progress-value"
+                                    style="width: ${score}%"
+                                ></div>
+
+                            </div>
+
+                        </article>
+                    `;
+                },
+            )
+            .join("");
+}
+
+
+function renderProductionStudio(
+    state,
+) {
+    const {
+        dashboard,
+        content,
+        publishing,
+        analytics,
+    } = state;
+
+    renderHeader(
+        dashboard
+    );
+
+    renderOverview(
+        dashboard,
+        content,
+    );
+
+    renderPipelineStatus(
+        content,
+        publishing,
+        analytics,
+    );
+
+    renderPerformanceSummary(
+        dashboard,
+        content,
+    );
+
+    renderHooks(
+        dashboard
+    );
+
+    renderRanking(
+        dashboard
+    );
+
+    renderScriptStudio(
+        content
+    );
+
+    renderStoryboard(
+        content
+    );
+
+    renderAssets(
+        content
+    );
+
+    renderPublishing(
+        publishing
+    );
+
+    renderAnalytics(
+        analytics
+    );
 }
 
 
 function showApplication() {
-
     const loading =
         document.getElementById(
             "loading-screen"
         );
-
 
     const application =
         document.getElementById(
             "application"
         );
 
-
     if (loading) {
-
         loading.classList.add(
             "hidden"
         );
-
     }
 
-
     if (application) {
-
         application.classList.remove(
             "hidden"
         );
-
     }
-
 }
 
 
 function showError(error) {
-
     showApplication();
-
 
     const panel =
         document.getElementById(
             "dashboard-error"
         );
 
-
     const message =
         document.getElementById(
             "dashboard-error-message"
         );
 
-
     if (panel) {
-
         panel.classList.remove(
             "hidden"
         );
-
     }
 
-
     if (message) {
-
         message.textContent =
             error instanceof Error
                 ? error.message
                 : String(error);
-
     }
 
-
     console.error(
-        "Dashboard load error:",
+        "Production Studio load error:",
         error,
     );
-
 }
 
 
-async function loadDashboard() {
-
+async function startProductionStudio() {
     try {
+        const state =
+            await loadProductionStudioData();
 
-        const response = await fetch(
-            DASHBOARD_MODEL_URL,
-            {
-                cache: "no-store",
-            },
+        renderProductionStudio(
+            state
         );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Não foi possível carregar "
-                +
-                `dashboard_model.json: HTTP ${response.status}.`
-            );
-
-        }
-
-
-        const model =
-            await response.json();
-
-
-        renderDashboard(model);
 
         showApplication();
 
     } catch (error) {
-
         showError(error);
-
     }
-
 }
 
 
 document.addEventListener(
     "DOMContentLoaded",
-    loadDashboard,
+    startProductionStudio,
 );
