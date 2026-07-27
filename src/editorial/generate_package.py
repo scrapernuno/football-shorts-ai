@@ -465,6 +465,17 @@ def normalize_topic_package(
 
                     "recommended_window": "18:00-20:00",
 
+                    "publication_reason": (
+                        "Publicar no pico de audiência "
+                        "para maximizar alcance e retenção."
+                    ),
+
+                    "publish_window_minutes": 120,
+
+                    "relevance_lifetime_hours": 24,
+
+                    "timezone": "Europe/Lisbon",
+
                 },
 
 
