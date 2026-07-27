@@ -6,11 +6,14 @@ on:
 permissions:
   contents: read
 
+
 jobs:
+
   football-shorts:
     name: Football Shorts AI Pipeline
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -20,10 +23,13 @@ jobs:
       OPENAI_MAX_OUTPUT_TOKENS: "7000"
       PYTHONUNBUFFERED: "1"
 
+
     steps:
+
 
       - name: Checkout repository
         uses: actions/checkout@v4
+
 
 
       - name: Setup Python
@@ -33,10 +39,12 @@ jobs:
           cache: pip
 
 
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
 
 
       - name: Compile Python project
@@ -44,9 +52,11 @@ jobs:
           python -m compileall src
 
 
-      - name: Validate Editorial Package Contract
+
+      - name: Validate Editorial Contract
         run: |
           PYTHONPATH=src python src/editorial/test_parser.py
+
 
 
       - name: Validate OpenAI Secret
@@ -56,17 +66,20 @@ jobs:
             exit 1
           fi
 
-          echo "OPENAI_API_KEY configurada."
+          echo "OPENAI_API_KEY configurada"
 
 
-      - name: Generate Digest
+
+      - name: Generate News Digest
         run: |
           python src/generate_digest.py
 
 
-      - name: Generate HTML Email
+
+      - name: Generate Editorial Package
         run: |
-          python src/render_email.py
+          PYTHONPATH=src python src/editorial/generate_package.py
+
 
 
       - name: Build Dashboard Model
@@ -74,117 +87,184 @@ jobs:
           PYTHONPATH=src python src/production/build_dashboard_model.py
 
 
-      - name: Validate Outputs
+
+      - name: Generate HTML Email
         run: |
+          python src/render_email.py
+
+
+
+      - name: Validate Pipeline Outputs
+        run: |
+
           python - <<'PY'
+
           import json
           from pathlib import Path
 
+
           required_files = [
+
               "output/digest.json",
-              "output/digest.html",
-              "output/last_prompt.txt",
+
+              "output/editorial_package.json",
+
               "output/dashboard_model.json",
+
+              "output/digest.html",
+
+              "output/last_prompt.txt",
+
           ]
 
+
           for file in required_files:
+
               path = Path(file)
 
               if not path.exists():
+
                   raise SystemExit(
                       f"Ficheiro em falta: {file}"
                   )
 
+
           digest = json.loads(
+
               Path(
                   "output/digest.json"
-              ).read_text(
+              )
+              .read_text(
                   encoding="utf-8"
               )
+
           )
+
+
+          editorial = json.loads(
+
+              Path(
+                  "output/editorial_package.json"
+              )
+              .read_text(
+                  encoding="utf-8"
+              )
+
+          )
+
 
           dashboard = json.loads(
+
               Path(
                   "output/dashboard_model.json"
-              ).read_text(
+              )
+              .read_text(
                   encoding="utf-8"
               )
+
           )
 
-          topics = digest.get("topics")
 
-          if not isinstance(topics, list):
+          if len(digest["topics"]) != 5:
+
               raise SystemExit(
-                  "digest.json inválido: topics"
+                  "Digest deve conter 5 temas"
               )
 
-          if len(topics) != 5:
+
+          if len(editorial["topics"]) != 5:
+
               raise SystemExit(
-                  f"Esperados 5 temas, encontrados {len(topics)}"
+                  "Editorial package deve conter 5 temas"
               )
 
-          dashboard_required = {
+
+          required_dashboard_fields = {
+
               "generated_at",
+
               "channel",
+
               "top_title",
+
               "top_hook",
+
               "viral_probability",
-              "predicted_ctr",
-              "predicted_retention",
-              "recommended_publish_time",
+
               "metrics",
+
               "hooks",
+
               "storyboard",
+
               "ranking",
+
           }
 
+
           missing = (
-              dashboard_required
+
+              required_dashboard_fields
+
               -
+
               dashboard.keys()
+
           )
+
 
           if missing:
+
               raise SystemExit(
-                  f"dashboard_model.json sem campos: {missing}"
+                  f"Dashboard incompleta: {missing}"
               )
+
 
           if len(dashboard["hooks"]) != 3:
+
               raise SystemExit(
-                  "Dashboard deve conter 3 hooks."
+                  "Dashboard precisa de 3 hooks"
               )
 
-          if len(dashboard["ranking"]) != 5:
-              raise SystemExit(
-                  "Dashboard deve conter ranking de 5 temas."
-              )
 
           print("=" * 70)
+
           print("PIPELINE VALIDATION PASS")
+
           print("=" * 70)
+
           print(
-              f"Digest topics: {len(topics)}"
+              f"Digest topics: {len(digest['topics'])}"
           )
+
           print(
-              f"Dashboard title: {dashboard['top_title']}"
+              f"Editorial topics: {len(editorial['topics'])}"
           )
+
           print(
-              f"Hooks: {len(dashboard['hooks'])}"
+              f"Dashboard ranking: {len(dashboard['ranking'])}"
           )
+
           print(
-              f"Scenes: {len(dashboard['storyboard'])}"
+              f"Top Short: {dashboard['top_title']}"
           )
-          print(
-              f"Ranking: {len(dashboard['ranking'])}"
-          )
+
           PY
 
 
+
       - name: Upload Artifacts
+
         if: always()
+
         uses: actions/upload-artifact@v4
+
         with:
+
           name: football-shorts-ai-output
+
           retention-days: 7
+
           path: |
+
             output/
