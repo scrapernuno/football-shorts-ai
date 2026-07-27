@@ -52,7 +52,8 @@ jobs:
 
       - name: Validate Editorial Parser
         run: |
-          PYTHONPATH=src python src/editorial/test_parser.py
+          PYTHONPATH=src \
+          python src/editorial/test_parser.py
 
       - name: Validate OpenAI Secret
         run: |
@@ -69,27 +70,33 @@ jobs:
 
       - name: Generate Editorial Package
         run: |
-          PYTHONPATH=src python src/editorial/generate_package.py
+          PYTHONPATH=src \
+          python src/editorial/generate_package.py
 
       - name: Build Dashboard Model
         run: |
-          PYTHONPATH=src python src/production/build_dashboard_model.py
+          PYTHONPATH=src \
+          python src/production/build_dashboard_model.py
 
       - name: Sync Dashboard Data
         run: |
-          PYTHONPATH=src python src/dashboard/sync_dashboard.py
+          PYTHONPATH=src \
+          python src/dashboard/sync_dashboard.py
 
       - name: Build Content Production Package
         run: |
-          PYTHONPATH=src python src/production/build_content_package.py
+          PYTHONPATH=src \
+          python src/production/build_content_package.py
 
       - name: Build Publishing Package
         run: |
-          PYTHONPATH=src python src/publishing/build_publishing_package.py
+          PYTHONPATH=src \
+          python src/publishing/build_publishing_package.py
 
       - name: Build Analytics Package
         run: |
-          PYTHONPATH=src python src/analytics/build_analytics_package.py
+          PYTHONPATH=src \
+          python src/analytics/build_analytics_package.py
 
       - name: Compile Production Studio Synchronizer
         run: |
@@ -153,6 +160,11 @@ jobs:
               if not path.is_file():
                   raise SystemExit(
                       f"Ficheiro em falta: {filename}"
+                  )
+
+              if path.stat().st_size <= 0:
+                  raise SystemExit(
+                      f"Ficheiro vazio: {filename}"
                   )
 
 
@@ -280,6 +292,17 @@ jobs:
               )
 
 
+          ranking = dashboard.get(
+              "ranking"
+          )
+
+
+          if not isinstance(ranking, list) or not ranking:
+              raise SystemExit(
+                  "Dashboard ranking inválido"
+              )
+
+
           required_content = {
               "package_version",
               "generated_at",
@@ -358,6 +381,40 @@ jobs:
               )
 
 
+          script = content.get(
+              "script"
+          )
+
+
+          if not isinstance(script, dict):
+              raise SystemExit(
+                  "Content script inválido"
+              )
+
+
+          required_script = {
+              "hook",
+              "introduction",
+              "development",
+              "climax",
+              "ending",
+              "call_to_action",
+          }
+
+
+          missing_script = (
+              required_script
+              - script.keys()
+          )
+
+
+          if missing_script:
+              raise SystemExit(
+                  "Content script incompleto: "
+                  f"{sorted(missing_script)}"
+              )
+
+
           scenes = content.get(
               "scenes"
           )
@@ -391,6 +448,27 @@ jobs:
               raise SystemExit(
                   "Content scenes não são sequenciais"
               )
+
+
+          for index, scene in enumerate(scenes):
+              if not isinstance(scene, dict):
+                  raise SystemExit(
+                      f"Scene inválida no índice {index}"
+                  )
+
+              duration = scene.get(
+                  "duration_seconds"
+              )
+
+              if (
+                  not isinstance(duration, int)
+                  or isinstance(duration, bool)
+                  or duration <= 0
+              ):
+                  raise SystemExit(
+                      "Scene com duration_seconds inválido "
+                      f"no índice {index}"
+                  )
 
 
           required_publishing = {
@@ -465,6 +543,35 @@ jobs:
               raise SystemExit(
                   "Título do Publishing Package não corresponde "
                   "ao Content Package"
+              )
+
+
+          hashtags = metadata.get(
+              "hashtags"
+          )
+
+
+          if not isinstance(hashtags, list) or not hashtags:
+              raise SystemExit(
+                  "Publishing hashtags inválidas"
+              )
+
+
+          if not isinstance(
+              publishing.get("thumbnail"),
+              dict,
+          ):
+              raise SystemExit(
+                  "Publishing thumbnail inválido"
+              )
+
+
+          if not isinstance(
+              publishing.get("checklist"),
+              dict,
+          ):
+              raise SystemExit(
+                  "Publishing checklist inválido"
               )
 
 
@@ -568,6 +675,24 @@ jobs:
               )
 
 
+          if not isinstance(
+              analytics.get("growth_signals"),
+              dict,
+          ):
+              raise SystemExit(
+                  "Analytics growth_signals inválido"
+              )
+
+
+          if not isinstance(
+              analytics.get("recommendation"),
+              dict,
+          ):
+              raise SystemExit(
+                  "Analytics recommendation inválida"
+              )
+
+
           print("=" * 70)
           print("PIPELINE VALIDATION PASS")
           print("=" * 70)
@@ -584,7 +709,7 @@ jobs:
 
           print(
               f"Dashboard ranking: "
-              f"{len(dashboard['ranking'])}"
+              f"{len(ranking)}"
           )
 
           print(
@@ -617,6 +742,269 @@ jobs:
           )
           PY
 
+      - name: Certify Production Studio Integration
+        run: |
+          python -m py_compile \
+            src/dashboard/certify_production_studio.py
+
+          PYTHONPATH=src \
+          python src/dashboard/certify_production_studio.py
+
+      - name: Close Production Studio Governance
+        run: |
+          python -m py_compile \
+            src/dashboard/close_production_studio_governance.py
+
+          PYTHONPATH=src \
+          python src/dashboard/close_production_studio_governance.py
+
+      - name: Validate Governance Closure Artifacts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+
+          governance_json = Path(
+              "output/production_studio_governance_closure.json"
+          )
+
+          governance_document = Path(
+              "docs/"
+              "FOOTBALL-SHORTS-AI-0030C-"
+              "PRODUCTION-STUDIO-INTERFACE-"
+              "GOVERNANCE-CLOSURE.md"
+          )
+
+
+          for path in (
+              governance_json,
+              governance_document,
+          ):
+              if not path.is_file():
+                  raise SystemExit(
+                      f"Artefacto de fecho em falta: {path}"
+                  )
+
+              if path.stat().st_size <= 0:
+                  raise SystemExit(
+                      f"Artefacto de fecho vazio: {path}"
+                  )
+
+
+          try:
+              payload = json.loads(
+                  governance_json.read_text(
+                      encoding="utf-8"
+                  )
+              )
+          except json.JSONDecodeError as exc:
+              raise SystemExit(
+                  f"Governance JSON inválido: {exc}"
+              ) from exc
+
+
+          if not isinstance(payload, dict):
+              raise SystemExit(
+                  "Governance JSON deve ser um objeto"
+              )
+
+
+          required_keys = {
+              "closure_id",
+              "closure_name",
+              "closure_version",
+              "closed_at",
+              "status",
+              "certification_status",
+              "certification_authority",
+              "scope",
+              "governance_constraints",
+              "certified_capabilities",
+              "package_summary",
+              "canonical_file_count",
+              "canonical_manifest_sha256",
+              "canonical_files",
+              "decision",
+          }
+
+
+          missing = (
+              required_keys
+              - payload.keys()
+          )
+
+
+          if missing:
+              raise SystemExit(
+                  "Governance JSON incompleto: "
+                  f"{sorted(missing)}"
+              )
+
+
+          if (
+              payload.get("closure_id")
+              != "FOOTBALL-SHORTS-AI-0030C"
+          ):
+              raise SystemExit(
+                  "Closure ID inválido"
+              )
+
+
+          if payload.get("status") != "CLOSED":
+              raise SystemExit(
+                  "Governance status deve ser CLOSED"
+              )
+
+
+          if (
+              payload.get("certification_status")
+              != "CERTIFIED"
+          ):
+              raise SystemExit(
+                  "Certification status deve ser CERTIFIED"
+              )
+
+
+          decision = payload.get(
+              "decision"
+          )
+
+
+          if not isinstance(decision, dict):
+              raise SystemExit(
+                  "Governance decision inválida"
+              )
+
+
+          if (
+              decision.get("production_studio_interface")
+              != "ACCEPTED"
+          ):
+              raise SystemExit(
+                  "Production Studio não foi aceite"
+              )
+
+
+          if decision.get("integration") != "CERTIFIED":
+              raise SystemExit(
+                  "Integration decision inválida"
+              )
+
+
+          if decision.get("governance") != "CLOSED":
+              raise SystemExit(
+                  "Governance decision não está fechada"
+              )
+
+
+          if (
+              decision.get("next_phase_authorized")
+              is not True
+          ):
+              raise SystemExit(
+                  "A próxima fase não está autorizada"
+              )
+
+
+          canonical_files = payload.get(
+              "canonical_files"
+          )
+
+
+          if not isinstance(canonical_files, list):
+              raise SystemExit(
+                  "Canonical files inválido"
+              )
+
+
+          if (
+              payload.get("canonical_file_count")
+              != len(canonical_files)
+          ):
+              raise SystemExit(
+                  "Canonical file count inconsistente"
+              )
+
+
+          manifest_hash = payload.get(
+              "canonical_manifest_sha256"
+          )
+
+
+          if (
+              not isinstance(manifest_hash, str)
+              or len(manifest_hash) != 64
+          ):
+              raise SystemExit(
+                  "Canonical manifest SHA256 inválido"
+              )
+
+
+          document = governance_document.read_text(
+              encoding="utf-8"
+          )
+
+
+          required_markers = [
+              "Production Studio Interface Governance Closure",
+              "**CLOSED**",
+              "**CERTIFIED**",
+              "IMPLEMENTATION: COMPLETE",
+              "INTEGRATION: CERTIFIED",
+              "GOVERNANCE: CLOSED",
+              "STATUS: ACCEPTED",
+          ]
+
+
+          missing_markers = [
+              marker
+              for marker in required_markers
+              if marker not in document
+          ]
+
+
+          if missing_markers:
+              raise SystemExit(
+                  "Documento de fecho incompleto: "
+                  f"{missing_markers}"
+              )
+
+
+          print("=" * 70)
+          print("GOVERNANCE CLOSURE VALIDATION PASS")
+          print("=" * 70)
+
+          print(
+              f"Closure ID: "
+              f"{payload['closure_id']}"
+          )
+
+          print(
+              f"Status: "
+              f"{payload['status']}"
+          )
+
+          print(
+              f"Certification: "
+              f"{payload['certification_status']}"
+          )
+
+          print(
+              f"Canonical files: "
+              f"{payload['canonical_file_count']}"
+          )
+
+          print(
+              "Canonical manifest SHA256: "
+              f"{payload['canonical_manifest_sha256']}"
+          )
+
+          print(
+              "Next phase authorized: YES"
+          )
+          PY
+
       - name: Upload Pipeline Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -627,6 +1015,7 @@ jobs:
           path: |
             output/
             dashboard/
+            docs/
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v4
