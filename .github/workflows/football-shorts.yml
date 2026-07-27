@@ -1,4 +1,4 @@
-name: Football Shorts AI - Inspect OpenAI Client
+name: Football Shorts AI Pipeline
 
 on:
   workflow_dispatch:
@@ -9,69 +9,267 @@ permissions:
 
 jobs:
 
-  inspect-openai-client:
+  football-shorts:
 
-    name: Inspect OpenAI Client Contract
+    name: Football Shorts AI Pipeline
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 10
+    timeout-minutes: 25
+
+
+    env:
+
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      OPENAI_MODEL: gpt-5.5
+
+      OPENAI_TIMEOUT_SECONDS: "120"
+
+      OPENAI_MAX_RETRIES: "3"
+
+      OPENAI_MAX_OUTPUT_TOKENS: "7000"
+
+      PYTHONUNBUFFERED: "1"
 
 
     steps:
 
 
       - name: Checkout repository
+
         uses: actions/checkout@v4
 
 
 
       - name: Setup Python
+
         uses: actions/setup-python@v5
+
         with:
+
           python-version: "3.12"
+
+          cache: pip
 
 
 
       - name: Install dependencies
+
         run: |
+
           python -m pip install --upgrade pip
+
           pip install -r requirements.txt
 
 
 
       - name: Compile project
+
         run: |
+
           python -m compileall src
 
 
 
-      - name: Inspect OpenAI Client Functions
+      - name: Validate Editorial Parser
+
         run: |
 
-          echo "=============================================="
-          echo "OPENAI CLIENT FUNCTIONS"
-          echo "=============================================="
-
-          grep -n "^def " src/openai_client.py || true
-
-
-          echo ""
-
-          echo "=============================================="
-          echo "OPENAI CLIENT CONTENT"
-          echo "=============================================="
-
-          sed -n '1,260p' src/openai_client.py
+          PYTHONPATH=src python src/editorial/test_parser.py
 
 
 
-      - name: Stop after inspection
+      - name: Validate OpenAI Secret
+
         run: |
 
-          echo "=============================================="
-          echo "INSPECTION COMPLETE"
-          echo "Generate package disabled temporarily."
-          echo "=============================================="
+          if [ -z "${OPENAI_API_KEY}" ]; then
 
-          exit 1
+            echo "::error::OPENAI_API_KEY não configurada."
+
+            exit 1
+
+          fi
+
+
+          echo "OPENAI_API_KEY configurada"
+
+
+
+      - name: Generate News Digest
+
+        run: |
+
+          python src/generate_digest.py
+
+
+
+      - name: Generate Editorial Package
+
+        run: |
+
+          PYTHONPATH=src python src/editorial/generate_package.py
+
+
+
+      - name: Build Dashboard Model
+
+        run: |
+
+          PYTHONPATH=src python src/production/build_dashboard_model.py
+
+
+
+      - name: Generate HTML
+
+        run: |
+
+          python src/render_email.py
+
+
+
+      - name: Validate Generated Outputs
+
+        run: |
+
+          python - <<'PY'
+
+          import json
+
+          from pathlib import Path
+
+
+          files = [
+
+              "output/digest.json",
+
+              "output/editorial_package.json",
+
+              "output/dashboard_model.json",
+
+              "output/digest.html",
+
+          ]
+
+
+          for file in files:
+
+              if not Path(file).exists():
+
+                  raise SystemExit(
+                      f"Ficheiro em falta: {file}"
+                  )
+
+
+          digest = json.loads(
+              Path("output/digest.json")
+              .read_text(encoding="utf-8")
+          )
+
+
+          editorial = json.loads(
+              Path("output/editorial_package.json")
+              .read_text(encoding="utf-8")
+          )
+
+
+          dashboard = json.loads(
+              Path("output/dashboard_model.json")
+              .read_text(encoding="utf-8")
+          )
+
+
+          if len(digest.get("topics", [])) != 5:
+
+              raise SystemExit(
+                  "Digest inválido"
+              )
+
+
+          if len(editorial.get("topics", [])) != 5:
+
+              raise SystemExit(
+                  "Editorial package inválido"
+              )
+
+
+          required_dashboard = {
+
+              "generated_at",
+
+              "channel",
+
+              "top_title",
+
+              "top_hook",
+
+              "viral_probability",
+
+              "metrics",
+
+              "hooks",
+
+              "storyboard",
+
+              "ranking",
+
+          }
+
+
+          missing = (
+              required_dashboard
+              -
+              dashboard.keys()
+          )
+
+
+          if missing:
+
+              raise SystemExit(
+                  f"Dashboard incompleta: {missing}"
+              )
+
+
+          print("=" * 70)
+
+          print("PIPELINE VALIDATION PASS")
+
+          print("=" * 70)
+
+          print(
+              f"Digest topics: {len(digest['topics'])}"
+          )
+
+          print(
+              f"Editorial topics: {len(editorial['topics'])}"
+          )
+
+          print(
+              f"Dashboard ranking: {len(dashboard['ranking'])}"
+          )
+
+          print(
+              f"Top Short: {dashboard['top_title']}"
+          )
+
+
+          PY
+
+
+
+      - name: Upload Artifacts
+
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: football-shorts-ai-output
+
+          retention-days: 7
+
+          path: |
+
+            output/
