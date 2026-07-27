@@ -1,590 +1,458 @@
 name: Football Shorts AI Pipeline
 
-
 on:
-
   workflow_dispatch:
 
-
-
 permissions:
-
   contents: read
+  pages: write
+  id-token: write
 
-
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
 
 jobs:
 
-
   football-shorts:
-
 
     name: Football Shorts AI Pipeline
 
-
     runs-on: ubuntu-latest
-
 
     timeout-minutes: 25
 
-
-
     env:
-
-
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
       OPENAI_MODEL: gpt-5.5
-
       OPENAI_TIMEOUT_SECONDS: "120"
-
       OPENAI_MAX_RETRIES: "3"
-
       OPENAI_MAX_OUTPUT_TOKENS: "7000"
-
       PYTHONUNBUFFERED: "1"
-
-
 
     steps:
 
-
-
       - name: Checkout repository
-
         uses: actions/checkout@v4
 
-
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Setup Python
-
         uses: actions/setup-python@v5
-
         with:
-
           python-version: "3.12"
-
           cache: pip
 
-
-
       - name: Install dependencies
-
         run: |
-
           python -m pip install --upgrade pip
-
           pip install -r requirements.txt
 
-
-
       - name: Compile project
-
         run: |
-
           python -m compileall src
 
-
-
       - name: Validate Editorial Parser
-
         run: |
-
           PYTHONPATH=src python src/editorial/test_parser.py
 
-
-
       - name: Validate OpenAI Secret
-
         run: |
-
           if [ -z "${OPENAI_API_KEY}" ]; then
-
             echo "::error::OPENAI_API_KEY não configurada."
-
             exit 1
-
           fi
-
 
           echo "OPENAI_API_KEY configurada"
 
-
-
       - name: Generate News Digest
-
         run: |
-
           python src/generate_digest.py
 
-
-
       - name: Generate Editorial Package
-
         run: |
-
           PYTHONPATH=src python src/editorial/generate_package.py
 
-
-
       - name: Build Dashboard Model
-
         run: |
-
           PYTHONPATH=src python src/production/build_dashboard_model.py
 
-
-
       - name: Sync Dashboard Data
-
         run: |
-
           PYTHONPATH=src python src/dashboard/sync_dashboard.py
 
-
-
       - name: Build Content Production Package
-
         run: |
-
           PYTHONPATH=src python src/production/build_content_package.py
 
-
-
       - name: Build Publishing Package
-
         run: |
-
           PYTHONPATH=src python src/publishing/build_publishing_package.py
 
-
-
       - name: Build Analytics Package
-
         run: |
-
           PYTHONPATH=src python src/analytics/build_analytics_package.py
 
-
-
       - name: Generate HTML
-
         run: |
-
           python src/render_email.py
 
+      - name: Prepare GitHub Pages
+        run: |
+          touch dashboard/.nojekyll
 
+          echo "=============================================="
+          echo "GITHUB PAGES CONTENT"
+          echo "=============================================="
+
+          find dashboard -maxdepth 4 -type f -print | sort
 
       - name: Validate Generated Outputs
-
         run: |
-
           python - <<'PY'
-
           import json
-
           from pathlib import Path
 
 
-
-          files = [
-
+          required_files = [
               "output/digest.json",
-
               "output/editorial_package.json",
-
               "output/dashboard_model.json",
-
               "output/content_package.json",
-
               "output/publishing_package.json",
-
               "output/analytics_package.json",
-
               "output/digest.html",
-
+              "dashboard/index.html",
+              "dashboard/assets/dashboard.css",
+              "dashboard/assets/dashboard.js",
+              "dashboard/data/dashboard_model.json",
+              "dashboard/.nojekyll",
           ]
 
 
+          for filename in required_files:
+              path = Path(filename)
 
-          for file in files:
-
-              if not Path(file).exists():
-
+              if not path.is_file():
                   raise SystemExit(
-                      f"Ficheiro em falta: {file}"
+                      f"Ficheiro em falta: {filename}"
                   )
 
 
-
           digest = json.loads(
-
-              Path("output/digest.json")
-
-              .read_text(
+              Path("output/digest.json").read_text(
                   encoding="utf-8"
               )
-
           )
-
 
 
           editorial = json.loads(
-
-              Path("output/editorial_package.json")
-
-              .read_text(
+              Path(
+                  "output/editorial_package.json"
+              ).read_text(
                   encoding="utf-8"
               )
-
           )
-
 
 
           dashboard = json.loads(
-
-              Path("output/dashboard_model.json")
-
-              .read_text(
+              Path(
+                  "output/dashboard_model.json"
+              ).read_text(
                   encoding="utf-8"
               )
-
           )
 
+
+          dashboard_public = json.loads(
+              Path(
+                  "dashboard/data/dashboard_model.json"
+              ).read_text(
+                  encoding="utf-8"
+              )
+          )
 
 
           content = json.loads(
-
-              Path("output/content_package.json")
-
-              .read_text(
+              Path(
+                  "output/content_package.json"
+              ).read_text(
                   encoding="utf-8"
               )
-
           )
-
 
 
           publishing = json.loads(
-
-              Path("output/publishing_package.json")
-
-              .read_text(
+              Path(
+                  "output/publishing_package.json"
+              ).read_text(
                   encoding="utf-8"
               )
-
           )
-
 
 
           analytics = json.loads(
-
-              Path("output/analytics_package.json")
-
-              .read_text(
+              Path(
+                  "output/analytics_package.json"
+              ).read_text(
                   encoding="utf-8"
               )
-
           )
 
 
-
           if len(digest.get("topics", [])) != 5:
-
               raise SystemExit(
                   "Digest inválido"
               )
 
 
-
           if len(editorial.get("topics", [])) != 5:
-
               raise SystemExit(
                   "Editorial package inválido"
               )
 
 
-
           required_dashboard = {
-
               "generated_at",
-
               "channel",
-
               "top_title",
-
               "top_hook",
-
               "viral_probability",
-
               "metrics",
-
               "hooks",
-
               "storyboard",
-
               "ranking",
-
           }
-
 
 
           missing_dashboard = (
-
               required_dashboard
-
-              -
-
-              dashboard.keys()
-
+              - dashboard.keys()
           )
-
 
 
           if missing_dashboard:
-
               raise SystemExit(
-
-                  f"Dashboard incompleta: {missing_dashboard}"
-
+                  "Dashboard incompleta: "
+                  f"{sorted(missing_dashboard)}"
               )
 
+
+          missing_public_dashboard = (
+              required_dashboard
+              - dashboard_public.keys()
+          )
+
+
+          if missing_public_dashboard:
+              raise SystemExit(
+                  "Dashboard pública incompleta: "
+                  f"{sorted(missing_public_dashboard)}"
+              )
+
+
+          if (
+              dashboard_public.get("top_title")
+              != dashboard.get("top_title")
+          ):
+              raise SystemExit(
+                  "Dashboard pública não corresponde "
+                  "ao modelo produzido"
+              )
 
 
           required_content = {
-
               "package_version",
-
               "generated_at",
-
               "source_topic",
-
               "script",
-
               "voiceover",
-
               "scenes",
-
               "captions",
-
               "assets",
-
               "publishing",
-
           }
-
 
 
           missing_content = (
-
               required_content
-
-              -
-
-              content.keys()
-
+              - content.keys()
           )
-
 
 
           if missing_content:
-
               raise SystemExit(
-
-                  f"Content package incompleto: {missing_content}"
-
+                  "Content package incompleto: "
+                  f"{sorted(missing_content)}"
               )
-
 
 
           if content["source_topic"]["priority"] != 1:
-
               raise SystemExit(
-
-                  "Content package não usa winner priority 1"
-
+                  "Content package não usa "
+                  "winner priority 1"
               )
-
 
 
           required_publishing = {
-
               "package_version",
-
               "generated_at",
-
               "source_content_id",
-
               "metadata",
-
               "thumbnail",
-
               "checklist",
-
               "status",
-
           }
-
 
 
           missing_publishing = (
-
               required_publishing
-
-              -
-
-              publishing.keys()
-
+              - publishing.keys()
           )
-
 
 
           if missing_publishing:
-
               raise SystemExit(
-
-                  f"Publishing package incompleto: {missing_publishing}"
-
+                  "Publishing package incompleto: "
+                  f"{sorted(missing_publishing)}"
               )
-
 
 
           if publishing["status"] != "draft":
-
               raise SystemExit(
-
-                  "Publishing package deve iniciar em draft"
-
+                  "Publishing package deve "
+                  "iniciar em draft"
               )
-
 
 
           required_analytics = {
-
               "analytics_version",
-
               "generated_at",
-
               "content_id",
-
               "platform",
-
               "status",
-
               "metrics",
-
               "growth_signals",
-
               "recommendation",
-
           }
 
 
-
           missing_analytics = (
-
               required_analytics
-
-              -
-
-              analytics.keys()
-
+              - analytics.keys()
           )
-
 
 
           if missing_analytics:
-
               raise SystemExit(
-
-                  f"Analytics package incompleto: {missing_analytics}"
-
+                  "Analytics package incompleto: "
+                  f"{sorted(missing_analytics)}"
               )
-
 
 
           if analytics["status"] != "pending":
-
               raise SystemExit(
-
-                  "Analytics inicial deve estar pending"
-
+                  "Analytics inicial deve "
+                  "estar pending"
               )
 
 
+          if (
+              analytics["content_id"]
+              != publishing["source_content_id"]
+          ):
+              raise SystemExit(
+                  "Analytics content_id não corresponde "
+                  "ao publishing source_content_id"
+              )
+
 
           print("=" * 70)
-
           print("PIPELINE VALIDATION PASS")
-
           print("=" * 70)
 
           print(
-
-              f"Digest topics: {len(digest['topics'])}"
-
+              f"Digest topics: "
+              f"{len(digest['topics'])}"
           )
 
           print(
-
-              f"Editorial topics: {len(editorial['topics'])}"
-
+              f"Editorial topics: "
+              f"{len(editorial['topics'])}"
           )
 
           print(
-
-              f"Dashboard ranking: {len(dashboard['ranking'])}"
-
+              f"Dashboard ranking: "
+              f"{len(dashboard['ranking'])}"
           )
 
           print(
-
-              f"Production scenes: {len(content['scenes'])}"
-
+              f"Production scenes: "
+              f"{len(content['scenes'])}"
           )
 
           print(
-
-              f"Publishing status: {publishing['status']}"
-
+              f"Publishing status: "
+              f"{publishing['status']}"
           )
 
           print(
-
-              f"Analytics status: {analytics['status']}"
-
+              f"Analytics status: "
+              f"{analytics['status']}"
           )
 
           print(
-
-              f"Winner: {content['source_topic']['title']}"
-
+              f"Winner: "
+              f"{content['source_topic']['title']}"
           )
 
-
-
+          print(
+              "GitHub Pages root: "
+              "dashboard/index.html"
+          )
           PY
 
-
-
-      - name: Upload Artifacts
-
+      - name: Upload Pipeline Artifacts
         if: always()
-
-
         uses: actions/upload-artifact@v4
-
-
         with:
-
-
           name: football-shorts-ai-output
-
-
           retention-days: 7
-
-
+          if-no-files-found: warn
           path: |
-
-
             output/
+            dashboard/
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dashboard/
+
+
+  deploy-pages:
+
+    name: Deploy GitHub Pages
+
+    needs:
+      - football-shorts
+
+    if: ${{ needs.football-shorts.result == 'success' }}
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
