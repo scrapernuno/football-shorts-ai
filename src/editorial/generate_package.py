@@ -166,6 +166,16 @@ def normalize_topic_package(
                     "",
                 ),
 
+                "confirmation_status": (
+                    "CONFIRMED"
+                    if topic.get(
+                        "source_url"
+                    )
+                    else "UNKNOWN"
+                ),
+
+                "published": True,
+
             },
 
 
