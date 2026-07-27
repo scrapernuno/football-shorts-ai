@@ -125,6 +125,12 @@ def normalize_topic_package(
         )
 
 
+        viral_score = topic.get(
+            "viral_score",
+            0,
+        )
+
+
         topic_id = (
             topic.get(
                 "topic_id"
@@ -165,6 +171,8 @@ def normalize_topic_package(
 
             "ranking": {
 
+                "viral_probability": viral_score,
+
                 "breaking": (
                     topic.get(
                         "urgency",
@@ -174,10 +182,7 @@ def normalize_topic_package(
 
                 "competition": "HIGH",
 
-                "priority": topic.get(
-                    "viral_score",
-                    0,
-                ),
+                "priority": viral_score,
 
                 "publish_today": True,
 
