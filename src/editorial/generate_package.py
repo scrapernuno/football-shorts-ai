@@ -109,7 +109,7 @@ def asset(
 
     return {
 
-        "asset_type": "VIDEO",
+        "asset_type": "video",
 
         "description": description,
 
@@ -126,11 +126,8 @@ def asset(
         ),
 
         "search_queries": [
-
             query,
-
             description,
-
         ],
 
     }
@@ -320,7 +317,6 @@ def normalize_topic_package(
 
     result = []
 
-
     for index, topic in enumerate(
         topics,
         start=1,
@@ -336,7 +332,6 @@ def normalize_topic_package(
             0,
         )
 
-
         topic_id = (
             title.lower()
             .replace(
@@ -347,7 +342,6 @@ def normalize_topic_package(
 
 
         result.append(
-
             {
 
                 "topic_id": topic_id,
@@ -486,7 +480,6 @@ def normalize_topic_package(
                 "checklist": [],
 
             }
-
         )
 
 
@@ -514,7 +507,6 @@ def normalize_editorial_package(
         TIMEZONE,
     )
 
-
     result["topics"] = normalize_topic_package(
         result.get(
             "topics",
@@ -522,14 +514,12 @@ def normalize_editorial_package(
         )
     )
 
-
     if result["topics"]:
 
         result.setdefault(
             "top_topic_id",
             result["topics"][0]["topic_id"],
         )
-
 
     return result
 
@@ -561,54 +551,44 @@ def main() -> int:
 
     digest = load_digest()
 
-
     topics = normalize_topics(
         extract_topics(
             digest
         )
     )
 
-
     system_prompt, user_prompt = build_prompt(
         topics
     )
-
 
     response = generate_json(
         system_prompt=system_prompt,
         user_prompt=user_prompt,
     )
 
-
     logger.info(
         "Normalizar Editorial Package."
     )
-
 
     response = normalize_editorial_package(
         response
     )
 
-
     logger.info(
         "Validar Editorial Package."
     )
-
 
     validated = parse_editorial_package_dict(
         response
     )
 
-
     save_package(
         validated.to_dict()
     )
 
-
     print(
         "EDITORIAL PACKAGE GENERATED"
     )
-
 
     return 0
 
