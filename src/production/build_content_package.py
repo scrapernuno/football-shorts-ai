@@ -1055,73 +1055,561 @@ def build_voiceover(
     }
 
 
-def build_scenes() -> list[dict[str, Any]]:
-    return [
-        {
-            "scene_number": 1,
-            "duration_seconds": 5,
-            "visual_instruction": (
-                "Opening football highlight"
+GENERIC_STORYBOARD_ASSET_MARKERS = {
+    "opening football clip",
+    "player team footage",
+    "main highlight clip",
+    "reaction statistics footage",
+    "final football celebration video",
+    "football opening clip",
+    "football context clip",
+    "football highlight clip",
+    "fans reaction clip",
+    "fan reaction",
+}
+
+
+def normalize_label(
+    value: Any,
+) -> str:
+    return normalize_non_empty_string(
+        value,
+        default="",
+    ).replace(
+        "_",
+        " ",
+    )
+
+
+def compact_caption(
+    value: str,
+    *,
+    maximum_words: int = 8,
+) -> str:
+    normalized = normalize_non_empty_string(
+        value,
+        default="",
+    )
+
+    if not normalized:
+        raise ValueError(
+            "Não é possível criar uma legenda "
+            "a partir de texto vazio."
+        )
+
+    first_sentence = split_script_units(
+        normalized
+    )[0]
+
+    words = first_sentence.split()
+
+    if len(
+        words
+    ) > maximum_words:
+        first_sentence = (
+            " ".join(
+                words[
+                    :maximum_words
+                ]
+            )
+            +
+            "…"
+        )
+
+    return first_sentence.upper()
+
+
+def resolve_storyboard_status(
+    source: dict[str, Any],
+    script: dict[str, str],
+) -> str:
+    combined_script = " ".join(
+        script.values()
+    ).casefold()
+
+    if "rumor" in combined_script:
+        return "RUMOUR"
+
+    if (
+        "não é contratação confirmada"
+        in
+        combined_script
+        or
+        "não existe uma transferência confirmada"
+        in
+        combined_script
+        or
+        "sem confirmação definitiva"
+        in
+        combined_script
+    ):
+        return "REPORTED"
+
+    return normalize_non_empty_string(
+        source.get(
+            "confirmation_status"
+        ),
+        default="REPORTED",
+    ).upper()
+
+
+def build_status_instruction(
+    status: str,
+) -> str:
+    instructions = {
+        "CONFIRMED": (
+            "Apresentar como informação confirmada, "
+            "sem acrescentar factos não presentes na fonte."
+        ),
+        "REPORTED": (
+            "Apresentar como informação reportada, "
+            "sem grafismo de contratação confirmada."
+        ),
+        "RUMOUR": (
+            "Identificar claramente como rumor, "
+            "sem grafismo de contratação confirmada."
+        ),
+        "ANALYSIS": (
+            "Identificar claramente como análise editorial."
+        ),
+    }
+
+    return instructions.get(
+        status,
+        instructions[
+            "REPORTED"
+        ],
+    )
+
+
+def extract_storyboard_scenes(
+    editorial_topic: dict[str, Any],
+) -> list[dict[str, Any]]:
+    storyboard = require_mapping(
+        editorial_topic.get(
+            "storyboard"
+        ),
+        "winner.storyboard",
+    )
+
+    raw_scenes = require_list(
+        storyboard.get(
+            "scenes"
+        ),
+        "winner.storyboard.scenes",
+    )
+
+    scenes = [
+        require_mapping(
+            raw_scene,
+            (
+                "winner.storyboard."
+                f"scenes[{index}]"
             ),
-            "camera_direction": "zoom_in",
-            "voiceover_segment": "Hook inicial",
-            "caption_text": (
-                "O MOMENTO QUE TODOS FALAM"
-            ),
-            "asset_reference": (
-                "football_opening_clip"
-            ),
-        },
-        {
-            "scene_number": 2,
-            "duration_seconds": 15,
-            "visual_instruction": (
-                "Context football footage"
-            ),
-            "camera_direction": "pan_right",
-            "voiceover_segment": (
-                "Contexto da história"
-            ),
-            "caption_text": (
-                "COMO TUDO ACONTECEU"
-            ),
-            "asset_reference": (
-                "football_context_clip"
-            ),
-        },
-        {
-            "scene_number": 3,
-            "duration_seconds": 15,
-            "visual_instruction": (
-                "Main football moment"
-            ),
-            "camera_direction": "slow_motion",
-            "voiceover_segment": (
-                "Momento decisivo"
-            ),
-            "caption_text": (
-                "O MOMENTO DECISIVO"
-            ),
-            "asset_reference": (
-                "football_highlight_clip"
-            ),
-        },
-        {
-            "scene_number": 4,
-            "duration_seconds": 10,
-            "visual_instruction": "Fan reaction",
-            "camera_direction": "zoom_out",
-            "voiceover_segment": (
-                "Reação dos adeptos"
-            ),
-            "caption_text": (
-                "QUAL É A TUA OPINIÃO?"
-            ),
-            "asset_reference": (
-                "fans_reaction_clip"
-            ),
-        },
+        )
+        for index, raw_scene in enumerate(
+            raw_scenes
+        )
     ]
+
+    if len(
+        scenes
+    ) < 4:
+        raise ValueError(
+            "O storyboard editorial deve conter "
+            "pelo menos quatro cenas."
+        )
+
+    return scenes
+
+
+def storyboard_groups(
+    source_scenes: list[dict[str, Any]],
+) -> tuple[
+    tuple[dict[str, Any], ...],
+    ...,
+]:
+    if len(
+        source_scenes
+    ) == 4:
+        return tuple(
+            (
+                scene,
+            )
+            for scene in source_scenes
+        )
+
+    return (
+        (
+            source_scenes[0],
+        ),
+        (
+            source_scenes[1],
+        ),
+        tuple(
+            source_scenes[
+                2:
+                -1
+            ]
+        ),
+        (
+            source_scenes[-1],
+        ),
+    )
+
+
+def select_group_value(
+    group: tuple[dict[str, Any], ...],
+    field_name: str,
+    *,
+    use_last: bool = False,
+    default: str,
+) -> str:
+    ordered = (
+        tuple(
+            reversed(
+                group
+            )
+        )
+        if use_last
+        else group
+    )
+
+    for scene in ordered:
+        value = normalize_label(
+            scene.get(
+                field_name
+            )
+        )
+
+        if value:
+            return value
+
+    return default
+
+
+def asset_reference_from_group(
+    group: tuple[dict[str, Any], ...],
+) -> str:
+    for scene in group:
+        asset = scene.get(
+            "asset"
+        )
+
+        if not isinstance(
+            asset,
+            dict,
+        ):
+            continue
+
+        description = normalize_non_empty_string(
+            asset.get(
+                "description"
+            ),
+            default="",
+        )
+
+        if not description:
+            continue
+
+        if (
+            description.casefold()
+            in
+            GENERIC_STORYBOARD_ASSET_MARKERS
+        ):
+            continue
+
+        return description
+
+    return "asset específico requerido"
+
+
+def build_visual_instruction(
+    *,
+    title: str,
+    narrative_text: str,
+    source_visuals: list[str],
+    status_instruction: str,
+    stage: str,
+) -> str:
+    observed: set[str] = set()
+    visuals: list[str] = []
+
+    for value in source_visuals:
+        normalized = normalize_non_empty_string(
+            value,
+            default="",
+        )
+
+        key = normalized.casefold()
+
+        if (
+            not normalized
+            or
+            key in observed
+            or
+            key in {
+                "momento inicial mais forte do tema",
+                "clips que explicam a situação",
+                "a jogada ou momento principal",
+                "reações, comentários e dados",
+                "fecho do short com chamada à interação",
+            }
+        ):
+            continue
+
+        observed.add(
+            key
+        )
+        visuals.append(
+            normalized
+        )
+
+    source_hint = (
+        " ".join(
+            visuals
+        )
+        if visuals
+        else
+        (
+            f"Usar imagens licenciadas diretamente "
+            f"relacionadas com «{title}»."
+        )
+    )
+
+    return (
+        f"{stage}: {source_hint} "
+        f"Conteúdo editorial a ilustrar: {narrative_text} "
+        f"{status_instruction}"
+    )
+
+
+def build_scenes(
+    editorial_topic: dict[str, Any],
+    script: dict[str, str],
+    title: str,
+) -> list[dict[str, Any]]:
+    source = require_mapping(
+        editorial_topic.get(
+            "source"
+        ),
+        "winner.source",
+    )
+
+    source_scenes = extract_storyboard_scenes(
+        editorial_topic
+    )
+
+    groups = storyboard_groups(
+        source_scenes
+    )
+
+    status = resolve_storyboard_status(
+        source,
+        script,
+    )
+
+    status_instruction = (
+        build_status_instruction(
+            status
+        )
+    )
+
+    narrative = (
+        {
+            "caption_source": script[
+                "hook"
+            ],
+            "voiceover": script[
+                "hook"
+            ],
+            "stage": "Abertura",
+            "duration": 5,
+        },
+        {
+            "caption_source": script[
+                "introduction"
+            ],
+            "voiceover": (
+                script[
+                    "introduction"
+                ]
+                +
+                " "
+                +
+                script[
+                    "development"
+                ]
+            ),
+            "stage": "Contexto",
+            "duration": 15,
+        },
+        {
+            "caption_source": script[
+                "climax"
+            ],
+            "voiceover": (
+                script[
+                    "climax"
+                ]
+                +
+                " "
+                +
+                script[
+                    "ending"
+                ]
+            ),
+            "stage": "Ponto decisivo",
+            "duration": 15,
+        },
+        {
+            "caption_source": script[
+                "call_to_action"
+            ],
+            "voiceover": script[
+                "call_to_action"
+            ],
+            "stage": "Fecho",
+            "duration": 10,
+        },
+    )
+
+    scenes: list[
+        dict[str, Any]
+    ] = []
+
+    for index, (
+        group,
+        narrative_item,
+    ) in enumerate(
+        zip(
+            groups,
+            narrative,
+            strict=True,
+        ),
+        start=1,
+    ):
+        source_visuals = [
+            normalize_non_empty_string(
+                scene.get(
+                    "visual_description"
+                ),
+                default="",
+            )
+            for scene in group
+        ]
+
+        camera_direction = (
+            select_group_value(
+                group,
+                "camera_movement",
+                default="static",
+            )
+        )
+
+        editing_pace = select_group_value(
+            group,
+            "editing_pace",
+            default="medium",
+        )
+
+        transition = select_group_value(
+            group,
+            "transition",
+            use_last=True,
+            default="cut",
+        )
+
+        sound_effect = select_group_value(
+            group,
+            "sound_effect",
+            default="som editorial",
+        )
+
+        voiceover_text = (
+            normalize_non_empty_string(
+                narrative_item[
+                    "voiceover"
+                ],
+                default="",
+            )
+        )
+
+        scenes.append(
+            {
+                "scene_number": index,
+                "duration_seconds": (
+                    narrative_item[
+                        "duration"
+                    ]
+                ),
+                "visual_instruction":
+                    build_visual_instruction(
+                        title=title,
+                        narrative_text=(
+                            voiceover_text
+                        ),
+                        source_visuals=(
+                            source_visuals
+                        ),
+                        status_instruction=(
+                            status_instruction
+                        ),
+                        stage=(
+                            narrative_item[
+                                "stage"
+                            ]
+                        ),
+                    ),
+                "camera_direction":
+                    camera_direction,
+                "editing_pace":
+                    editing_pace,
+                "transition":
+                    transition,
+                "sound_effect":
+                    sound_effect,
+                "voiceover_segment":
+                    voiceover_text,
+                "caption_text":
+                    compact_caption(
+                        narrative_item[
+                            "caption_source"
+                        ]
+                    ),
+                "asset_reference":
+                    asset_reference_from_group(
+                        group
+                    ),
+                "confirmation_status":
+                    status,
+                "source_scene_numbers": [
+                    normalize_integer(
+                        scene.get(
+                            "scene_number"
+                        ),
+                        default=position,
+                    )
+                    for position, scene in enumerate(
+                        group,
+                        start=1,
+                    )
+                ],
+            }
+        )
+
+    if sum(
+        scene[
+            "duration_seconds"
+        ]
+        for scene in scenes
+    ) != 45:
+        raise ValueError(
+            "O storyboard consolidado deve "
+            "ter exatamente 45 segundos."
+        )
+
+    return scenes
 
 
 def build_content_package(
@@ -1251,7 +1739,11 @@ def build_content_package(
         "voiceover": build_voiceover(
             script
         ),
-        "scenes": build_scenes(),
+        "scenes": build_scenes(
+            editorial_topic,
+            script,
+            title,
+        ),
         "captions": [],
         "assets": [],
         "publishing": {
