@@ -88,6 +88,72 @@ jobs:
           PYTHONPATH=src \
           python src/production/build_content_package.py
 
+      - name: Compile Media Acquisition Architecture
+        run: |
+          python -m py_compile \
+            src/assets/contracts.py \
+            src/assets/provider_registry.py \
+            src/assets/build_media_acquisition_plan.py \
+            src/assets/sync_media_acquisition_plan.py \
+            src/assets/certify_media_acquisition_governance.py \
+            src/assets/providers/base.py \
+            src/assets/providers/owned_library.py \
+            src/assets/providers/imago.py \
+            src/assets/providers/reuters_connect.py \
+            src/assets/providers/tiktok_licensed_ugc.py \
+            src/assets/providers/pexels.py
+
+      - name: Build Media Acquisition Plan
+        run: |
+          PYTHONPATH=src \
+          python src/assets/build_media_acquisition_plan.py
+
+      - name: Compile TikTok Trend Intelligence
+        run: |
+          python -m py_compile \
+            src/trends/build_trend_discovery_request.py \
+            src/trends/discover_tiktok_trends.py \
+            src/trends/build_tiktok_trend_intelligence.py \
+            src/trends/build_platform_variants.py \
+            src/trends/sync_trend_intelligence.py \
+            src/trends/certify_tiktok_trend_governance.py \
+            src/trends/providers/__init__.py \
+            src/trends/providers/base.py \
+            src/trends/providers/registry.py \
+            src/trends/providers/openai_web_search.py \
+            src/trends/providers/tiktok_business_discovery.py \
+            src/trends/certify_tiktok_business_pre_activation.py
+
+      - name: Certify TikTok Business Pre-Activation
+        run: |
+          PYTHONPATH=src \
+          python src/trends/certify_tiktok_business_pre_activation.py
+
+      - name: Build TikTok Trend Intelligence
+        run: |
+          PYTHONPATH=src \
+          python src/trends/build_tiktok_trend_intelligence.py
+
+      - name: Build Cross-Platform Variants
+        run: |
+          PYTHONPATH=src \
+          python src/trends/build_platform_variants.py
+
+      - name: Build Publishing Evidence
+        run: |
+          python -m py_compile \
+            src/publishing/build_publishing_evidence.py
+
+          PYTHONPATH=src \
+          python src/publishing/build_publishing_evidence.py
+
+          if [ ! -s output/publishing_evidence.json ]; then
+            echo "::error::publishing_evidence.json não foi produzido."
+            exit 1
+          fi
+
+          echo "PUBLISHING_EVIDENCE_HANDOVER=PASS"
+
       - name: Build Publishing Package
         run: |
           PYTHONPATH=src \
@@ -107,6 +173,30 @@ jobs:
         run: |
           PYTHONPATH=src \
           python src/dashboard/sync_production_studio.py
+
+      - name: Sync Media Acquisition Plan
+        run: |
+          PYTHONPATH=src \
+          python src/assets/sync_media_acquisition_plan.py
+
+      - name: Certify Media Acquisition Governance
+        run: |
+          PYTHONPATH=src \
+          python src/assets/certify_media_acquisition_governance.py
+
+      - name: Sync TikTok Trend Intelligence
+        run: |
+          PYTHONPATH=src \
+          python src/trends/sync_trend_intelligence.py
+
+      - name: Certify TikTok Trend Governance
+        run: |
+          PYTHONPATH=src \
+          python src/trends/certify_tiktok_trend_governance.py
+
+      - name: Validate Dashboard JavaScript
+        run: |
+          node --check dashboard/assets/dashboard.js
 
       - name: Generate HTML
         run: |
@@ -138,6 +228,13 @@ jobs:
               "output/editorial_package.json",
               "output/dashboard_model.json",
               "output/content_package.json",
+              "output/media_acquisition_plan.json",
+              "output/trend_discovery_request.json",
+              "output/tiktok_trend_discovery_results.json",
+              "output/tiktok_trend_runtime_intake.json",
+              "output/tiktok_trend_intelligence.json",
+              "output/platform_variants.json",
+              "output/publishing_evidence.json",
               "output/publishing_package.json",
               "output/analytics_package.json",
               "output/digest.html",
@@ -149,6 +246,11 @@ jobs:
 
               "dashboard/data/dashboard_model.json",
               "dashboard/data/content_package.json",
+              "dashboard/data/media_acquisition_plan.json",
+              "dashboard/data/trend_discovery_request.json",
+              "dashboard/data/tiktok_trend_discovery_results.json",
+              "dashboard/data/tiktok_trend_intelligence.json",
+              "dashboard/data/platform_variants.json",
               "dashboard/data/publishing_package.json",
               "dashboard/data/analytics_package.json",
           ]
@@ -220,6 +322,54 @@ jobs:
 
           content_public = load_json(
               "dashboard/data/content_package.json"
+          )
+
+          media_plan = load_json(
+              "output/media_acquisition_plan.json"
+          )
+
+          media_plan_public = load_json(
+              "dashboard/data/media_acquisition_plan.json"
+          )
+
+          trend_discovery_request = load_json(
+              "output/trend_discovery_request.json"
+          )
+
+          trend_discovery_request_public = load_json(
+              "dashboard/data/trend_discovery_request.json"
+          )
+
+          trend_discovery_results = load_json(
+              "output/tiktok_trend_discovery_results.json"
+          )
+
+          trend_discovery_results_public = load_json(
+              "dashboard/data/tiktok_trend_discovery_results.json"
+          )
+
+          trend_runtime_intake = load_json(
+              "output/tiktok_trend_runtime_intake.json"
+          )
+
+          tiktok_trends = load_json(
+              "output/tiktok_trend_intelligence.json"
+          )
+
+          tiktok_trends_public = load_json(
+              "dashboard/data/tiktok_trend_intelligence.json"
+          )
+
+          platform_variants = load_json(
+              "output/platform_variants.json"
+          )
+
+          platform_variants_public = load_json(
+              "dashboard/data/platform_variants.json"
+          )
+
+          publishing_evidence = load_json(
+              "output/publishing_evidence.json"
           )
 
           publishing = load_json(
@@ -479,6 +629,518 @@ jobs:
                   )
 
 
+          if media_plan != media_plan_public:
+              raise SystemExit(
+                  "Media Acquisition Plan público "
+                  "não corresponde ao plano produzido"
+              )
+
+
+          if (
+              media_plan.get("publication_execution_enabled")
+              is not False
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan ativou publicação"
+              )
+
+
+          media_policy = media_plan.get(
+              "policy"
+          )
+
+
+          if (
+              not isinstance(media_policy, dict)
+              or media_policy.get("mode")
+              != "copyright_aware_fail_closed"
+              or media_policy.get("unlicensed_media_allowed")
+              is not False
+              or media_policy.get(
+                  "editorial_exception_requires_manual_review"
+              )
+              is not True
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan viola "
+                  "a política de copyright"
+              )
+
+
+          provider_ids = [
+              provider.get("provider_id")
+              for provider in media_plan.get(
+                  "provider_registry",
+                  [],
+              )
+              if isinstance(provider, dict)
+          ]
+
+
+          if provider_ids != [
+              "owned_library",
+              "imago",
+              "reuters_connect",
+              "tiktok_licensed_ugc",
+              "pexels",
+          ]:
+              raise SystemExit(
+                  "Media provider order inválida"
+              )
+
+
+          scene_plans = media_plan.get(
+              "scene_plans"
+          )
+
+
+          if (
+              not isinstance(scene_plans, list)
+              or len(scene_plans) != len(scenes)
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan não cobre "
+                  "todas as cenas"
+              )
+
+
+          for scene_plan in scene_plans:
+              if not isinstance(scene_plan, dict):
+                  raise SystemExit(
+                      "Scene plan inválido"
+                  )
+
+              if scene_plan.get("selected_asset") is not None:
+                  raise SystemExit(
+                      "Asset selecionado antes da ativação"
+                  )
+
+              if scene_plan.get("rights_status") != "unresolved":
+                  raise SystemExit(
+                      "Direitos resolvidos sem evidência"
+                  )
+
+              if (
+                  scene_plan.get("subject_scope")
+                  ==
+                  "specific_football"
+              ):
+                  pexels_routes = [
+                      route
+                      for route in scene_plan.get(
+                          "provider_route",
+                          [],
+                      )
+                      if (
+                          isinstance(route, dict)
+                          and
+                          route.get("provider_id")
+                          ==
+                          "pexels"
+                      )
+                  ]
+
+                  if (
+                      len(pexels_routes) != 1
+                      or
+                      pexels_routes[0].get("allowed")
+                      is not False
+                  ):
+                      raise SystemExit(
+                          "Pexels permitido para "
+                          "conteúdo específico"
+                      )
+
+
+          if (
+              trend_discovery_request
+              != trend_discovery_request_public
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request público "
+                  "não corresponde ao output"
+              )
+
+
+          if (
+              trend_discovery_request.get("source_mode")
+              != "automatic_winning_topic_binding"
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request sem "
+                  "binding automático"
+              )
+
+
+          discovery_binding = trend_discovery_request.get(
+              "topic_binding"
+          )
+
+
+          if not isinstance(discovery_binding, dict):
+              raise SystemExit(
+                  "Trend Discovery topic_binding inválido"
+              )
+
+
+          if (
+              discovery_binding.get("content_title")
+              != source_topic.get("title")
+              or discovery_binding.get("content_hook")
+              != source_topic.get("hook")
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request não corresponde "
+                  "à notícia vencedora"
+              )
+
+
+          discovery_identity = discovery_binding.get(
+              "content_identity_sha256"
+          )
+
+
+          if (
+              not isinstance(discovery_identity, str)
+              or len(discovery_identity) != 64
+          ):
+              raise SystemExit(
+                  "Trend Discovery content identity inválida"
+              )
+
+
+          discovery_queries = trend_discovery_request.get(
+              "search_queries"
+          )
+
+
+          if (
+              not isinstance(discovery_queries, list)
+              or not discovery_queries
+              or any(
+                  not isinstance(query, str)
+                  or not query.strip()
+                  for query in discovery_queries
+              )
+          ):
+              raise SystemExit(
+                  "Trend Discovery search queries inválidas"
+              )
+
+
+          requested_assets = trend_discovery_request.get(
+              "requested_assets"
+          )
+
+
+          if requested_assets != [
+              "trend_video_reference",
+              "trend_sound_reference",
+              "hashtag_reference",
+          ]:
+              raise SystemExit(
+                  "Trend Discovery assets solicitados inválidos"
+              )
+
+
+          discovery_intake = trend_discovery_request.get(
+              "candidate_intake"
+          )
+
+
+          if (
+              not isinstance(discovery_intake, dict)
+              or discovery_intake.get(
+                  "automatic_candidate_selection"
+              )
+              is not False
+              or discovery_intake.get(
+                  "rights_evidence_required"
+              )
+              is not True
+          ):
+              raise SystemExit(
+                  "Trend Discovery candidate intake inválido"
+              )
+
+
+          discovery_boundaries = trend_discovery_request.get(
+              "capability_boundaries"
+          )
+
+
+          if (
+              not isinstance(discovery_boundaries, dict)
+              or discovery_boundaries.get(
+                  "network_execution_enabled"
+              )
+              is not True
+              or discovery_boundaries.get(
+                  "network_execution_scope"
+              )
+              != "github_actions_server_side_web_search"
+              or discovery_boundaries.get(
+                  "web_search_provider"
+              )
+              != "openai_web_search"
+              or discovery_boundaries.get(
+                  "browser_api_calls_enabled"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "direct_tiktok_api_calls_enabled"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery capability boundary inválida"
+              )
+
+
+          if (
+              trend_discovery_request.get("status")
+              != "discovery_required"
+              or trend_discovery_request.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery lifecycle inválido"
+              )
+
+
+          if (
+              trend_discovery_results
+              != trend_discovery_results_public
+          ):
+              raise SystemExit(
+                  "Trend Discovery Results públicos "
+                  "não correspondem ao output"
+              )
+
+
+          results_binding = trend_discovery_results.get(
+              "topic_binding"
+          )
+
+
+          results_execution = trend_discovery_results.get(
+              "execution"
+          )
+
+
+          results_governance = trend_discovery_results.get(
+              "governance"
+          )
+
+
+          if (
+              not isinstance(results_binding, dict)
+              or results_binding.get(
+                  "content_identity_sha256"
+              )
+              != discovery_identity
+          ):
+              raise SystemExit(
+                  "Trend Discovery Results sem binding válido"
+              )
+
+
+          if (
+              not isinstance(results_execution, dict)
+              or results_execution.get(
+                  "server_side_network_execution_enabled"
+              )
+              is not True
+              or results_execution.get(
+                  "browser_api_calls_enabled"
+              )
+              is not False
+              or results_execution.get(
+                  "direct_tiktok_api_calls_enabled"
+              )
+              is not False
+              or results_execution.get(
+                  "automatic_candidate_selection_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery execution boundary inválida"
+              )
+
+
+          if (
+              not isinstance(results_governance, dict)
+              or results_governance.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or results_governance.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+              or results_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery results governance inválida"
+              )
+
+
+          runtime_binding = trend_runtime_intake.get(
+              "topic_binding"
+          )
+
+
+          if (
+              not isinstance(runtime_binding, dict)
+              or runtime_binding.get(
+                  "content_identity_sha256"
+              )
+              != discovery_identity
+              or trend_runtime_intake.get(
+                  "selected_video_candidate_id"
+              )
+              is not None
+              and not isinstance(
+                  trend_runtime_intake.get(
+                      "selected_video_candidate_id"
+                  ),
+                  str,
+              )
+          ):
+              raise SystemExit(
+                  "Trend runtime intake inválido"
+              )
+
+
+          dashboard_javascript = Path(
+              "dashboard/assets/dashboard.js"
+          ).read_text(
+              encoding="utf-8"
+          )
+
+
+          required_discovery_markers = [
+              'trendDiscoveryRequest: "data/trend_discovery_request.json"',
+              "TREND DISCOVERY REQUEST",
+              "Topic binding:",
+              "Queries geradas:",
+              "Execução de rede:",
+              "Seleção automática:",
+              "Publicação automática:",
+          ]
+
+
+          missing_discovery_markers = [
+              marker
+              for marker in required_discovery_markers
+              if marker not in dashboard_javascript
+          ]
+
+
+          if missing_discovery_markers:
+              raise SystemExit(
+                  "Dashboard sem rendering do discovery request: "
+                  f"{missing_discovery_markers}"
+              )
+
+
+          if tiktok_trends != tiktok_trends_public:
+              raise SystemExit(
+                  "TikTok trend intelligence pública "
+                  "não corresponde ao output"
+              )
+
+
+          if platform_variants != platform_variants_public:
+              raise SystemExit(
+                  "Platform variants público "
+                  "não corresponde ao output"
+              )
+
+
+          trend_boundaries = tiktok_trends.get(
+              "official_capability_boundaries"
+          )
+
+
+          if (
+              not isinstance(trend_boundaries, dict)
+              or trend_boundaries.get(
+                  "display_api_global_trend_search_available"
+              )
+              is not False
+              or trend_boundaries.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or trend_boundaries.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "TikTok capability boundary inválida"
+              )
+
+
+          if (
+              tiktok_trends.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "TikTok trends ativaram publicação"
+              )
+
+
+          variant_governance = platform_variants.get(
+              "governance"
+          )
+
+
+          if (
+              not isinstance(variant_governance, dict)
+              or variant_governance.get(
+                  "native_remix_platform_bound"
+              )
+              is not True
+              or variant_governance.get(
+                  "cross_platform_third_party_use_requires_license"
+              )
+              is not True
+              or variant_governance.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or variant_governance.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+              or variant_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Cross-platform trend governance inválida"
+              )
+
+
           required_publishing = {
               "package_version",
               "generated_at",
@@ -521,6 +1183,73 @@ jobs:
                   "Publishing package deve "
                   "iniciar em draft"
               )
+
+
+          evidence_identity = publishing_evidence.get(
+              "content_identity"
+          )
+
+
+          if not isinstance(evidence_identity, dict):
+              raise SystemExit(
+                  "Publishing evidence content_identity inválido"
+              )
+
+
+          if (
+              evidence_identity.get("content_id")
+              != publishing.get("source_content_id")
+          ):
+              raise SystemExit(
+                  "Publishing evidence não corresponde "
+                  "ao Publishing Package"
+              )
+
+
+          evidence_thumbnail = publishing_evidence.get(
+              "thumbnail"
+          )
+
+
+          if not isinstance(evidence_thumbnail, dict):
+              raise SystemExit(
+                  "Publishing evidence thumbnail inválido"
+              )
+
+
+          if evidence_thumbnail.get("status") != "ready":
+              raise SystemExit(
+                  "Thumbnail de evidência não está ready"
+              )
+
+
+          thumbnail_artifact = Path(
+              evidence_thumbnail.get(
+                  "artifact_path",
+                  "",
+              )
+          )
+
+
+          thumbnail_public = (
+              Path("dashboard")
+              /
+              evidence_thumbnail.get(
+                  "public_path",
+                  "",
+              )
+          )
+
+
+          for thumbnail_path in (
+              thumbnail_artifact,
+              thumbnail_public,
+          ):
+              if not thumbnail_path.is_file():
+                  raise SystemExit(
+                      "Thumbnail em falta: "
+                      f"{thumbnail_path}"
+                  )
 
 
           if (
