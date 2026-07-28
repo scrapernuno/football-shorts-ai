@@ -7,6 +7,8 @@ const DATA_FILES = {
     publishing: "data/publishing_package.json",
     analytics: "data/analytics_package.json",
     mediaPlan: "data/media_acquisition_plan.json",
+    tiktokTrends: "data/tiktok_trend_intelligence.json",
+    platformVariants: "data/platform_variants.json",
 };
 
 
@@ -545,13 +547,11 @@ function renderOverview(
             ? `${totalDuration} segundos`
             : "Duração não definida",
     );
-
     setStatus(
         "overview-production-status",
         productionStatus,
     );
-
-    setText(
+        setText(
         "overview-generated-at",
         formatDate(
             dashboard.generated_at
@@ -579,7 +579,10 @@ function renderOverview(
             `${viralProbability * 3.6}deg`,
         );
     }
-}function renderPipelineStatus(
+}
+
+
+function renderPipelineStatus(
     content,
     publishing,
     analytics,
@@ -1091,11 +1094,12 @@ function renderScriptStudio(
             segments.length
         ),
     );
-}function renderStoryboard(
+}
+function renderStoryboard(
     content,
 ) {
     const scenes = Array.isArray(
-        content.scenes
+                content.scenes
     )
         ? content.scenes
         : [];
@@ -1254,6 +1258,8 @@ function renderScriptStudio(
 function renderAssets(
     content,
     mediaPlan,
+    tiktokTrends,
+    platformVariants,
 ) {
     const explicitAssets = Array.isArray(
         content.assets
@@ -1277,12 +1283,38 @@ function renderAssets(
         ? explicitAssets
         : scenePlans;
 
+    const videoCandidates = (
+        isObject(
+            tiktokTrends
+        )
+        &&
+        Array.isArray(
+            tiktokTrends.video_candidates
+        )
+    )
+        ? tiktokTrends.video_candidates
+        : [];
+
+    const soundCandidates = (
+        isObject(
+            tiktokTrends
+        )
+        &&
+        Array.isArray(
+            tiktokTrends.sound_candidates
+        )
+    )
+        ? tiktokTrends.sound_candidates
+        : [];
+
     setText(
         "asset-count",
         (
-            assets.length === 1
-                ? "1 asset"
-                : `${assets.length} assets`
+            `${assets.length} cenas`
+            +
+            " · "
+            +
+            `${videoCandidates.length} trends`
         ),
     );
 
@@ -1295,17 +1327,8 @@ function renderAssets(
         return;
     }
 
-    if (!assets.length) {
-        container.innerHTML = `
-            <p class="empty-state">
-                Nenhum asset ou plano disponível.
-            </p>
-        `;
-        return;
-    }
-
-    container.innerHTML =
-        assets
+    const sceneHtml = assets.length
+        ? assets
             .map(
                 (
                     asset,
@@ -1526,8 +1549,375 @@ function renderAssets(
                     `;
                 },
             )
-            .join("");
-}function normalizePublishingChecklistEntry(
+            .join("")
+        : `
+            <p class="empty-state">
+                Nenhum plano de media disponível.
+            </p>
+        `;
+
+    const trendStatus = safeText(
+        (
+            isObject(
+                tiktokTrends
+            )
+                ? tiktokTrends.status
+                : null
+        ),
+        "intake_required",
+    )
+    .replaceAll(
+        "_",
+        " ",
+    )
+    .toUpperCase();
+
+    const readiness = (
+        isObject(
+            tiktokTrends
+        )
+        &&
+        isObject(
+            tiktokTrends.readiness
+        )
+    )
+        ? tiktokTrends.readiness
+        : {};
+
+    const trendSummaryHtml = `
+        <article class="asset-card">
+
+            <strong>
+                TIKTOK TREND INTELLIGENCE
+                ·
+                ${escapeHtml(trendStatus)}
+            </strong>
+
+            <span>
+                Vídeos candidatos:
+                ${videoCandidates.length}
+            </span>
+
+            <span>
+                Sons candidatos:
+                ${soundCandidates.length}
+            </span>
+
+            <span>
+                TikTok variant ready:
+                ${
+                    readiness.tiktok_variant_ready === true
+                        ? "YES"
+                        : "NO"
+                }
+            </span>
+
+            <span>
+                Cross-platform UGC ready:
+                ${
+                    readiness.cross_platform_ugc_ready === true
+                        ? "YES"
+                        : "NO"
+                }
+            </span>
+
+            <span>
+                Download de TikTok de terceiro:
+                BLOCKED
+            </span>
+
+            <span>
+                Remoção de watermark:
+                BLOCKED
+            </span>
+
+        </article>
+    `;
+
+    const trendCandidatesHtml = videoCandidates
+        .map(
+            (candidate) => {
+                const usageMode = safeText(
+                    candidate.usage_mode,
+                    "reference_only",
+                )
+                .replaceAll(
+                    "_",
+                    " ",
+                )
+                                .toUpperCase();
+
+                const executionStatus = safeText(
+                    candidate.execution_status,
+                    "blocked",
+                )
+                .replaceAll(
+                    "_",
+                    " ",
+                )
+                .toUpperCase();
+
+                const rightsStatus = safeText(
+                    candidate.rights_status,
+                    "unresolved",
+                )
+                .replaceAll(
+                    "_",
+                    " ",
+                )
+                .toUpperCase();
+
+                return `
+                    <article class="asset-card">
+
+                        <strong>
+                            ${escapeHtml(
+                                safeText(
+                                    candidate.creator_username,
+                                    "Creator TikTok",
+                                ),
+                            )}
+                            ·
+                            ${escapeHtml(usageMode)}
+                        </strong>
+
+                        <span>
+                            ${escapeHtml(
+                                safeText(
+                                    candidate.caption,
+                                    "Sem descrição.",
+                                ),
+                            )}
+                        </span>
+
+                        <span>
+                            Execução:
+                            ${escapeHtml(executionStatus)}
+                        </span>
+
+                        <span>
+                            Direitos:
+                            ${escapeHtml(rightsStatus)}
+                        </span>
+
+                        <span>
+                            Cross-platform:
+                            ${
+                                candidate.cross_platform_allowed === true
+                                    ? "LICENSED"
+                                    : "BLOCKED"
+                            }
+                        </span>
+
+                    </article>
+                `;
+            },
+        )
+        .join("");
+
+    const selectedSound = (
+        isObject(
+            tiktokTrends
+        )
+        &&
+        isObject(
+            tiktokTrends.selected_sound
+        )
+    )
+        ? tiktokTrends.selected_sound
+        : null;
+
+    const soundHtml = selectedSound
+        ? `
+            <article class="asset-card">
+
+                <strong>
+                    TIKTOK SOUND
+                    ·
+                    ${escapeHtml(
+                        safeText(
+                            selectedSound.status,
+                            "blocked",
+                        )
+                        .replaceAll(
+                            "_",
+                            " ",
+                        )
+                        .toUpperCase(),
+                    )}
+                </strong>
+
+                <span>
+                    ${escapeHtml(
+                        safeText(
+                            selectedSound.sound_name,
+                            "Som sem nome",
+                        ),
+                    )}
+                </span>
+
+                <span>
+                    Direitos:
+                    ${escapeHtml(
+                        safeText(
+                            selectedSound.rights_classification,
+                            "reference_only",
+                        )
+                        .replaceAll(
+                            "_",
+                            " ",
+                        )
+                        .toUpperCase(),
+                    )}
+                </span>
+
+                <span>
+                    Música embebida no master:
+                    NO
+                </span>
+
+            </article>
+        `
+        : `
+            <article class="asset-card">
+
+                <strong>
+                    TIKTOK SOUND
+                    ·
+                    SELECTION REQUIRED
+                </strong>
+
+                <span>
+                    Preferência:
+                    Commercial Music Library
+                </span>
+
+                <span>
+                    Música embebida no master:
+                    NO
+                </span>
+
+            </article>
+        `;
+
+    const variants = (
+        isObject(
+            platformVariants
+        )
+        &&
+        isObject(
+            platformVariants.variants
+        )
+    )
+        ? platformVariants.variants
+        : {};
+
+    const variantHtml = [
+        [
+            "TikTok",
+            variants.tiktok,
+        ],
+        [
+            "Instagram Reels",
+            variants.instagram_reels,
+        ],
+        [
+            "YouTube Shorts",
+            variants.youtube_shorts,
+        ],
+    ]
+        .map(
+            (
+                [
+                    label,
+                    variant,
+                ],
+            ) => {
+                const payload = isObject(
+                    variant
+                )
+                    ? variant
+                    : {};
+
+                return `
+                    <article class="asset-card">
+
+                        <strong>
+                            ${escapeHtml(label)}
+                            ·
+                            ${escapeHtml(
+                                safeText(
+                                    payload.execution_status,
+                                    "planned",
+                                )
+                                .replaceAll(
+                                    "_",
+                                    " ",
+                                )
+                                .toUpperCase(),
+                            )}
+                        </strong>
+
+                        <span>
+                            Vídeo:
+                            ${escapeHtml(
+                                safeText(
+                                    firstDefined(
+                                        payload.video_strategy,
+                                        "clean_master_only",
+                                    ),
+                                    "clean_master_only",
+                                )
+                                .replaceAll(
+                                    "_",
+                                    " ",
+                                ),
+                            )}
+                        </span>
+
+                        <span>
+                            Áudio:
+                            ${escapeHtml(
+                                safeText(
+                                    firstDefined(
+                                        payload.sound_strategy,
+                                        payload.audio_strategy,
+                                    ),
+                                    "platform native selection",
+                                )
+                                .replaceAll(
+                                    "_",
+                                    " ",
+                                ),
+                            )}
+                        </span>
+
+                        <span>
+                            Publicação automática:
+                            NO
+                        </span>
+
+                    </article>
+                `;
+            },
+        )
+        .join("");
+
+    container.innerHTML = (
+        sceneHtml
+        +
+        trendSummaryHtml
+        +
+        trendCandidatesHtml
+        +
+        soundHtml
+        +
+        variantHtml
+    );
+}
+
+
+function normalizePublishingChecklistEntry(
     key,
     value,
 ) {
@@ -1805,8 +2195,7 @@ function renderPublishing(
     )
         ? metadata.hashtags
         : [];
-
-    const hashtagsContainer =
+        const hashtagsContainer =
         document.getElementById(
             "publishing-hashtags"
         );
@@ -1841,7 +2230,7 @@ function renderPublishing(
 
     const checklistItems =
         Object.entries(checklist)
-            .map(
+                .map(
                 (
                     [key, value],
                 ) => (
@@ -1991,7 +2380,10 @@ function renderPublishing(
         +
         checklistHtml
     );
-}function renderAnalytics(
+}
+
+
+function renderAnalytics(
     analytics,
 ) {
     const metrics = isObject(
@@ -2174,6 +2566,8 @@ function renderProductionStudio(
         publishing,
         analytics,
         mediaPlan,
+        tiktokTrends,
+        platformVariants,
     } = state;
 
     renderHeader(
@@ -2216,6 +2610,8 @@ function renderProductionStudio(
     renderAssets(
         content,
         mediaPlan,
+        tiktokTrends,
+        platformVariants,
     );
 
     renderPublishing(
