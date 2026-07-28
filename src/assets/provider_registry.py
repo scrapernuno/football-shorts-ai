@@ -28,6 +28,9 @@ from assets.providers.pexels import (
 from assets.providers.reuters_connect import (
     ReutersConnectAdapter,
 )
+from assets.providers.tiktok_licensed_ugc import (
+    TikTokLicensedUGCAdapter,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -50,6 +53,9 @@ ADAPTER_TYPES = {
 
     "reuters_connect":
         ReutersConnectAdapter,
+
+    "tiktok_licensed_ugc":
+        TikTokLicensedUGCAdapter,
 
     "pexels":
         PexelsFallbackAdapter,
@@ -122,6 +128,29 @@ PROVIDER_DESCRIPTORS = {
             "notes":
                 "Conteúdo multimédia editorial "
                 "e noticioso.",
+        },
+
+    "tiktok_licensed_ugc":
+        {
+            "display_name":
+                "TikTok Licensed UGC",
+
+            "integration_kind":
+                "manual_native_remix_or_creator_license",
+
+            "documentation_url":
+                (
+                    "https://developers.tiktok.com/"
+                    "doc/embed-videos/"
+                ),
+
+            "license_url":
+                None,
+
+            "notes":
+                "Dueto/Costura nativos no TikTok "
+                "ou ficheiro original licenciado "
+                "diretamente pelo creator.",
         },
 
     "pexels":
