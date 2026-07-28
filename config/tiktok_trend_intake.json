@@ -1,0 +1,25 @@
+{
+  "intake_version": "1.0",
+  "source_mode": "manual_governed_intake",
+  "region": "PT",
+  "topic_binding": {
+    "content_title": null,
+    "content_identity_sha256": null
+  },
+  "selected_video_candidate_id": null,
+  "selected_sound_candidate_id": null,
+  "video_candidates": [],
+  "sound_candidates": [],
+  "policy": {
+    "reference_only_allowed": true,
+    "native_duet_allowed": true,
+    "native_stitch_allowed": true,
+    "licensed_ugc_allowed": true,
+    "third_party_download_allowed": false,
+    "watermark_removal_allowed": false,
+    "cross_platform_requires_creator_license": true,
+    "cross_platform_requires_original_file": true,
+    "commercial_music_library_preferred": true,
+    "general_music_library_commercial_use_allowed": false
+  }
+}
