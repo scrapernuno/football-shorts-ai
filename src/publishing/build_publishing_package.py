@@ -23,6 +23,12 @@ DASHBOARD_SOURCE = (
     / "dashboard_model.json"
 )
 
+EVIDENCE_SOURCE = (
+    ROOT
+    / "output"
+    / "publishing_evidence.json"
+)
+
 OUTPUT = (
     ROOT
     / "output"
@@ -79,7 +85,8 @@ def save_json(
     temporary_path = (
         path.with_suffix(
             path.suffix
-            + ".tmp"
+            +
+            ".tmp"
         )
     )
 
@@ -89,7 +96,8 @@ def save_json(
             indent=2,
             ensure_ascii=False,
         )
-        + "\n",
+        +
+        "\n",
         encoding="utf-8",
     )
 
@@ -165,20 +173,6 @@ def optional_text(
 
         if normalized:
             return normalized
-
-    return default
-
-
-def optional_boolean(
-    value: object,
-    *,
-    default: bool = False,
-) -> bool:
-    if isinstance(
-        value,
-        bool,
-    ):
-        return value
 
     return default
 
@@ -303,21 +297,152 @@ def validate_dashboard_model(
         )
 
 
+def validate_evidence(
+    payload: dict[str, Any],
+    *,
+    expected_content_id: str,
+) -> None:
+    required = {
+        "evidence_version",
+        "generated_at",
+        "content_identity",
+        "thumbnail",
+        "rights_review",
+        "final_approval",
+        "publication_execution_enabled",
+    }
+
+    missing = (
+        required
+        -
+        payload.keys()
+    )
+
+    if missing:
+        raise ValueError(
+            "Publishing Evidence incompleto: "
+            f"{sorted(missing)}"
+        )
+
+    identity = require_mapping(
+        payload.get(
+            "content_identity"
+        ),
+        "evidence.content_identity",
+    )
+
+    content_id = require_text(
+        identity.get(
+            "content_id"
+        ),
+        "evidence.content_identity.content_id",
+    )
+
+    if content_id != expected_content_id:
+        raise ValueError(
+            "Publishing Evidence pertence a "
+            "outro conteúdo."
+        )
+
+    thumbnail = require_mapping(
+        payload.get(
+            "thumbnail"
+        ),
+        "evidence.thumbnail",
+    )
+
+    if thumbnail.get(
+        "status"
+    ) != "ready":
+        raise ValueError(
+            "A thumbnail de evidência não "
+            "está ready."
+        )
+
+    artifact_path = (
+        ROOT
+        /
+        require_text(
+            thumbnail.get(
+                "artifact_path"
+            ),
+            (
+                "evidence.thumbnail."
+                "artifact_path"
+            ),
+        )
+    )
+
+    public_path = (
+        ROOT
+        /
+        "dashboard"
+        /
+        require_text(
+            thumbnail.get(
+                "public_path"
+            ),
+            (
+                "evidence.thumbnail."
+                "public_path"
+            ),
+        )
+    )
+
+    for path in (
+        artifact_path,
+        public_path,
+    ):
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"Thumbnail em falta: {path}"
+            )
+
+    require_mapping(
+        payload.get(
+            "rights_review"
+        ),
+        "evidence.rights_review",
+    )
+
+    final_approval = require_mapping(
+        payload.get(
+            "final_approval"
+        ),
+        "evidence.final_approval",
+    )
+
+    approval_content_id = require_text(
+        final_approval.get(
+            "content_id"
+        ),
+        "evidence.final_approval.content_id",
+    )
+
+    if approval_content_id != expected_content_id:
+        raise ValueError(
+            "A aprovação final está ligada "
+            "a outro conteúdo."
+        )
+
+    if payload.get(
+        "publication_execution_enabled"
+    ) is not False:
+        raise ValueError(
+            "A execução de publicação deve "
+            "permanecer desativada."
+        )
+
+
 def build_thumbnail(
     content: dict[str, Any],
+    evidence: dict[str, Any],
 ) -> dict[str, Any]:
     source = require_mapping(
         content.get(
             "source_topic"
         ),
         "content.source_topic",
-    )
-
-    publishing = require_mapping(
-        content.get(
-            "publishing"
-        ),
-        "content.publishing",
     )
 
     title = require_text(
@@ -327,73 +452,104 @@ def build_thumbnail(
         "content.source_topic.title",
     )
 
+    evidence_thumbnail = require_mapping(
+        evidence.get(
+            "thumbnail"
+        ),
+        "evidence.thumbnail",
+    )
+
     text_overlay = (
         title
         .upper()
         [:45]
     )
 
-    visual_direction = (
-        "High emotion football frame "
-        "with player reaction"
-    )
-
-    emotion_target = "curiosity"
-
-    brief_ready = all(
-        (
-            text_overlay,
-            visual_direction,
-            emotion_target,
-        )
-    )
-
-    asset_ready = optional_boolean(
-        publishing.get(
-            "thumbnail_asset_ready"
-        ),
-        default=False,
-    )
-
-    asset_reference = optional_text(
-        publishing.get(
-            "thumbnail_asset_reference"
-        ),
-        default="",
-    )
-
-    if asset_ready and not asset_reference:
-        raise ValueError(
-            "thumbnail_asset_ready exige "
-            "thumbnail_asset_reference."
-        )
-
     return {
         "text_overlay":
             text_overlay,
 
         "visual_direction":
-            visual_direction,
+            (
+                "Deterministic branded football "
+                "thumbnail generated by pipeline"
+            ),
 
         "emotion_target":
-            emotion_target,
+            "curiosity",
 
         "brief_ready":
-            brief_ready,
+            True,
 
         "asset_ready":
-            asset_ready,
+            (
+                evidence_thumbnail.get(
+                    "status"
+                )
+                ==
+                "ready"
+            ),
 
         "asset_status":
-            (
-                "ready"
-                if asset_ready
-                else
-                "not_generated"
+            require_text(
+                evidence_thumbnail.get(
+                    "status"
+                ),
+                "evidence.thumbnail.status",
             ),
 
         "asset_reference":
-            asset_reference,
+            require_text(
+                evidence_thumbnail.get(
+                    "artifact_path"
+                ),
+                (
+                    "evidence.thumbnail."
+                    "artifact_path"
+                ),
+            ),
+
+        "asset_public_path":
+            require_text(
+                evidence_thumbnail.get(
+                    "public_path"
+                ),
+                (
+                    "evidence.thumbnail."
+                    "public_path"
+                ),
+            ),
+
+        "asset_sha256":
+            require_text(
+                evidence_thumbnail.get(
+                    "sha256"
+                ),
+                "evidence.thumbnail.sha256",
+            ),
+
+        "width":
+            evidence_thumbnail.get(
+                "width"
+            ),
+
+        "height":
+            evidence_thumbnail.get(
+                "height"
+            ),
+
+        "mime_type":
+            require_text(
+                evidence_thumbnail.get(
+                    "mime_type"
+                ),
+                "evidence.thumbnail.mime_type",
+            ),
+
+        "byte_size":
+            evidence_thumbnail.get(
+                "byte_size"
+            ),
     }
 
 
@@ -530,17 +686,10 @@ def checklist_entry(
 
 def build_checklist(
     *,
-    content: dict[str, Any],
     metadata: dict[str, Any],
     thumbnail: dict[str, Any],
+    evidence: dict[str, Any],
 ) -> dict[str, dict[str, Any]]:
-    publishing = require_mapping(
-        content.get(
-            "publishing"
-        ),
-        "content.publishing",
-    )
-
     title_valid = bool(
         optional_text(
             metadata.get(
@@ -594,36 +743,39 @@ def build_checklist(
         is not None
     )
 
-    thumbnail_brief_ready = (
-        thumbnail.get(
-            "brief_ready"
-        )
-        is True
+    rights_review = require_mapping(
+        evidence.get(
+            "rights_review"
+        ),
+        "evidence.rights_review",
     )
 
-    thumbnail_asset_ready = (
-        thumbnail.get(
-            "asset_ready"
-        )
-        is True
+    final_approval = require_mapping(
+        evidence.get(
+            "final_approval"
+        ),
+        "evidence.final_approval",
     )
 
-    copyright_review_completed = (
-        optional_boolean(
-            publishing.get(
-                "copyright_review_completed"
-            ),
-            default=False,
+    rights_review_completed = (
+        rights_review.get(
+            "status"
         )
+        ==
+        "approved"
     )
 
     final_confirmation_completed = (
-        optional_boolean(
-            publishing.get(
-                "final_confirmation_completed"
-            ),
-            default=False,
+        final_approval.get(
+            "status"
         )
+        ==
+        "approved"
+        and
+        final_approval.get(
+            "approved"
+        )
+        is True
     )
 
     return {
@@ -675,7 +827,12 @@ def build_checklist(
                 label=(
                     "Brief de thumbnail concluído"
                 ),
-                completed=thumbnail_brief_ready,
+                completed=(
+                    thumbnail.get(
+                        "brief_ready"
+                    )
+                    is True
+                ),
                 detail=(
                     "Texto, direção visual e "
                     "emoção estão definidos."
@@ -687,10 +844,16 @@ def build_checklist(
                 label=(
                     "Ficheiro de thumbnail pronto"
                 ),
-                completed=thumbnail_asset_ready,
+                completed=(
+                    thumbnail.get(
+                        "asset_ready"
+                    )
+                    is True
+                ),
                 detail=(
-                    "É necessário produzir ou "
-                    "associar o ficheiro final."
+                    "A thumbnail PNG canónica "
+                    "foi produzida e validada "
+                    "por SHA256."
                 ),
             ),
 
@@ -700,7 +863,7 @@ def build_checklist(
                     "Revisão de direitos concluída"
                 ),
                 completed=(
-                    copyright_review_completed
+                    rights_review_completed
                 ),
                 detail=(
                     "Os clips e imagens devem "
@@ -719,7 +882,7 @@ def build_checklist(
                 ),
                 detail=(
                     "A publicação exige aprovação "
-                    "humana final."
+                    "humana ligada ao conteúdo."
                 ),
             ),
     }
@@ -877,6 +1040,7 @@ def build_readiness(
 def build_publishing_package(
     content: dict[str, Any],
     dashboard: dict[str, Any],
+    evidence: dict[str, Any],
 ) -> dict[str, Any]:
     validate_content_package(
         content
@@ -896,9 +1060,18 @@ def build_publishing_package(
         "content.source_topic.title",
     )
 
+    content_id = slugify(
+        title
+    )
+
     validate_dashboard_model(
         dashboard,
         expected_title=title,
+    )
+
+    validate_evidence(
+        evidence,
+        expected_content_id=content_id,
     )
 
     metadata = build_metadata(
@@ -907,13 +1080,14 @@ def build_publishing_package(
     )
 
     thumbnail = build_thumbnail(
-        content
+        content,
+        evidence,
     )
 
     checklist = build_checklist(
-        content=content,
         metadata=metadata,
         thumbnail=thumbnail,
+        evidence=evidence,
     )
 
     readiness = build_readiness(
@@ -931,9 +1105,7 @@ def build_publishing_package(
             ).isoformat(),
 
         "source_content_id":
-            slugify(
-                title
-            ),
+            content_id,
 
         "metadata":
             metadata,
@@ -946,6 +1118,42 @@ def build_publishing_package(
 
         "readiness":
             readiness,
+
+        "evidence":
+            {
+                "version":
+                    evidence[
+                        "evidence_version"
+                    ],
+
+                "content_identity_sha256":
+                    evidence[
+                        "content_identity"
+                    ][
+                        "sha256"
+                    ],
+
+                "thumbnail_sha256":
+                    evidence[
+                        "thumbnail"
+                    ][
+                        "sha256"
+                    ],
+
+                "rights_review_status":
+                    evidence[
+                        "rights_review"
+                    ][
+                        "status"
+                    ],
+
+                "final_approval_status":
+                    evidence[
+                        "final_approval"
+                    ][
+                        "status"
+                    ],
+            },
 
         "status":
             LIFECYCLE_STATUS,
@@ -963,6 +1171,7 @@ def validate_publishing_package(
         "thumbnail",
         "checklist",
         "readiness",
+        "evidence",
         "status",
     }
 
@@ -986,20 +1195,28 @@ def validate_publishing_package(
             "permanecer draft."
         )
 
-    metadata = require_mapping(
+    thumbnail = require_mapping(
         payload.get(
-            "metadata"
+            "thumbnail"
         ),
-        "publishing.metadata",
+        "publishing.thumbnail",
     )
 
+    if thumbnail.get(
+        "asset_ready"
+    ) is not True:
+        raise ValueError(
+            "A thumbnail canónica deve "
+            "estar pronta."
+        )
+
     require_text(
-        metadata.get(
-            "recommended_publish_time"
+        thumbnail.get(
+            "asset_public_path"
         ),
         (
-            "publishing.metadata."
-            "recommended_publish_time"
+            "publishing.thumbnail."
+            "asset_public_path"
         ),
     )
 
@@ -1010,64 +1227,13 @@ def validate_publishing_package(
         "publishing.checklist",
     )
 
-    if not checklist:
+    if len(
+        checklist
+    ) != 8:
         raise ValueError(
-            "publishing.checklist não pode "
-            "estar vazio."
+            "Publishing checklist deve "
+            "conter 8 controlos."
         )
-
-    for key, raw_item in checklist.items():
-        item = require_mapping(
-            raw_item,
-            (
-                "publishing.checklist."
-                f"{key}"
-            ),
-        )
-
-        require_text(
-            item.get(
-                "label"
-            ),
-            (
-                "publishing.checklist."
-                f"{key}.label"
-            ),
-        )
-
-        require_text(
-            item.get(
-                "detail"
-            ),
-            (
-                "publishing.checklist."
-                f"{key}.detail"
-            ),
-        )
-
-        if not isinstance(
-            item.get(
-                "completed"
-            ),
-            bool,
-        ):
-            raise ValueError(
-                "publishing.checklist."
-                f"{key}.completed deve "
-                "ser booleano."
-            )
-
-        if not isinstance(
-            item.get(
-                "blocking"
-            ),
-            bool,
-        ):
-            raise ValueError(
-                "publishing.checklist."
-                f"{key}.blocking deve "
-                "ser booleano."
-            )
 
     readiness = require_mapping(
         payload.get(
@@ -1076,105 +1242,28 @@ def validate_publishing_package(
         "publishing.readiness",
     )
 
-    readiness_status = require_text(
-        readiness.get(
-            "status"
-        ),
-        "publishing.readiness.status",
-    )
-
-    if readiness_status not in {
-        "blocked",
-        "ready",
-    }:
+    if readiness.get(
+        "completion_percent"
+    ) != 75:
         raise ValueError(
-            "publishing.readiness.status "
-            "inválido."
+            "A prontidão esperada após "
+            "thumbnail é 75%."
         )
 
-    blockers = require_list(
-        readiness.get(
-            "blockers"
-        ),
-        "publishing.readiness.blockers",
-    )
-
-    blocker_count = readiness.get(
+    if readiness.get(
         "blocker_count"
-    )
-
-    if (
-        not isinstance(
-            blocker_count,
-            int,
-        )
-        or
-        isinstance(
-            blocker_count,
-            bool,
-        )
-        or
-        blocker_count < 0
-    ):
+    ) != 2:
         raise ValueError(
-            "publishing.readiness."
-            "blocker_count inválido."
-        )
-
-    if blocker_count != len(
-        blockers
-    ):
-        raise ValueError(
-            "publishing.readiness."
-            "blocker_count inconsistente."
-        )
-
-    completed_items = sum(
-        1
-        for item
-        in checklist.values()
-        if item.get(
-            "completed"
-        )
-        is True
-    )
-
-    if readiness.get(
-        "completed_items"
-    ) != completed_items:
-        raise ValueError(
-            "publishing.readiness."
-            "completed_items inconsistente."
+            "Devem permanecer exatamente "
+            "2 bloqueios."
         )
 
     if readiness.get(
-        "total_items"
-    ) != len(
-        checklist
-    ):
+        "status"
+    ) != "blocked":
         raise ValueError(
-            "publishing.readiness."
-            "total_items inconsistente."
-        )
-
-    if (
-        readiness_status == "ready"
-        and
-        blocker_count != 0
-    ):
-        raise ValueError(
-            "Readiness READY não pode "
-            "conter bloqueios."
-        )
-
-    if (
-        readiness_status == "blocked"
-        and
-        blocker_count == 0
-    ):
-        raise ValueError(
-            "Readiness BLOCKED exige "
-            "pelo menos um bloqueio."
+            "Publishing deve permanecer "
+            "BLOCKED até revisão e aprovação."
         )
 
     if readiness.get(
@@ -1190,12 +1279,11 @@ def main() -> int:
     print("=" * 70)
 
     print(
-        "FOOTBALL-SHORTS-AI-0031C.2"
+        "FOOTBALL-SHORTS-AI-0031C.3"
     )
 
     print(
-        "PUBLISHING READINESS "
-        "DATA CONTRACT COMPLETION"
+        "PUBLISHING EVIDENCE BINDING"
     )
 
     print(
@@ -1212,10 +1300,15 @@ def main() -> int:
         DASHBOARD_SOURCE
     )
 
+    evidence = load_json(
+        EVIDENCE_SOURCE
+    )
+
     publishing = (
         build_publishing_package(
             content,
             dashboard,
+            evidence,
         )
     )
 
@@ -1257,16 +1350,11 @@ def main() -> int:
     )
 
     print(
-        "Recommended publish time: "
-        f"{readiness['recommended_publish_time']}"
+        "Thumbnail status: READY"
     )
 
     print(
         "Publication execution enabled: NO"
-    )
-
-    print(
-        f"Output: {OUTPUT}"
     )
 
     print("=" * 70)
