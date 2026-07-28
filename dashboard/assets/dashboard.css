@@ -2158,3 +2158,30 @@ a {
 .script-block-cta {
     min-height: 0;
 }
+/* ==========================================================
+   FOOTBALL-SHORTS-AI-0031C.5C
+   STORYBOARD REAL EDITORIAL BINDING
+   Append to dashboard/assets/dashboard.css
+   ========================================================== */
+
+.storyboard-list {
+    align-items: start;
+}
+
+.scene-card {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+}
+
+.scene-card h3 {
+    margin-top: 18px;
+}
+
+.scene-caption {
+    margin-top: 18px !important;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+    font-weight: 600;
+    line-height: 1.55;
+}
