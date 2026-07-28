@@ -111,6 +111,7 @@ jobs:
       - name: Compile TikTok Trend Intelligence
         run: |
           python -m py_compile \
+            src/trends/build_trend_discovery_request.py \
             src/trends/build_tiktok_trend_intelligence.py \
             src/trends/build_platform_variants.py \
             src/trends/sync_trend_intelligence.py \
@@ -174,6 +175,10 @@ jobs:
           PYTHONPATH=src \
           python src/trends/certify_tiktok_trend_governance.py
 
+      - name: Validate Dashboard JavaScript
+        run: |
+          node --check dashboard/assets/dashboard.js
+
       - name: Generate HTML
         run: |
           python src/render_email.py
@@ -205,6 +210,7 @@ jobs:
               "output/dashboard_model.json",
               "output/content_package.json",
               "output/media_acquisition_plan.json",
+              "output/trend_discovery_request.json",
               "output/tiktok_trend_intelligence.json",
               "output/platform_variants.json",
               "output/publishing_evidence.json",
@@ -220,6 +226,7 @@ jobs:
               "dashboard/data/dashboard_model.json",
               "dashboard/data/content_package.json",
               "dashboard/data/media_acquisition_plan.json",
+              "dashboard/data/trend_discovery_request.json",
               "dashboard/data/tiktok_trend_intelligence.json",
               "dashboard/data/platform_variants.json",
               "dashboard/data/publishing_package.json",
@@ -301,6 +308,14 @@ jobs:
 
           media_plan_public = load_json(
               "dashboard/data/media_acquisition_plan.json"
+          )
+
+          trend_discovery_request = load_json(
+              "output/trend_discovery_request.json"
+          )
+
+          trend_discovery_request_public = load_json(
+              "dashboard/data/trend_discovery_request.json"
           )
 
           tiktok_trends = load_json(
@@ -701,6 +716,192 @@ jobs:
                           "Pexels permitido para "
                           "conteúdo específico"
                       )
+
+
+          if (
+              trend_discovery_request
+              != trend_discovery_request_public
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request público "
+                  "não corresponde ao output"
+              )
+
+
+          if (
+              trend_discovery_request.get("source_mode")
+              != "automatic_winning_topic_binding"
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request sem "
+                  "binding automático"
+              )
+
+
+          discovery_binding = trend_discovery_request.get(
+              "topic_binding"
+          )
+
+
+          if not isinstance(discovery_binding, dict):
+              raise SystemExit(
+                  "Trend Discovery topic_binding inválido"
+              )
+
+
+          if (
+              discovery_binding.get("content_title")
+              != source_topic.get("title")
+              or discovery_binding.get("content_hook")
+              != source_topic.get("hook")
+          ):
+              raise SystemExit(
+                  "Trend Discovery Request não corresponde "
+                  "à notícia vencedora"
+              )
+
+
+          discovery_identity = discovery_binding.get(
+              "content_identity_sha256"
+          )
+
+
+          if (
+              not isinstance(discovery_identity, str)
+              or len(discovery_identity) != 64
+          ):
+              raise SystemExit(
+                  "Trend Discovery content identity inválida"
+              )
+
+
+          discovery_queries = trend_discovery_request.get(
+              "search_queries"
+          )
+
+
+          if (
+              not isinstance(discovery_queries, list)
+              or not discovery_queries
+              or any(
+                  not isinstance(query, str)
+                  or not query.strip()
+                  for query in discovery_queries
+              )
+          ):
+              raise SystemExit(
+                  "Trend Discovery search queries inválidas"
+              )
+
+
+          requested_assets = trend_discovery_request.get(
+              "requested_assets"
+          )
+
+
+          if requested_assets != [
+              "trend_video_reference",
+              "trend_sound_reference",
+              "hashtag_reference",
+          ]:
+              raise SystemExit(
+                  "Trend Discovery assets solicitados inválidos"
+              )
+
+
+          discovery_intake = trend_discovery_request.get(
+              "candidate_intake"
+          )
+
+
+          if (
+              not isinstance(discovery_intake, dict)
+              or discovery_intake.get(
+                  "automatic_candidate_selection"
+              )
+              is not False
+              or discovery_intake.get(
+                  "rights_evidence_required"
+              )
+              is not True
+          ):
+              raise SystemExit(
+                  "Trend Discovery candidate intake inválido"
+              )
+
+
+          discovery_boundaries = trend_discovery_request.get(
+              "capability_boundaries"
+          )
+
+
+          if (
+              not isinstance(discovery_boundaries, dict)
+              or discovery_boundaries.get(
+                  "network_execution_enabled"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "browser_api_calls_enabled"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery capability boundary inválida"
+              )
+
+
+          if (
+              trend_discovery_request.get("status")
+              != "discovery_required"
+              or trend_discovery_request.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery lifecycle inválido"
+              )
+
+
+          dashboard_javascript = Path(
+              "dashboard/assets/dashboard.js"
+          ).read_text(
+              encoding="utf-8"
+          )
+
+
+          required_discovery_markers = [
+              'trendDiscoveryRequest: "data/trend_discovery_request.json"',
+              "TREND DISCOVERY REQUEST",
+              "Topic binding:",
+              "Queries geradas:",
+              "Execução de rede:",
+              "Seleção automática:",
+              "Publicação automática:",
+          ]
+
+
+          missing_discovery_markers = [
+              marker
+              for marker in required_discovery_markers
+              if marker not in dashboard_javascript
+          ]
+
+
+          if missing_discovery_markers:
+              raise SystemExit(
+                  "Dashboard sem rendering do discovery request: "
+                  f"{missing_discovery_markers}"
+              )
 
 
           if tiktok_trends != tiktok_trends_public:
