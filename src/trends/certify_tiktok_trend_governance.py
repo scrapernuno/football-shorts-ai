@@ -9,6 +9,24 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 
+DISCOVERY_REQUEST_PATH = (
+    ROOT
+    /
+    "output"
+    /
+    "trend_discovery_request.json"
+)
+
+PUBLIC_DISCOVERY_REQUEST_PATH = (
+    ROOT
+    /
+    "dashboard"
+    /
+    "data"
+    /
+    "trend_discovery_request.json"
+)
+
 INTELLIGENCE_PATH = (
     ROOT
     /
@@ -47,6 +65,7 @@ PUBLIC_VARIANTS_PATH = (
 
 
 SOURCE_FILES = (
+    ROOT / "src" / "trends" / "build_trend_discovery_request.py",
     ROOT / "src" / "trends" / "build_tiktok_trend_intelligence.py",
     ROOT / "src" / "trends" / "build_platform_variants.py",
     ROOT / "src" / "trends" / "sync_trend_intelligence.py",
@@ -163,7 +182,7 @@ def main() -> int:
     )
 
     print(
-        "FOOTBALL-SHORTS-AI-0031C.4B"
+        "FOOTBALL-SHORTS-AI-0031C.4C"
     )
 
     print(
@@ -183,6 +202,14 @@ def main() -> int:
             source
         )
 
+    discovery_request = load_json(
+        DISCOVERY_REQUEST_PATH
+    )
+
+    public_discovery_request = load_json(
+        PUBLIC_DISCOVERY_REQUEST_PATH
+    )
+
     intelligence = load_json(
         INTELLIGENCE_PATH
     )
@@ -199,6 +226,13 @@ def main() -> int:
         PUBLIC_VARIANTS_PATH
     )
 
+    if discovery_request != public_discovery_request:
+
+        raise ValueError(
+            "Discovery request público "
+            "não corresponde ao output."
+        )
+
     if intelligence != public_intelligence:
 
         raise ValueError(
@@ -211,6 +245,93 @@ def main() -> int:
         raise ValueError(
             "Platform variants público "
             "não corresponde ao output."
+        )
+
+    request_binding = safe_mapping(
+        discovery_request.get(
+            "topic_binding"
+        )
+    )
+
+    intelligence_content = safe_mapping(
+        intelligence.get(
+            "content"
+        )
+    )
+
+    intelligence_request = safe_mapping(
+        intelligence.get(
+            "discovery_request"
+        )
+    )
+
+    if discovery_request.get(
+        "source_mode"
+    ) != "automatic_winning_topic_binding":
+
+        raise ValueError(
+            "Binding automático da notícia "
+            "vencedora está ausente."
+        )
+
+    if discovery_request.get(
+        "status"
+    ) != "discovery_required":
+
+        raise ValueError(
+            "Estado do discovery request inválido."
+        )
+
+    if request_binding.get(
+        "content_identity_sha256"
+    ) != intelligence_content.get(
+        "identity_sha256"
+    ):
+
+        raise ValueError(
+            "Discovery request não corresponde "
+            "à trend intelligence."
+        )
+
+    if intelligence_request.get(
+        "content_identity_sha256"
+    ) != request_binding.get(
+        "content_identity_sha256"
+    ):
+
+        raise ValueError(
+            "Trend intelligence perdeu o binding "
+            "ao discovery request."
+        )
+
+    request_boundaries = safe_mapping(
+        discovery_request.get(
+            "capability_boundaries"
+        )
+    )
+
+    for key in (
+        "network_execution_enabled",
+        "browser_api_calls_enabled",
+        "global_display_api_trend_search_assumed",
+        "third_party_download_allowed",
+        "watermark_removal_allowed",
+    ):
+
+        if request_boundaries.get(
+            key
+        ) is not False:
+
+            raise ValueError(
+                f"Discovery boundary inválida: {key}."
+            )
+
+    if discovery_request.get(
+        "publication_execution_enabled"
+    ) is not False:
+
+        raise ValueError(
+            "Discovery request ativou publicação."
         )
 
     boundaries = safe_mapping(
@@ -281,6 +402,18 @@ def main() -> int:
         raise ValueError(
             "Variants ativaram publicação."
         )
+
+    print(
+        "AUTOMATIC_TOPIC_BINDING=PASS"
+    )
+
+    print(
+        "TREND_DISCOVERY_REQUEST=PASS"
+    )
+
+    print(
+        "DISCOVERY_REQUEST_PUBLIC_INTEGRITY=PASS"
+    )
 
     print(
         "AST_NETWORK_ISOLATION=PASS"
