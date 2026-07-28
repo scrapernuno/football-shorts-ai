@@ -159,6 +159,14 @@ jobs:
           PYTHONPATH=src \
           python src/publishing/build_publishing_package.py
 
+      - name: Refine Publishing Studio
+        run: |
+          python -m py_compile \
+            src/publishing/refine_publishing_studio.py
+
+          PYTHONPATH=src \
+          python src/publishing/refine_publishing_studio.py
+
       - name: Build Analytics Package
         run: |
           PYTHONPATH=src \
