@@ -970,6 +970,7 @@ def validate_plan(
         "owned_library",
         "imago",
         "reuters_connect",
+        "tiktok_licensed_ugc",
         "pexels",
     ]:
 
