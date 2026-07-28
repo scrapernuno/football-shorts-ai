@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from trends.build_trend_discovery_request import (
+    build_and_write_discovery_request,
+)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -968,6 +972,7 @@ def evaluate_sound_candidate(
 def build_intelligence(
     content: dict[str, Any],
     intake: dict[str, Any],
+    discovery_request: dict[str, Any],
 ) -> dict[str, Any]:
 
     source_topic = require_mapping(
@@ -1018,6 +1023,156 @@ def build_intelligence(
         "intake.region",
     ).upper()
 
+    request_binding = require_mapping(
+        discovery_request.get(
+            "topic_binding"
+        ),
+        "discovery_request.topic_binding",
+    )
+
+    if request_binding.get(
+        "content_title"
+    ) != title:
+
+        raise ValueError(
+            "Discovery request não corresponde "
+            "ao título vencedor."
+        )
+
+    if request_binding.get(
+        "content_hook"
+    ) != hook:
+
+        raise ValueError(
+            "Discovery request não corresponde "
+            "ao hook vencedor."
+        )
+
+    if request_binding.get(
+        "content_generated_at"
+    ) != generated_at:
+
+        raise ValueError(
+            "Discovery request não corresponde "
+            "à geração do Content Package."
+        )
+
+    if request_binding.get(
+        "content_identity_sha256"
+    ) != content_identity:
+
+        raise ValueError(
+            "Discovery request contém identidade "
+            "de conteúdo inválida."
+        )
+
+    if discovery_request.get(
+        "region"
+    ) != region:
+
+        raise ValueError(
+            "Discovery request contém região "
+            "diferente do intake."
+        )
+
+    raw_video_candidates = require_list(
+        intake.get(
+            "video_candidates"
+        ),
+        "intake.video_candidates",
+    )
+
+    raw_sound_candidates = require_list(
+        intake.get(
+            "sound_candidates"
+        ),
+        "intake.sound_candidates",
+    )
+
+    selected_video_id = optional_text(
+        intake.get(
+            "selected_video_candidate_id"
+        )
+    )
+
+    selected_sound_id = optional_text(
+        intake.get(
+            "selected_sound_candidate_id"
+        )
+    )
+
+    intake_binding = require_mapping(
+        intake.get(
+            "topic_binding"
+        ),
+        "intake.topic_binding",
+    )
+
+    intake_title = optional_text(
+        intake_binding.get(
+            "content_title"
+        )
+    )
+
+    intake_identity = optional_text(
+        intake_binding.get(
+            "content_identity_sha256"
+        )
+    )
+
+    if (
+        intake_title is None
+    ) != (
+        intake_identity is None
+    ):
+
+        raise ValueError(
+            "Topic binding do intake está "
+            "parcialmente preenchido."
+        )
+
+    intake_has_candidate_material = bool(
+        raw_video_candidates
+        or
+        raw_sound_candidates
+        or
+        selected_video_id
+        or
+        selected_sound_id
+    )
+
+    if (
+        intake_has_candidate_material
+        and
+        intake_title is None
+    ):
+
+        raise ValueError(
+            "Intake com candidatos exige binding "
+            "à notícia vencedora atual."
+        )
+
+    if (
+        intake_title is not None
+        and
+        intake_title != title
+    ):
+
+        raise ValueError(
+            "Intake pertence a outra notícia."
+        )
+
+    if (
+        intake_identity is not None
+        and
+        intake_identity != content_identity
+    ):
+
+        raise ValueError(
+            "Intake pertence a outra identidade "
+            "de conteúdo."
+        )
+
     video_candidates = [
         evaluate_video_candidate(
             require_mapping(
@@ -1031,12 +1186,7 @@ def build_intelligence(
         )
         for index, raw_candidate
         in enumerate(
-            require_list(
-                intake.get(
-                    "video_candidates"
-                ),
-                "intake.video_candidates",
-            )
+            raw_video_candidates
         )
     ]
 
@@ -1054,12 +1204,7 @@ def build_intelligence(
         )
         for index, raw_candidate
         in enumerate(
-            require_list(
-                intake.get(
-                    "sound_candidates"
-                ),
-                "intake.sound_candidates",
-            )
+            raw_sound_candidates
         )
     ]
 
@@ -1100,18 +1245,6 @@ def build_intelligence(
         raise ValueError(
             "sound_id duplicado."
         )
-
-    selected_video_id = optional_text(
-        intake.get(
-            "selected_video_candidate_id"
-        )
-    )
-
-    selected_sound_id = optional_text(
-        intake.get(
-            "selected_sound_candidate_id"
-        )
-    )
 
     selected_video = next(
         (
@@ -1223,7 +1356,10 @@ def build_intelligence(
             ).isoformat(),
 
         "source_mode":
-            "manual_governed_intake",
+            (
+                "automatic_topic_binding_with_"
+                "manual_governed_candidate_intake"
+            ),
 
         "region":
             region,
@@ -1238,6 +1374,43 @@ def build_intelligence(
 
                 "identity_sha256":
                     content_identity,
+            },
+
+        "discovery_request":
+            {
+                "status":
+                    discovery_request.get(
+                        "status"
+                    ),
+
+                "content_identity_sha256":
+                    request_binding.get(
+                        "content_identity_sha256"
+                    ),
+
+                "search_queries":
+                    require_list(
+                        discovery_request.get(
+                            "search_queries"
+                        ),
+                        (
+                            "discovery_request."
+                            "search_queries"
+                        ),
+                    ),
+
+                "candidate_intake_path":
+                    require_mapping(
+                        discovery_request.get(
+                            "candidate_intake"
+                        ),
+                        (
+                            "discovery_request."
+                            "candidate_intake"
+                        ),
+                    ).get(
+                        "path"
+                    ),
             },
 
         "official_capability_boundaries":
@@ -1349,6 +1522,39 @@ def validate_intelligence(
             "desativada."
         )
 
+    discovery_request = require_mapping(
+        payload.get(
+            "discovery_request"
+        ),
+        "intelligence.discovery_request",
+    )
+
+    content = require_mapping(
+        payload.get(
+            "content"
+        ),
+        "intelligence.content",
+    )
+
+    if discovery_request.get(
+        "status"
+    ) != "discovery_required":
+
+        raise ValueError(
+            "Estado do discovery request inválido."
+        )
+
+    if discovery_request.get(
+        "content_identity_sha256"
+    ) != content.get(
+        "identity_sha256"
+    ):
+
+        raise ValueError(
+            "Intelligence não está ligada ao "
+            "discovery request atual."
+        )
+
     selected_video = payload.get(
         "selected_video"
     )
@@ -1411,7 +1617,7 @@ def main() -> int:
     )
 
     print(
-        "FOOTBALL-SHORTS-AI-0031C.4B"
+        "FOOTBALL-SHORTS-AI-0031C.4C"
     )
 
     print(
@@ -1444,9 +1650,17 @@ def main() -> int:
         INTAKE_PATH
     )
 
+    discovery_request = (
+        build_and_write_discovery_request(
+            content,
+            intake,
+        )
+    )
+
     intelligence = build_intelligence(
         content,
         intake,
+        discovery_request,
     )
 
     validate_intelligence(
@@ -1456,6 +1670,14 @@ def main() -> int:
     write_json_atomically(
         OUTPUT_PATH,
         intelligence,
+    )
+
+    print(
+        "TREND_DISCOVERY_REQUEST=PASS"
+    )
+
+    print(
+        "TOPIC_BINDING=AUTOMATIC"
     )
 
     print(
