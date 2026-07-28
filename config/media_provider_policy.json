@@ -1,0 +1,84 @@
+{
+  "policy_version": "1.0",
+  "policy_id": "football-media-copyright-aware-v1",
+  "mode": "copyright_aware_fail_closed",
+  "publication_execution_enabled": false,
+  "automatic_license_purchase_enabled": false,
+  "unlicensed_media_allowed": false,
+  "editorial_exception_requires_manual_review": true,
+  "provider_order": [
+    "owned_library",
+    "imago",
+    "reuters_connect",
+    "pexels"
+  ],
+  "providers": {
+    "owned_library": {
+      "enabled": true,
+      "configured": true,
+      "inventory_ready": false,
+      "priority": 1,
+      "allowed_media_types": [
+        "image",
+        "video"
+      ],
+      "allowed_subject_scope": [
+        "specific_football",
+        "generic_football"
+      ],
+      "allowed_rights_basis": [
+        "owned"
+      ]
+    },
+    "imago": {
+      "enabled": true,
+      "configured": false,
+      "contract_required": true,
+      "priority": 2,
+      "allowed_media_types": [
+        "image",
+        "video"
+      ],
+      "allowed_subject_scope": [
+        "specific_football",
+        "generic_football"
+      ],
+      "allowed_rights_basis": [
+        "licensed"
+      ]
+    },
+    "reuters_connect": {
+      "enabled": true,
+      "configured": false,
+      "contract_required": true,
+      "priority": 3,
+      "allowed_media_types": [
+        "image",
+        "video"
+      ],
+      "allowed_subject_scope": [
+        "specific_football",
+        "generic_football"
+      ],
+      "allowed_rights_basis": [
+        "licensed"
+      ]
+    },
+    "pexels": {
+      "enabled": true,
+      "configured": false,
+      "contract_required": false,
+      "priority": 4,
+      "allowed_media_types": [
+        "image",
+        "video"
+      ],
+      "allowed_subject_scope": [
+        "generic_football"
+      ],
+      "allowed_rights_basis": [
+        "licensed"
+      ]
+    }
+  }
+}
