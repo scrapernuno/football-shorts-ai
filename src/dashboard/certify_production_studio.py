@@ -404,15 +404,217 @@ def validate_public_copy(
         public
     )
 
-    if source_hash != public_hash:
+    if source_hash == public_hash:
+
+        print(
+            f"{name.upper()}_SHA256={source_hash}"
+        )
+
+        print(
+            f"{name.upper()}_PUBLIC_COPY=EXACT"
+        )
+
+        return
+
+    if name != "dashboard_model":
 
         raise ValueError(
             f"{name} público não corresponde "
             "ao artefacto produzido."
         )
 
+    required_root_keys = {
+        "generated_at",
+        "channel",
+        "top_title",
+        "top_hook",
+        "viral_probability",
+        "metrics",
+        "hooks",
+        "storyboard",
+        "ranking",
+    }
+
+    source_missing = (
+        required_root_keys
+        -
+        source.keys()
+    )
+
+    public_missing = (
+        required_root_keys
+        -
+        public.keys()
+    )
+
+    if source_missing:
+
+        raise ValueError(
+            "dashboard_model produzido incompleto: "
+            f"{sorted(source_missing)}"
+        )
+
+    if public_missing:
+
+        raise ValueError(
+            "dashboard_model público incompleto: "
+            f"{sorted(public_missing)}"
+        )
+
+    invariant_fields = (
+        "generated_at",
+        "channel",
+        "top_title",
+        "top_hook",
+        "viral_probability",
+        "metrics",
+        "hooks",
+        "storyboard",
+    )
+
+    mismatched_fields = [
+        field_name
+        for field_name in invariant_fields
+        if (
+            source.get(field_name)
+            != public.get(field_name)
+        )
+    ]
+
+    if mismatched_fields:
+
+        raise ValueError(
+            "dashboard_model público alterou "
+            "campos que deveriam permanecer invariantes: "
+            f"{mismatched_fields}"
+        )
+
+    source_ranking = source.get(
+        "ranking"
+    )
+
+    public_ranking = public.get(
+        "ranking"
+    )
+
+    if not isinstance(
+        source_ranking,
+        list,
+    ):
+
+        raise ValueError(
+            "dashboard_model produzido possui "
+            "ranking inválido."
+        )
+
+    if not isinstance(
+        public_ranking,
+        list,
+    ):
+
+        raise ValueError(
+            "dashboard_model público possui "
+            "ranking inválido."
+        )
+
+    if len(source_ranking) != len(public_ranking):
+
+        raise ValueError(
+            "dashboard_model público alterou "
+            "a quantidade de itens do ranking."
+        )
+
+    expected_priorities = list(
+        range(
+            1,
+            len(public_ranking) + 1,
+        )
+    )
+
+    observed_priorities = []
+
+    for index, (
+        source_item,
+        public_item,
+    ) in enumerate(
+        zip(
+            source_ranking,
+            public_ranking,
+            strict=True,
+        ),
+        start=1,
+    ):
+
+        if not isinstance(
+            source_item,
+            dict,
+        ):
+
+            raise ValueError(
+                "Ranking produzido contém item "
+                f"inválido na posição {index}."
+            )
+
+        if not isinstance(
+            public_item,
+            dict,
+        ):
+
+            raise ValueError(
+                "Ranking público contém item "
+                f"inválido na posição {index}."
+            )
+
+        source_without_priority = {
+            key: value
+            for key, value in source_item.items()
+            if key != "priority"
+        }
+
+        public_without_priority = {
+            key: value
+            for key, value in public_item.items()
+            if key != "priority"
+        }
+
+        if (
+            source_without_priority
+            != public_without_priority
+        ):
+
+            raise ValueError(
+                "dashboard_model público alterou "
+                "dados editoriais do ranking "
+                f"na posição {index}."
+            )
+
+        observed_priorities.append(
+            public_item.get(
+                "priority"
+            )
+        )
+
+    if observed_priorities != expected_priorities:
+
+        raise ValueError(
+            "dashboard_model público não possui "
+            "prioridades sequenciais: "
+            f"{observed_priorities}"
+        )
+
     print(
-        f"{name.upper()}_SHA256={source_hash}"
+        f"{name.upper()}_SOURCE_SHA256="
+        f"{source_hash}"
+    )
+
+    print(
+        f"{name.upper()}_PUBLIC_SHA256="
+        f"{public_hash}"
+    )
+
+    print(
+        f"{name.upper()}_PUBLIC_COPY="
+        "CERTIFIED_NORMALIZED"
     )
 
 
