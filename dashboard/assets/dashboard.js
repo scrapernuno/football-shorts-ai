@@ -7,6 +7,7 @@ const DATA_FILES = {
     publishing: "data/publishing_package.json",
     analytics: "data/analytics_package.json",
     mediaPlan: "data/media_acquisition_plan.json",
+    trendDiscoveryRequest: "data/trend_discovery_request.json",
     tiktokTrends: "data/tiktok_trend_intelligence.json",
     platformVariants: "data/platform_variants.json",
 };
@@ -496,9 +497,7 @@ function renderOverview(
             sourceTopic.priority,
             1,
         )}`,
-    );
-
-    setText(
+    );    setText(
         "content-platform",
         safeText(
             platform,
@@ -996,8 +995,7 @@ function renderRanking(
 }
 
 
-function renderScriptStudio(
-    content,
+function renderScriptStudio(    content,
 ) {
     const script = isObject(
         content.script
@@ -1258,6 +1256,7 @@ function renderStoryboard(
 function renderAssets(
     content,
     mediaPlan,
+    trendDiscoveryRequest,
     tiktokTrends,
     platformVariants,
 ) {
@@ -1495,8 +1494,7 @@ function renderAssets(
                         )
                         .toUpperCase();
 
-                    return `
-                        <article class="asset-card">
+                    return `                        <article class="asset-card">
 
                             <strong>
                                 Cena ${escapeHtml(sceneNumber)}
@@ -1555,6 +1553,232 @@ function renderAssets(
                 Nenhum plano de media disponível.
             </p>
         `;
+
+    const discoveryRequest = isObject(
+        trendDiscoveryRequest
+    )
+        ? trendDiscoveryRequest
+        : {};
+
+    const discoveryBinding = isObject(
+        discoveryRequest.topic_binding
+    )
+        ? discoveryRequest.topic_binding
+        : {};
+
+    const contentSourceTopic = isObject(
+        content.source_topic
+    )
+        ? content.source_topic
+        : {};
+
+    const discoveryQueries = Array.isArray(
+        discoveryRequest.search_queries
+    )
+        ? discoveryRequest.search_queries
+            .filter(
+                (query) => (
+                    typeof query === "string"
+                    &&
+                    query.trim()
+                ),
+            )
+        : [];
+
+    const requestedAssets = Array.isArray(
+        discoveryRequest.requested_assets
+    )
+        ? discoveryRequest.requested_assets
+            .filter(
+                (asset) => (
+                    typeof asset === "string"
+                    &&
+                    asset.trim()
+                ),
+            )
+        : [];
+
+    const candidateIntake = isObject(
+        discoveryRequest.candidate_intake
+    )
+        ? discoveryRequest.candidate_intake
+        : {};
+
+    const capabilityBoundaries = isObject(
+        discoveryRequest.capability_boundaries
+    )
+        ? discoveryRequest.capability_boundaries
+        : {};
+
+    const boundTitle = safeText(
+        discoveryBinding.content_title,
+        "",
+    );
+
+    const boundHook = safeText(
+        discoveryBinding.content_hook,
+        "",
+    );
+
+    const boundIdentity = safeText(
+        discoveryBinding.content_identity_sha256,
+        "",
+    );
+
+    const currentTitle = safeText(
+        contentSourceTopic.title,
+        "",
+    );
+
+    const currentHook = safeText(
+        contentSourceTopic.hook,
+        "",
+    );
+
+    const bindingValid = (
+        boundTitle !== ""
+        &&
+        boundHook !== ""
+        &&
+        boundTitle === currentTitle
+        &&
+        boundHook === currentHook
+        &&
+        /^[a-f0-9]{64}$/i.test(
+            boundIdentity
+        )
+    );
+
+    const discoveryStatus = safeText(
+        discoveryRequest.status,
+        "discovery_required",
+    )
+        .replaceAll(
+            "_",
+            " ",
+        )
+        .toUpperCase();
+
+    const queryHtml = discoveryQueries.length
+        ? discoveryQueries
+            .map(
+                (query, index) => `
+                    <span>
+                        Query ${index + 1}:
+                        ${escapeHtml(query)}
+                    </span>
+                `,
+            )
+            .join("")
+        : `
+            <span>
+                Queries: NONE
+            </span>
+        `;
+
+    const discoveryRequestHtml = `
+        <article class="asset-card">
+
+            <strong>
+                TREND DISCOVERY REQUEST
+                ·
+                ${escapeHtml(discoveryStatus)}
+            </strong>
+
+            <span>
+                Notícia vencedora:
+                ${escapeHtml(
+                    safeText(
+                        boundTitle,
+                        "Título indisponível",
+                    ),
+                )}
+            </span>
+
+            <span>
+                Topic binding:
+                ${bindingValid ? "VALID" : "INVALID"}
+            </span>
+
+            <span>
+                Content identity:
+                ${escapeHtml(
+                    boundIdentity
+                        ? `${boundIdentity.slice(0, 16)}…`
+                        : "UNAVAILABLE",
+                )}
+            </span>
+
+            <span>
+                Região:
+                ${escapeHtml(
+                    safeText(
+                        discoveryRequest.region,
+                        "PT",
+                    ),
+                )}
+            </span>
+
+            <span>
+                Queries geradas:
+                ${discoveryQueries.length}
+            </span>
+
+            ${queryHtml}
+
+            <span>
+                Assets solicitados:
+                ${escapeHtml(
+                    requestedAssets.length
+                        ? requestedAssets
+                            .map(
+                                (asset) => (
+                                    asset.replaceAll(
+                                        "_",
+                                        " ",
+                                    )
+                                ),
+                            )
+                            .join(", ")
+                        : "NONE",
+                )}
+            </span>
+
+            <span>
+                Execução de rede:
+                ${
+                    capabilityBoundaries
+                        .network_execution_enabled
+                    === true
+                        ? "ENABLED"
+                        : "DISABLED"
+                }
+            </span>
+
+            <span>
+                Seleção automática:
+                ${
+                    candidateIntake
+                        .automatic_candidate_selection
+                    === true
+                        ? "ENABLED"
+                        : "DISABLED"
+                }
+            </span>
+
+            <span>
+                Publicação automática:
+                ${
+                    discoveryRequest
+                        .publication_execution_enabled
+                    === true
+                        ? "ENABLED"
+                        : "DISABLED"
+                }
+            </span>
+
+        </article>
+    `;
 
     const trendStatus = safeText(
         (
@@ -1769,9 +1993,7 @@ function renderAssets(
                         )
                         .toUpperCase(),
                     )}
-                </span>
-
-                <span>
+                </span>                <span>
                     Música embebida no master:
                     NO
                 </span>
@@ -1905,6 +2127,8 @@ function renderAssets(
 
     container.innerHTML = (
         sceneHtml
+        +
+        discoveryRequestHtml
         +
         trendSummaryHtml
         +
@@ -2268,438 +2492,3 @@ function renderPublishing(
         },
 
         {
-            label: "Checklist concluída",
-            value: (
-                `${Math.round(
-                    readiness
-                    .completionPercent
-                )}%`
-            ),
-            className: (
-                readiness.completionPercent
-                === 100
-                    ? "status-success"
-                    : "status-warning"
-            ),
-        },
-
-        {
-            label: "Ações bloqueantes",
-            value: String(
-                Math.round(
-                    readiness.blockerCount
-                )
-            ),
-            className: (
-                readiness.blockerCount
-                === 0
-                    ? "status-success"
-                    : "status-warning"
-            ),
-        },
-    ];
-
-    const summaryHtml =
-        summaryItems
-            .map(
-                (item) => `
-                    <article class="readiness-item">
-
-                        <span>
-                            ${escapeHtml(item.label)}
-                        </span>
-
-                        <strong class="${
-                            item.className
-                        }">
-                            ${escapeHtml(item.value)}
-                        </strong>
-
-                    </article>
-                `,
-            )
-            .join("");
-
-    const checklistHtml =
-        checklistItems.length
-            ? checklistItems
-                .map(
-                    (item) => {
-                        const statusLabel =
-                            item.completed
-                                ? "DONE"
-                                : (
-                                    item.blocking
-                                        ? "BLOCKED"
-                                        : "PENDING"
-                                );
-
-                        const statusClass =
-                            item.completed
-                                ? "status-success"
-                                : (
-                                    item.blocking
-                                        ? "status-warning"
-                                        : "status-neutral"
-                                );
-
-                        const detail = item.detail
-                            ? ` — ${item.detail}`
-                            : "";
-
-                        return `
-                            <article class="readiness-item">
-
-                                <span>
-                                    ${escapeHtml(
-                                        item.label
-                                        +
-                                        detail
-                                    )}
-                                </span>
-
-                                <strong class="${
-                                    statusClass
-                                }">
-                                    ${statusLabel}
-                                </strong>
-
-                            </article>
-                        `;
-                    },
-                )
-                .join("")
-            : `
-                <p class="empty-state">
-                    Checklist indisponível.
-                </p>
-            `;
-
-    checklistContainer.innerHTML = (
-        summaryHtml
-        +
-        checklistHtml
-    );
-}
-
-
-function renderAnalytics(
-    analytics,
-) {
-    const metrics = isObject(
-        analytics.metrics
-    )
-        ? analytics.metrics
-        : {};
-
-    const growthSignals = isObject(
-        analytics.growth_signals
-    )
-        ? analytics.growth_signals
-        : {};
-
-    const recommendation = isObject(
-        analytics.recommendation
-    )
-        ? analytics.recommendation
-        : {};
-
-    setText(
-        "analytics-views",
-        formatInteger(
-            metrics.views
-        ),
-    );
-
-    setText(
-        "analytics-likes",
-        formatInteger(
-            metrics.likes
-        ),
-    );
-
-    setText(
-        "analytics-comments",
-        formatInteger(
-            metrics.comments
-        ),
-    );
-
-    setText(
-        "analytics-shares",
-        formatInteger(
-            metrics.shares
-        ),
-    );
-
-    setText(
-        "analytics-watch-time",
-        formatSeconds(
-            metrics.average_watch_time_seconds
-        ),
-    );
-
-    setText(
-        "analytics-retention",
-        formatPercent(
-            metrics.retention_percent
-        ),
-    );
-
-    setText(
-        "analytics-subscribers",
-        formatInteger(
-            metrics.subscribers_gained
-        ),
-    );
-
-    setText(
-        "next-topic-direction",
-        safeText(
-            recommendation.next_topic_direction,
-            "—",
-        ),
-    );
-
-    setText(
-        "recommended-improvement",
-        safeText(
-            recommendation.recommended_improvement,
-            "—",
-        ),
-    );
-
-    setText(
-        "recommendation-confidence",
-        formatPercent(
-            recommendation.confidence_score
-        ),
-    );
-
-    const growthContainer =
-        document.getElementById(
-            "growth-signals-list"
-        );
-
-    if (!growthContainer) {
-        return;
-    }
-
-    const signals =
-        Object.entries(
-            growthSignals
-        );
-
-    if (!signals.length) {
-        growthContainer.innerHTML = `
-            <p class="empty-state">
-                Sem sinais disponíveis.
-            </p>
-        `;
-        return;
-    }
-
-    growthContainer.innerHTML =
-        signals
-            .map(
-                (
-                    [key, value],
-                ) => {
-                    const label = key
-                        .replaceAll("_", " ")
-                        .replace(
-                            /\b\w/g,
-                            (
-                                character,
-                            ) => (
-                                character.toUpperCase()
-                            ),
-                        );
-
-                    const score = clamp(
-                        toNumber(
-                            value,
-                            0,
-                        ),
-                        0,
-                        100,
-                    );
-
-                    return `
-                        <article class="growth-signal">
-
-                            <div class="readiness-item">
-
-                                <span>
-                                    ${escapeHtml(label)}
-                                </span>
-
-                                <strong>
-                                    ${Math.round(score)}%
-                                </strong>
-
-                            </div>
-
-                            <div class="progress-track">
-
-                                <div
-                                    class="progress-value"
-                                    style="width: ${score}%"
-                                ></div>
-
-                            </div>
-
-                        </article>
-                    `;
-                },
-            )
-            .join("");
-}
-
-
-function renderProductionStudio(
-    state,
-) {
-    const {
-        dashboard,
-        content,
-        publishing,
-        analytics,
-        mediaPlan,
-        tiktokTrends,
-        platformVariants,
-    } = state;
-
-    renderHeader(
-        dashboard
-    );
-
-    renderOverview(
-        dashboard,
-        content,
-        publishing,
-    );
-
-    renderPipelineStatus(
-        content,
-        publishing,
-        analytics,
-    );
-
-    renderPerformanceSummary(
-        dashboard,
-        content,
-    );
-
-    renderHooks(
-        dashboard
-    );
-
-    renderRanking(
-        dashboard
-    );
-
-    renderScriptStudio(
-        content
-    );
-
-    renderStoryboard(
-        content
-    );
-
-    renderAssets(
-        content,
-        mediaPlan,
-        tiktokTrends,
-        platformVariants,
-    );
-
-    renderPublishing(
-        publishing
-    );
-
-    renderAnalytics(
-        analytics
-    );
-}
-
-
-function showApplication() {
-    const loading =
-        document.getElementById(
-            "loading-screen"
-        );
-
-    const application =
-        document.getElementById(
-            "application"
-        );
-
-    if (loading) {
-        loading.classList.add(
-            "hidden"
-        );
-    }
-
-    if (application) {
-        application.classList.remove(
-            "hidden"
-        );
-    }
-}
-
-
-function showError(error) {
-    showApplication();
-
-    const panel =
-        document.getElementById(
-            "dashboard-error"
-        );
-
-    const message =
-        document.getElementById(
-            "dashboard-error-message"
-        );
-
-    if (panel) {
-        panel.classList.remove(
-            "hidden"
-        );
-    }
-
-    if (message) {
-        message.textContent =
-            error instanceof Error
-                ? error.message
-                : String(error);
-    }
-
-    console.error(
-        "Production Studio load error:",
-        error,
-    );
-}
-
-
-async function startProductionStudio() {
-    try {
-        const state =
-            await loadProductionStudioData();
-
-        renderProductionStudio(
-            state
-        );
-
-        showApplication();
-
-    } catch (error) {
-        showError(error);
-    }
-}
-
-
-document.addEventListener(
-    "DOMContentLoaded",
-    startProductionStudio,
-);
