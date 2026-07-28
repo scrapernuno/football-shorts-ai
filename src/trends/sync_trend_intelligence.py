@@ -15,6 +15,21 @@ MAPPINGS = (
         /
         "output"
         /
+        "tiktok_trend_discovery_results.json",
+
+        ROOT
+        /
+        "dashboard"
+        /
+        "data"
+        /
+        "tiktok_trend_discovery_results.json",
+    ),
+    (
+        ROOT
+        /
+        "output"
+        /
         "trend_discovery_request.json",
 
         ROOT
