@@ -507,6 +507,13 @@ def remove_boundary_phrase(
 def split_script_units(
     value: str,
 ) -> list[str]:
+    """
+    Divide apenas em fronteiras reais de frase.
+
+    Ponto e vírgula, dois pontos e travessões permanecem dentro
+    da mesma frase para evitar cortar perguntas ou raciocínios.
+    """
+
     normalized = value.replace(
         "\r\n",
         "\n",
@@ -515,15 +522,16 @@ def split_script_units(
         "\n",
     )
 
-    primary_parts = re.split(
+    raw_parts = re.split(
         (
             r"(?<=[.!?…])\s+"
+            r"(?=[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9«“\"]|$)"
             r"|\n+"
         ),
         normalized,
     )
 
-    parts = [
+    return [
         re.sub(
             r"\s+",
             " ",
@@ -531,96 +539,195 @@ def split_script_units(
         ).strip(
             " \t—–-"
         )
-        for part in primary_parts
-    ]
-
-    parts = [
-        part
-        for part in parts
-        if part
-    ]
-
-    if len(parts) >= 4:
-        return parts
-
-    secondary_parts = re.split(
-        r"\s*[;•]\s*|\s+—\s+",
-        normalized,
-    )
-
-    secondary = [
-        re.sub(
+        for part in raw_parts
+        if re.sub(
             r"\s+",
             " ",
             part,
         ).strip(
             " \t—–-"
         )
-        for part in secondary_parts
     ]
 
-    secondary = [
-        part
-        for part in secondary
-        if part
-    ]
 
-    if len(secondary) > len(parts):
-        return secondary
-
-    return parts
-
-
-def balanced_partition(
-    values: list[str],
-    group_count: int,
-) -> list[str]:
-    if group_count <= 0:
-        raise ValueError(
-            "group_count deve ser positivo."
-        )
-
-    if len(values) < group_count:
-        raise ValueError(
-            "Não existem unidades suficientes "
-            "para a partição editorial."
-        )
-
-    base_size, remainder = divmod(
-        len(values),
-        group_count,
+def text_signature(
+    value: str,
+) -> str:
+    return normalize_comparison_text(
+        value
     )
 
-    output: list[str] = []
-    cursor = 0
 
-    for index in range(
-        group_count
-    ):
-        size = (
-            base_size
-            +
-            (
-                1
-                if index < remainder
-                else 0
+def is_distinct_text(
+    candidate: str,
+    used_values: list[str],
+) -> bool:
+    candidate_signature = text_signature(
+        candidate
+    )
+
+    if not candidate_signature:
+        return False
+
+    for used_value in used_values:
+        used_signature = text_signature(
+            used_value
+        )
+
+        if not used_signature:
+            continue
+
+        if candidate_signature == used_signature:
+            return False
+
+        if (
+            len(
+                candidate_signature
             )
+            >=
+            32
+            and
+            candidate_signature
+            in
+            used_signature
+        ):
+            return False
+
+        if (
+            len(
+                used_signature
+            )
+            >=
+            32
+            and
+            used_signature
+            in
+            candidate_signature
+        ):
+            return False
+
+    return True
+
+
+def first_distinct_text(
+    candidates: list[str],
+    *,
+    used_values: list[str],
+) -> str:
+    for candidate in candidates:
+        normalized = normalize_non_empty_string(
+            candidate,
+            default="",
         )
 
-        group = values[
-            cursor:
-            cursor + size
-        ]
+        if is_distinct_text(
+            normalized,
+            used_values,
+        ):
+            return normalized
 
-        cursor += size
+    return ""
 
-        output.append(
-            " ".join(
-                group
-            ).strip()
+
+def build_confirmation_ending(
+    source: dict[str, Any],
+) -> str:
+    status = normalize_non_empty_string(
+        source.get(
+            "confirmation_status"
+        ),
+        default="REPORTED",
+    ).upper()
+
+    endings = {
+        "CONFIRMED": (
+            "A informação principal está classificada "
+            "como confirmada pela fonte editorial indicada."
+        ),
+        "REPORTED": (
+            "A informação permanece reportada, mas sem "
+            "confirmação definitiva no momento da produção."
+        ),
+        "RUMOUR": (
+            "A informação permanece classificada como rumor "
+            "e não como transferência confirmada."
+        ),
+        "ANALYSIS": (
+            "Este conteúdo deve ser apresentado como análise "
+            "editorial baseada na informação disponível."
+        ),
+    }
+
+    return endings.get(
+        status,
+        endings[
+            "REPORTED"
+        ],
+    )
+
+
+def build_specific_call_to_action(
+    editorial: dict[str, Any],
+    *,
+    hook: str,
+) -> str:
+    pinned_comment = normalize_non_empty_string(
+        editorial.get(
+            "pinned_comment"
+        ),
+        default="",
+    )
+
+    editorial_cta = normalize_non_empty_string(
+        editorial.get(
+            "call_to_action"
+        ),
+        default="",
+    )
+
+    hook_question = ""
+
+    for unit in split_script_units(
+        hook
+    ):
+        if "?" in unit:
+            hook_question = unit
+            break
+
+    primary = first_distinct_text(
+        [
+            pinned_comment,
+            hook_question,
+        ],
+        used_values=[],
+    )
+
+    secondary = first_distinct_text(
+        [
+            editorial_cta,
+        ],
+        used_values=[
+            primary
+        ],
+    )
+
+    parts = [
+        part
+        for part in (
+            primary,
+            secondary,
+        )
+        if part
+    ]
+
+    if not parts:
+        raise ValueError(
+            "Call to action editorial indisponível."
         )
 
-    return output
+    return " ".join(
+        parts
+    )
 
 
 def build_script(
@@ -641,6 +748,13 @@ def build_script(
         "winner.ranking",
     )
 
+    source = require_mapping(
+        editorial_topic.get(
+            "source"
+        ),
+        "winner.source",
+    )
+
     hook = normalize_non_empty_string(
         editorial.get(
             "primary_hook"
@@ -655,18 +769,27 @@ def build_script(
         ),
     )
 
-    call_to_action = normalize_non_empty_string(
-        editorial.get(
-            "call_to_action"
-        ),
-        default=normalize_non_empty_string(
+    original_call_to_action = (
+        normalize_non_empty_string(
             editorial.get(
-                "pinned_comment"
+                "call_to_action"
             ),
-            default=(
-                "Interação editorial não definida."
-            ),
+            default="",
+        )
+    )
+
+    pinned_comment = normalize_non_empty_string(
+        editorial.get(
+            "pinned_comment"
         ),
+        default="",
+    )
+
+    call_to_action = (
+        build_specific_call_to_action(
+            editorial,
+            hook=hook,
+        )
     )
 
     full_script = normalize_non_empty_string(
@@ -682,90 +805,161 @@ def build_script(
         at_start=True,
     )
 
-    body = remove_boundary_phrase(
-        body,
-        call_to_action,
-        at_start=False,
-    )
+    for boundary in (
+        original_call_to_action,
+        pinned_comment,
+    ):
+        body = remove_boundary_phrase(
+            body,
+            boundary,
+            at_start=False,
+        )
 
     units = split_script_units(
         body
     )
 
-    if len(units) >= 4:
-        (
-            introduction,
-            development,
-            climax,
-            ending,
-        ) = balanced_partition(
-            units,
-            4,
-        )
-    else:
-        description = normalize_non_empty_string(
-            editorial.get(
-                "description"
-            ),
-            default="",
-        )
+    description = normalize_non_empty_string(
+        editorial.get(
+            "description"
+        ),
+        default="",
+    )
 
-        reason = normalize_non_empty_string(
-            ranking.get(
+    reason = normalize_non_empty_string(
+        ranking.get(
+            "reason"
+        ),
+        default=normalize_non_empty_string(
+            winner.get(
                 "reason"
             ),
-            default=normalize_non_empty_string(
-                winner.get(
-                    "reason"
-                ),
-                default="",
-            ),
-        )
-
-        pinned_comment = normalize_non_empty_string(
-            editorial.get(
-                "pinned_comment"
-            ),
             default="",
-        )
+        ),
+    )
 
-        introduction = (
-            units[0]
-            if units
-            else description
+    confirmation_ending = (
+        build_confirmation_ending(
+            source
         )
+    )
 
-        development = (
-            body
-            or
-            description
-            or
-            reason
+    question_indexes = [
+        index
+        for index, unit in enumerate(
+            units
         )
+        if "?" in unit
+    ]
 
-        climax = (
-            reason
-            or
-            (
-                units[-1]
-                if units
-                else ""
+    if question_indexes:
+        climax_index = (
+            question_indexes[-1]
+        )
+    elif len(
+        units
+    ) >= 3:
+        climax_index = (
+            len(
+                units
             )
-            or
-            development
+            -
+            2
+        )
+    elif len(
+        units
+    ) >= 2:
+        climax_index = 1
+    else:
+        climax_index = 0
+
+    introduction = (
+        units[0]
+        if units
+        else first_distinct_text(
+            [
+                description,
+                reason,
+            ],
+            used_values=[
+                hook
+            ],
+        )
+    )
+
+    if units:
+        development_units = units[
+            1:
+            climax_index
+        ]
+
+        climax = units[
+            climax_index
+        ]
+
+        ending_units = units[
+            climax_index
+            +
+            1:
+        ]
+    else:
+        development_units = []
+        climax = ""
+        ending_units = []
+
+    development = " ".join(
+        development_units
+    ).strip()
+
+    if not development:
+        development = first_distinct_text(
+            [
+                description,
+                reason,
+                body,
+            ],
+            used_values=[
+                hook,
+                introduction,
+                climax,
+            ],
         )
 
-        ending = (
-            pinned_comment
-            or
-            (
-                units[-1]
-                if units
-                else ""
-            )
-            or
-            call_to_action
+    if not climax:
+        climax = first_distinct_text(
+            [
+                reason,
+                body,
+                description,
+            ],
+            used_values=[
+                hook,
+                introduction,
+                development,
+            ],
         )
+
+    ending = " ".join(
+        ending_units
+    ).strip()
+
+    if not ending:
+        ending = first_distinct_text(
+            [
+                reason,
+                description,
+                confirmation_ending,
+            ],
+            used_values=[
+                hook,
+                introduction,
+                development,
+                climax,
+            ],
+        )
+
+    if not ending:
+        ending = confirmation_ending
 
     sections = {
         "hook": hook,
