@@ -100,12 +100,31 @@ jobs:
             src/assets/providers/owned_library.py \
             src/assets/providers/imago.py \
             src/assets/providers/reuters_connect.py \
+            src/assets/providers/tiktok_licensed_ugc.py \
             src/assets/providers/pexels.py
 
       - name: Build Media Acquisition Plan
         run: |
           PYTHONPATH=src \
           python src/assets/build_media_acquisition_plan.py
+
+      - name: Compile TikTok Trend Intelligence
+        run: |
+          python -m py_compile \
+            src/trends/build_tiktok_trend_intelligence.py \
+            src/trends/build_platform_variants.py \
+            src/trends/sync_trend_intelligence.py \
+            src/trends/certify_tiktok_trend_governance.py
+
+      - name: Build TikTok Trend Intelligence
+        run: |
+          PYTHONPATH=src \
+          python src/trends/build_tiktok_trend_intelligence.py
+
+      - name: Build Cross-Platform Variants
+        run: |
+          PYTHONPATH=src \
+          python src/trends/build_platform_variants.py
 
       - name: Build Publishing Evidence
         run: |
@@ -145,6 +164,16 @@ jobs:
           PYTHONPATH=src \
           python src/assets/certify_media_acquisition_governance.py
 
+      - name: Sync TikTok Trend Intelligence
+        run: |
+          PYTHONPATH=src \
+          python src/trends/sync_trend_intelligence.py
+
+      - name: Certify TikTok Trend Governance
+        run: |
+          PYTHONPATH=src \
+          python src/trends/certify_tiktok_trend_governance.py
+
       - name: Generate HTML
         run: |
           python src/render_email.py
@@ -176,6 +205,8 @@ jobs:
               "output/dashboard_model.json",
               "output/content_package.json",
               "output/media_acquisition_plan.json",
+              "output/tiktok_trend_intelligence.json",
+              "output/platform_variants.json",
               "output/publishing_evidence.json",
               "output/publishing_package.json",
               "output/analytics_package.json",
@@ -189,6 +220,8 @@ jobs:
               "dashboard/data/dashboard_model.json",
               "dashboard/data/content_package.json",
               "dashboard/data/media_acquisition_plan.json",
+              "dashboard/data/tiktok_trend_intelligence.json",
+              "dashboard/data/platform_variants.json",
               "dashboard/data/publishing_package.json",
               "dashboard/data/analytics_package.json",
           ]
@@ -268,6 +301,22 @@ jobs:
 
           media_plan_public = load_json(
               "dashboard/data/media_acquisition_plan.json"
+          )
+
+          tiktok_trends = load_json(
+              "output/tiktok_trend_intelligence.json"
+          )
+
+          tiktok_trends_public = load_json(
+              "dashboard/data/tiktok_trend_intelligence.json"
+          )
+
+          platform_variants = load_json(
+              "output/platform_variants.json"
+          )
+
+          platform_variants_public = load_json(
+              "dashboard/data/platform_variants.json"
           )
 
           publishing_evidence = load_json(
@@ -583,6 +632,7 @@ jobs:
               "owned_library",
               "imago",
               "reuters_connect",
+              "tiktok_licensed_ugc",
               "pexels",
           ]:
               raise SystemExit(
@@ -651,6 +701,89 @@ jobs:
                           "Pexels permitido para "
                           "conteúdo específico"
                       )
+
+
+          if tiktok_trends != tiktok_trends_public:
+              raise SystemExit(
+                  "TikTok trend intelligence pública "
+                  "não corresponde ao output"
+              )
+
+
+          if platform_variants != platform_variants_public:
+              raise SystemExit(
+                  "Platform variants público "
+                  "não corresponde ao output"
+              )
+
+
+          trend_boundaries = tiktok_trends.get(
+              "official_capability_boundaries"
+          )
+
+
+          if (
+              not isinstance(trend_boundaries, dict)
+              or trend_boundaries.get(
+                  "display_api_global_trend_search_available"
+              )
+              is not False
+              or trend_boundaries.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or trend_boundaries.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "TikTok capability boundary inválida"
+              )
+
+
+          if (
+              tiktok_trends.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "TikTok trends ativaram publicação"
+              )
+
+
+          variant_governance = platform_variants.get(
+              "governance"
+          )
+
+
+          if (
+              not isinstance(variant_governance, dict)
+              or variant_governance.get(
+                  "native_remix_platform_bound"
+              )
+              is not True
+              or variant_governance.get(
+                  "cross_platform_third_party_use_requires_license"
+              )
+              is not True
+              or variant_governance.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or variant_governance.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+              or variant_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Cross-platform trend governance inválida"
+              )
 
 
           required_publishing = {
