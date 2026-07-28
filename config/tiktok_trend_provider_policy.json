@@ -1,0 +1,56 @@
+{
+  "policy_version": "1.0",
+  "mode": "pre_activation_fail_closed",
+  "region": "PT",
+  "provider_order": [
+    "tiktok_business_discovery",
+    "openai_web_search"
+  ],
+  "providers": {
+    "tiktok_business_discovery": {
+      "enabled": true,
+      "priority": 1,
+      "activation_state": "pending_approval",
+      "configured": false,
+      "pre_activation_only": true,
+      "network_execution_allowed": false,
+      "fallback_allowed": true,
+      "required_permission": "Creative Management > Discovery",
+      "base_url": "https://business-api.tiktok.com/open_api/v1.3",
+      "required_environment": [
+        "TIKTOK_BUSINESS_APP_ID",
+        "TIKTOK_BUSINESS_APP_SECRET",
+        "TIKTOK_BUSINESS_ACCESS_TOKEN"
+      ],
+      "discovery_endpoints": [
+        "/discovery/trending_list/",
+        "/discovery/detail/",
+        "/discovery/video_list/",
+        "/discovery/cml/trending_list/",
+        "/discovery/cml/video_list/",
+        "/discovery/trending/search/",
+        "/discovery/trending/search/keyword/"
+      ]
+    },
+    "openai_web_search": {
+      "enabled": true,
+      "priority": 2,
+      "activation_state": "active_fallback",
+      "configured_from_environment": true,
+      "network_execution_allowed": true,
+      "fallback_only": true,
+      "required_environment": [
+        "OPENAI_API_KEY"
+      ]
+    }
+  },
+  "governance": {
+    "browser_api_calls_enabled": false,
+    "public_secret_material_allowed": false,
+    "automatic_candidate_selection_enabled": false,
+    "direct_tiktok_api_calls_enabled_before_approval": false,
+    "third_party_download_allowed": false,
+    "watermark_removal_allowed": false,
+    "publication_execution_enabled": false
+  }
+}
