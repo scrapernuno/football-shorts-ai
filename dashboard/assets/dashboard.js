@@ -2491,4 +2491,440 @@ function renderPublishing(
             ),
         },
 
+        {            label: "Checklist concluída",
+            value: (
+                `${Math.round(
+                    readiness
+                    .completionPercent
+                )}%`
+            ),
+            className: (
+                readiness.completionPercent
+                === 100
+                    ? "status-success"
+                    : "status-warning"
+            ),
+        },
+
         {
+            label: "Ações bloqueantes",
+            value: String(
+                Math.round(
+                    readiness.blockerCount
+                )
+            ),
+            className: (
+                readiness.blockerCount
+                === 0
+                    ? "status-success"
+                    : "status-warning"
+            ),
+        },
+    ];
+
+    const summaryHtml =
+        summaryItems
+            .map(
+                (item) => `
+                    <article class="readiness-item">
+
+                        <span>
+                            ${escapeHtml(item.label)}
+                        </span>
+
+                        <strong class="${
+                            item.className
+                        }">
+                            ${escapeHtml(item.value)}
+                        </strong>
+
+                    </article>
+                `,
+            )
+            .join("");
+
+    const checklistHtml =
+        checklistItems.length
+            ? checklistItems
+                .map(
+                    (item) => {
+                        const statusLabel =
+                            item.completed
+                                ? "DONE"
+                                : (
+                                    item.blocking
+                                        ? "BLOCKED"
+                                        : "PENDING"
+                                );
+
+                        const statusClass =
+                            item.completed
+                                ? "status-success"
+                                : (
+                                    item.blocking
+                                        ? "status-warning"
+                                        : "status-neutral"
+                                );
+
+                        const detail = item.detail
+                            ? ` — ${item.detail}`
+                            : "";
+
+                        return `
+                            <article class="readiness-item">
+
+                                <span>
+                                    ${escapeHtml(
+                                        item.label
+                                        +
+                                        detail
+                                    )}
+                                </span>
+
+                                <strong class="${
+                                    statusClass
+                                }">
+                                    ${statusLabel}
+                                </strong>
+
+                            </article>
+                        `;
+                    },
+                )
+                .join("")
+            : `
+                <p class="empty-state">
+                    Checklist indisponível.
+                </p>
+            `;
+
+    checklistContainer.innerHTML = (
+        summaryHtml
+        +
+        checklistHtml
+    );
+}
+
+
+function renderAnalytics(
+    analytics,
+) {
+    const metrics = isObject(
+        analytics.metrics
+    )
+        ? analytics.metrics
+        : {};
+
+    const growthSignals = isObject(
+        analytics.growth_signals
+    )
+        ? analytics.growth_signals
+        : {};
+
+    const recommendation = isObject(
+        analytics.recommendation
+    )
+        ? analytics.recommendation
+        : {};
+
+    setText(
+        "analytics-views",
+        formatInteger(
+            metrics.views
+        ),
+    );
+
+    setText(
+        "analytics-likes",
+        formatInteger(
+            metrics.likes
+        ),
+    );
+
+    setText(
+        "analytics-comments",
+        formatInteger(
+            metrics.comments
+        ),
+    );
+
+    setText(
+        "analytics-shares",
+        formatInteger(
+            metrics.shares
+        ),
+    );
+
+    setText(
+        "analytics-watch-time",
+        formatSeconds(
+            metrics.average_watch_time_seconds
+        ),
+    );
+
+    setText(
+        "analytics-retention",
+        formatPercent(
+            metrics.retention_percent
+        ),
+    );
+
+    setText(
+        "analytics-subscribers",
+        formatInteger(
+            metrics.subscribers_gained
+        ),
+    );
+
+    setText(
+        "next-topic-direction",
+        safeText(
+            recommendation.next_topic_direction,
+            "—",
+        ),
+    );
+
+    setText(
+        "recommended-improvement",
+        safeText(
+            recommendation.recommended_improvement,
+            "—",
+        ),
+    );
+
+    setText(
+        "recommendation-confidence",
+        formatPercent(
+            recommendation.confidence_score
+        ),
+    );
+
+    const growthContainer =
+        document.getElementById(
+            "growth-signals-list"
+        );
+
+    if (!growthContainer) {
+        return;
+    }
+
+    const signals =
+        Object.entries(
+            growthSignals
+        );
+
+    if (!signals.length) {
+        growthContainer.innerHTML = `
+            <p class="empty-state">
+                Sem sinais disponíveis.
+            </p>
+        `;
+        return;
+    }
+
+    growthContainer.innerHTML =
+        signals
+            .map(
+                (
+                    [key, value],
+                ) => {
+                    const label = key
+                        .replaceAll("_", " ")
+                        .replace(
+                            /\b\w/g,
+                            (
+                                character,
+                            ) => (
+                                character.toUpperCase()
+                            ),
+                        );
+
+                    const score = clamp(
+                        toNumber(
+                            value,
+                            0,
+                        ),
+                        0,
+                        100,
+                    );
+
+                    return `
+                        <article class="growth-signal">
+
+                            <div class="readiness-item">
+
+                                <span>
+                                    ${escapeHtml(label)}
+                                </span>
+
+                                <strong>
+                                    ${Math.round(score)}%
+                                </strong>
+
+                            </div>
+
+                            <div class="progress-track">
+
+                                <div
+                                    class="progress-value"
+                                    style="width: ${score}%"
+                                ></div>
+
+                            </div>
+
+                        </article>
+                    `;
+                },
+            )
+            .join("");
+}
+
+
+function renderProductionStudio(
+    state,
+) {
+    const {
+        dashboard,
+        content,
+        publishing,
+        analytics,
+        mediaPlan,
+        trendDiscoveryRequest,
+        tiktokTrends,
+        platformVariants,
+    } = state;
+
+    renderHeader(
+        dashboard
+    );
+
+    renderOverview(
+        dashboard,
+        content,
+        publishing,
+    );
+
+    renderPipelineStatus(
+        content,
+        publishing,
+        analytics,
+    );
+
+    renderPerformanceSummary(
+        dashboard,
+        content,
+    );
+
+    renderHooks(
+        dashboard
+    );
+
+    renderRanking(
+        dashboard
+    );
+
+    renderScriptStudio(
+        content
+    );
+
+    renderStoryboard(
+        content
+    );
+
+    renderAssets(
+        content,
+        mediaPlan,
+        trendDiscoveryRequest,
+        tiktokTrends,
+        platformVariants,
+    );
+
+    renderPublishing(
+        publishing
+    );
+
+    renderAnalytics(
+        analytics
+    );
+}
+
+
+function showApplication() {
+    const loading =
+        document.getElementById(
+            "loading-screen"
+        );
+
+    const application =
+        document.getElementById(
+            "application"
+        );
+
+    if (loading) {
+        loading.classList.add(
+            "hidden"
+        );
+    }
+
+    if (application) {
+        application.classList.remove(
+            "hidden"
+        );
+    }
+}
+
+
+function showError(error) {
+    showApplication();
+
+    const panel =
+        document.getElementById(
+            "dashboard-error"
+        );
+
+    const message =
+        document.getElementById(
+            "dashboard-error-message"
+        );
+
+    if (panel) {
+        panel.classList.remove(
+            "hidden"
+        );
+    }
+
+    if (message) {
+        message.textContent =
+            error instanceof Error
+                ? error.message
+                : String(error);
+    }
+
+    console.error(
+        "Production Studio load error:",
+        error,
+    );
+}
+
+
+async function startProductionStudio() {
+    try {
+        const state =
+            await loadProductionStudioData();
+
+        renderProductionStudio(
+            state
+        );
+
+        showApplication();
+
+    } catch (error) {
+        showError(error);
+    }
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    startProductionStudio,
+);
