@@ -260,6 +260,8 @@ function setStatus(
         normalized === "DRAFT"
         ||
         normalized === "SCHEDULED"
+        ||
+        normalized === "BLOCKED"
     ) {
         element.classList.add(
             "status-warning"
@@ -450,8 +452,17 @@ function renderOverview(
         content.language,
     );
 
+    const publishingReadiness = isObject(
+        publishing.readiness
+    )
+        ? publishing.readiness
+        : {};
+
     const productionStatus = safeText(
-        publishing.status,
+        firstDefined(
+            publishingReadiness.status,
+            publishing.status,
+        ),
         "draft",
     );
 
@@ -538,8 +549,7 @@ function renderOverview(
         "overview-production-status",
         productionStatus,
     );
-
-    setText(
+        setText(
         "overview-generated-at",
         formatDate(
             dashboard.generated_at
@@ -581,8 +591,17 @@ function renderPipelineStatus(
         ? content.scenes
         : [];
 
+    const publishingReadiness = isObject(
+        publishing.readiness
+    )
+        ? publishing.readiness
+        : {};
+
     const publishingStatus = safeText(
-        publishing.status,
+        firstDefined(
+            publishingReadiness.status,
+            publishing.status,
+        ),
         "draft",
     );
 
@@ -640,16 +659,18 @@ function renderPipelineStatus(
         analyticsStatus,
     );
 
-    setText(
+    setStatus(
         "publishing-state-badge",
-        publishingStatus.toUpperCase(),
+        publishingStatus,
     );
 
-    setText(
+    setStatus(
         "analytics-state-badge",
-        analyticsStatus.toUpperCase(),
+        analyticsStatus,
     );
 }
+
+
 function renderPerformanceSummary(
     dashboard,
     content,
@@ -1078,7 +1099,7 @@ function renderStoryboard(
     content,
 ) {
     const scenes = Array.isArray(
-        content.scenes
+                content.scenes
     )
         ? content.scenes
         : [];
@@ -1356,7 +1377,151 @@ function renderAssets(
                 `,
             )
             .join("");
-}function renderPublishing(
+}
+
+
+function normalizePublishingChecklistEntry(
+    key,
+    value,
+) {
+    const fallbackLabel = key
+        .replaceAll("_", " ")
+        .replace(
+            /\b\w/g,
+            (
+                character,
+            ) => (
+                character.toUpperCase()
+            ),
+        );
+
+    if (isObject(value)) {
+        return {
+            key,
+
+            label: safeText(
+                value.label,
+                fallbackLabel,
+            ),
+
+            detail: safeText(
+                value.detail,
+                "",
+            ),
+
+            completed:
+                value.completed === true,
+
+            blocking:
+                value.blocking !== false,
+        };
+    }
+
+    return {
+        key,
+        label: fallbackLabel,
+        detail: "",
+        completed:
+            value === true,
+        blocking: true,
+    };
+}
+
+
+function getPublishingReadiness(
+    publishing,
+) {
+    const readiness = isObject(
+        publishing.readiness
+    )
+        ? publishing.readiness
+        : {};
+
+    const lifecycleStatus = safeText(
+        firstDefined(
+            readiness.lifecycle_status,
+            publishing.status,
+        ),
+        "draft",
+    ).toLowerCase();
+
+    const readinessStatus = safeText(
+        firstDefined(
+            readiness.status,
+            publishing.status,
+        ),
+        lifecycleStatus,
+    ).toLowerCase();
+
+    const blockers = Array.isArray(
+        readiness.blockers
+    )
+        ? readiness.blockers
+        : [];
+
+    return {
+        lifecycleStatus,
+
+        readinessStatus,
+
+        completionPercent: clamp(
+            toNumber(
+                readiness.completion_percent,
+                0,
+            ),
+            0,
+            100,
+        ),
+
+        blockerCount: Math.max(
+            0,
+            toNumber(
+                firstDefined(
+                    readiness.blocker_count,
+                    blockers.length,
+                ),
+                blockers.length,
+            ),
+        ),
+
+        blockers,
+
+        recommendedPublishTime:
+            firstDefined(
+                readiness.recommended_publish_time,
+                (
+                    isObject(
+                        publishing.metadata
+                    )
+                        ? (
+                            publishing
+                            .metadata
+                            .recommended_publish_time
+                        )
+                        : null
+                ),
+            ),
+
+        scheduledWindow:
+            firstDefined(
+                readiness.scheduled_window,
+                (
+                    isObject(
+                        publishing.metadata
+                    )
+                        ? (
+                            publishing
+                            .metadata
+                            .scheduled_window
+                        )
+                        : null
+                ),
+            ),
+    };
+}
+
+
+function renderPublishing(
     publishing,
 ) {
     const metadata = isObject(
@@ -1377,6 +1542,16 @@ function renderAssets(
         ? publishing.checklist
         : {};
 
+    const readiness =
+        getPublishingReadiness(
+            publishing
+        );
+
+    setStatus(
+        "publishing-state-badge",
+        readiness.readinessStatus,
+    );
+
     setText(
         "publishing-title",
         safeText(
@@ -1393,12 +1568,23 @@ function renderAssets(
         ),
     );
 
+    const scheduleParts = [
+        safeText(
+            readiness.scheduledWindow,
+            "",
+        ),
+
+        safeText(
+            readiness.recommendedPublishTime,
+            "",
+        ),
+    ].filter(Boolean);
+
     setText(
         "publishing-window",
-        safeText(
-            metadata.scheduled_window,
-            "—",
-        ),
+        scheduleParts.length
+            ? scheduleParts.join(" · ")
+            : "—",
     );
 
     setText(
@@ -1465,62 +1651,157 @@ function renderAssets(
     }
 
     const checklistItems =
-        Object.entries(checklist);
-
-    if (!checklistItems.length) {
-        checklistContainer.innerHTML = `
-            <p class="empty-state">
-                Checklist indisponível.
-            </p>
-        `;
-        return;
-    }
-
-    checklistContainer.innerHTML =
-        checklistItems
-            .map(
+        Object.entries(checklist)
+                .map(
                 (
                     [key, value],
-                ) => {
-                    const normalizedLabel =
-                        key
-                            .replaceAll("_", " ")
-                            .replace(
-                                /\b\w/g,
-                                (
-                                    character,
-                                ) => (
-                                    character.toUpperCase()
-                                ),
-                            );
+                ) => (
+                    normalizePublishingChecklistEntry(
+                        key,
+                        value,
+                    )
+                ),
+            );
 
-                    const isPositive =
-                        value === true;
+    const summaryItems = [
+        {
+            label: "Lifecycle",
+            value: (
+                readiness
+                .lifecycleStatus
+                .toUpperCase()
+            ),
+            className: "status-warning",
+        },
 
-                    return `
-                        <article class="readiness-item">
+        {
+            label: "Readiness",
+            value: (
+                readiness
+                .readinessStatus
+                .toUpperCase()
+            ),
+            className: (
+                readiness.readinessStatus
+                === "ready"
+                    ? "status-success"
+                    : "status-warning"
+            ),
+        },
 
-                            <span>
-                                ${escapeHtml(normalizedLabel)}
-                            </span>
+        {
+            label: "Checklist concluída",
+            value: (
+                `${Math.round(
+                    readiness
+                    .completionPercent
+                )}%`
+            ),
+            className: (
+                readiness.completionPercent
+                === 100
+                    ? "status-success"
+                    : "status-warning"
+            ),
+        },
 
-                            <strong class="${
-                                isPositive
-                                    ? "status-success"
-                                    : "status-warning"
-                            }">
-                                ${
-                                    isPositive
-                                        ? "YES"
-                                        : "NO"
-                                }
-                            </strong>
+        {
+            label: "Ações bloqueantes",
+            value: String(
+                Math.round(
+                    readiness.blockerCount
+                )
+            ),
+            className: (
+                readiness.blockerCount
+                === 0
+                    ? "status-success"
+                    : "status-warning"
+            ),
+        },
+    ];
 
-                        </article>
-                    `;
-                },
+    const summaryHtml =
+        summaryItems
+            .map(
+                (item) => `
+                    <article class="readiness-item">
+
+                        <span>
+                            ${escapeHtml(item.label)}
+                        </span>
+
+                        <strong class="${
+                            item.className
+                        }">
+                            ${escapeHtml(item.value)}
+                        </strong>
+
+                    </article>
+                `,
             )
             .join("");
+
+    const checklistHtml =
+        checklistItems.length
+            ? checklistItems
+                .map(
+                    (item) => {
+                        const statusLabel =
+                            item.completed
+                                ? "DONE"
+                                : (
+                                    item.blocking
+                                        ? "BLOCKED"
+                                        : "PENDING"
+                                );
+
+                        const statusClass =
+                            item.completed
+                                ? "status-success"
+                                : (
+                                    item.blocking
+                                        ? "status-warning"
+                                        : "status-neutral"
+                                );
+
+                        const detail = item.detail
+                            ? ` — ${item.detail}`
+                            : "";
+
+                        return `
+                            <article class="readiness-item">
+
+                                <span>
+                                    ${escapeHtml(
+                                        item.label
+                                        +
+                                        detail
+                                    )}
+                                </span>
+
+                                <strong class="${
+                                    statusClass
+                                }">
+                                    ${statusLabel}
+                                </strong>
+
+                            </article>
+                        `;
+                    },
+                )
+                .join("")
+            : `
+                <p class="empty-state">
+                    Checklist indisponível.
+                </p>
+            `;
+
+    checklistContainer.innerHTML = (
+        summaryHtml
+        +
+        checklistHtml
+    );
 }
 
 
