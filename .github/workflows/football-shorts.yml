@@ -88,6 +88,25 @@ jobs:
           PYTHONPATH=src \
           python src/production/build_content_package.py
 
+      - name: Compile Media Acquisition Architecture
+        run: |
+          python -m py_compile \
+            src/assets/contracts.py \
+            src/assets/provider_registry.py \
+            src/assets/build_media_acquisition_plan.py \
+            src/assets/sync_media_acquisition_plan.py \
+            src/assets/certify_media_acquisition_governance.py \
+            src/assets/providers/base.py \
+            src/assets/providers/owned_library.py \
+            src/assets/providers/imago.py \
+            src/assets/providers/reuters_connect.py \
+            src/assets/providers/pexels.py
+
+      - name: Build Media Acquisition Plan
+        run: |
+          PYTHONPATH=src \
+          python src/assets/build_media_acquisition_plan.py
+
       - name: Build Publishing Evidence
         run: |
           python -m py_compile \
@@ -115,6 +134,16 @@ jobs:
         run: |
           PYTHONPATH=src \
           python src/dashboard/sync_production_studio.py
+
+      - name: Sync Media Acquisition Plan
+        run: |
+          PYTHONPATH=src \
+          python src/assets/sync_media_acquisition_plan.py
+
+      - name: Certify Media Acquisition Governance
+        run: |
+          PYTHONPATH=src \
+          python src/assets/certify_media_acquisition_governance.py
 
       - name: Generate HTML
         run: |
@@ -146,6 +175,7 @@ jobs:
               "output/editorial_package.json",
               "output/dashboard_model.json",
               "output/content_package.json",
+              "output/media_acquisition_plan.json",
               "output/publishing_evidence.json",
               "output/publishing_package.json",
               "output/analytics_package.json",
@@ -158,6 +188,7 @@ jobs:
 
               "dashboard/data/dashboard_model.json",
               "dashboard/data/content_package.json",
+              "dashboard/data/media_acquisition_plan.json",
               "dashboard/data/publishing_package.json",
               "dashboard/data/analytics_package.json",
           ]
@@ -229,6 +260,14 @@ jobs:
 
           content_public = load_json(
               "dashboard/data/content_package.json"
+          )
+
+          media_plan = load_json(
+              "output/media_acquisition_plan.json"
+          )
+
+          media_plan_public = load_json(
+              "dashboard/data/media_acquisition_plan.json"
           )
 
           publishing_evidence = load_json(
@@ -490,6 +529,128 @@ jobs:
                       "Scene com duration_seconds inválido "
                       f"no índice {index}"
                   )
+
+
+          if media_plan != media_plan_public:
+              raise SystemExit(
+                  "Media Acquisition Plan público "
+                  "não corresponde ao plano produzido"
+              )
+
+
+          if (
+              media_plan.get("publication_execution_enabled")
+              is not False
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan ativou publicação"
+              )
+
+
+          media_policy = media_plan.get(
+              "policy"
+          )
+
+
+          if (
+              not isinstance(media_policy, dict)
+              or media_policy.get("mode")
+              != "copyright_aware_fail_closed"
+              or media_policy.get("unlicensed_media_allowed")
+              is not False
+              or media_policy.get(
+                  "editorial_exception_requires_manual_review"
+              )
+              is not True
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan viola "
+                  "a política de copyright"
+              )
+
+
+          provider_ids = [
+              provider.get("provider_id")
+              for provider in media_plan.get(
+                  "provider_registry",
+                  [],
+              )
+              if isinstance(provider, dict)
+          ]
+
+
+          if provider_ids != [
+              "owned_library",
+              "imago",
+              "reuters_connect",
+              "pexels",
+          ]:
+              raise SystemExit(
+                  "Media provider order inválida"
+              )
+
+
+          scene_plans = media_plan.get(
+              "scene_plans"
+          )
+
+
+          if (
+              not isinstance(scene_plans, list)
+              or len(scene_plans) != len(scenes)
+          ):
+              raise SystemExit(
+                  "Media Acquisition Plan não cobre "
+                  "todas as cenas"
+              )
+
+
+          for scene_plan in scene_plans:
+              if not isinstance(scene_plan, dict):
+                  raise SystemExit(
+                      "Scene plan inválido"
+                  )
+
+              if scene_plan.get("selected_asset") is not None:
+                  raise SystemExit(
+                      "Asset selecionado antes da ativação"
+                  )
+
+              if scene_plan.get("rights_status") != "unresolved":
+                  raise SystemExit(
+                      "Direitos resolvidos sem evidência"
+                  )
+
+              if (
+                  scene_plan.get("subject_scope")
+                  ==
+                  "specific_football"
+              ):
+                  pexels_routes = [
+                      route
+                      for route in scene_plan.get(
+                          "provider_route",
+                          [],
+                      )
+                      if (
+                          isinstance(route, dict)
+                          and
+                          route.get("provider_id")
+                          ==
+                          "pexels"
+                      )
+                  ]
+
+                  if (
+                      len(pexels_routes) != 1
+                      or
+                      pexels_routes[0].get("allowed")
+                      is not False
+                  ):
+                      raise SystemExit(
+                          "Pexels permitido para "
+                          "conteúdo específico"
+                      )
 
 
           required_publishing = {
