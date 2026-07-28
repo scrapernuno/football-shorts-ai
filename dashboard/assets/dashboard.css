@@ -2130,3 +2130,31 @@ a {
     }
 
 }
+/* ==========================================================
+   FOOTBALL-SHORTS-AI-0031C.5B
+   SCRIPT STUDIO COMPACT CONTENT-AWARE CARDS
+   Append this block to dashboard/assets/dashboard.css
+   ========================================================== */
+
+.script-studio-grid {
+    align-items: start;
+}
+
+.script-block {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+    padding: 18px 20px;
+}
+
+.script-block-label {
+    margin-bottom: 11px;
+}
+
+.script-block p {
+    line-height: 1.58;
+}
+
+.script-block-cta {
+    min-height: 0;
+}
