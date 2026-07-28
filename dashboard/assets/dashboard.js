@@ -392,11 +392,30 @@ function renderHeader(
 function renderOverview(
     dashboard,
     content,
+    publishing,
 ) {
     const sourceTopic = isObject(
         content.source_topic
     )
         ? content.source_topic
+        : {};
+
+    const publishingMetadata = isObject(
+        publishing.metadata
+    )
+        ? publishing.metadata
+        : {};
+
+    const contentPublishing = isObject(
+        content.publishing
+    )
+        ? content.publishing
+        : {};
+
+    const voiceover = isObject(
+        content.voiceover
+    )
+        ? content.voiceover
         : {};
 
     const title = firstDefined(
@@ -419,6 +438,21 @@ function renderOverview(
         ),
         0,
         100,
+    );
+
+    const platform = firstDefined(
+        publishingMetadata.platform,
+        contentPublishing.platform,
+    );
+
+    const language = firstDefined(
+        voiceover.language,
+        content.language,
+    );
+
+    const productionStatus = safeText(
+        publishing.status,
+        "draft",
     );
 
     setText(
@@ -450,17 +484,19 @@ function renderOverview(
         )}`,
     );
 
-    const publishing = isObject(
-        content.publishing
-    )
-        ? content.publishing
-        : {};
-
     setText(
         "content-platform",
         safeText(
-            publishing.platform,
-            "YouTube Shorts",
+            platform,
+            "Plataforma não definida",
+        ),
+    );
+
+    setText(
+        "content-language",
+        safeText(
+            language,
+            "Idioma não definido",
         ),
     );
 
@@ -493,7 +529,21 @@ function renderOverview(
 
     setText(
         "content-duration",
-        `${totalDuration} segundos`,
+        totalDuration > 0
+            ? `${totalDuration} segundos`
+            : "Duração não definida",
+    );
+
+    setStatus(
+        "overview-production-status",
+        productionStatus,
+    );
+
+    setText(
+        "overview-generated-at",
+        formatDate(
+            dashboard.generated_at
+        ),
     );
 
     const progress =
@@ -600,8 +650,6 @@ function renderPipelineStatus(
         analyticsStatus.toUpperCase(),
     );
 }
-
-
 function renderPerformanceSummary(
     dashboard,
     content,
@@ -1308,10 +1356,7 @@ function renderAssets(
                 `,
             )
             .join("");
-}
-
-
-function renderPublishing(
+}function renderPublishing(
     publishing,
 ) {
     const metadata = isObject(
@@ -1670,6 +1715,7 @@ function renderProductionStudio(
     renderOverview(
         dashboard,
         content,
+        publishing,
     );
 
     renderPipelineStatus(
