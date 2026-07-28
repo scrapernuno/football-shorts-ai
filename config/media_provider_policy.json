@@ -1,15 +1,19 @@
 {
-  "policy_version": "1.0",
-  "policy_id": "football-media-copyright-aware-v1",
+  "policy_version": "1.1",
+  "policy_id": "football-media-copyright-aware-v2",
   "mode": "copyright_aware_fail_closed",
   "publication_execution_enabled": false,
   "automatic_license_purchase_enabled": false,
   "unlicensed_media_allowed": false,
   "editorial_exception_requires_manual_review": true,
+  "third_party_download_allowed": false,
+  "third_party_watermark_removal_allowed": false,
+  "platform_native_remix_cross_platform_allowed": false,
   "provider_order": [
     "owned_library",
     "imago",
     "reuters_connect",
+    "tiktok_licensed_ugc",
     "pexels"
   ],
   "providers": {
@@ -64,11 +68,36 @@
         "licensed"
       ]
     },
+    "tiktok_licensed_ugc": {
+      "enabled": true,
+      "configured": false,
+      "contract_required": true,
+      "priority": 4,
+      "allowed_media_types": [
+        "video"
+      ],
+      "allowed_subject_scope": [
+        "specific_football",
+        "generic_football"
+      ],
+      "allowed_rights_basis": [
+        "licensed"
+      ],
+      "native_remix_modes": [
+        "native_duet",
+        "native_stitch"
+      ],
+      "native_remix_platform": "tiktok",
+      "cross_platform_requires_creator_license": true,
+      "original_file_required_for_cross_platform": true,
+      "third_party_download_allowed": false,
+      "watermark_removal_allowed": false
+    },
     "pexels": {
       "enabled": true,
       "configured": false,
       "contract_required": false,
-      "priority": 4,
+      "priority": 5,
       "allowed_media_types": [
         "image",
         "video"
