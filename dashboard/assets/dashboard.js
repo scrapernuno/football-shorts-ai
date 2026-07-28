@@ -547,9 +547,9 @@ function renderOverview(
 
     setStatus(
         "overview-production-status",
-        productionStatus,
-    );
-        setText(
+        productionStatus,    );
+
+    setText(
         "overview-generated-at",
         formatDate(
             dashboard.generated_at
@@ -1099,7 +1099,7 @@ function renderStoryboard(
     content,
 ) {
     const scenes = Array.isArray(
-                content.scenes
+        content.scenes
     )
         ? content.scenes
         : [];
@@ -1252,10 +1252,7 @@ function renderStoryboard(
                 },
             )
             .join("");
-}
-
-
-function renderAssets(
+}function renderAssets(
     content,
 ) {
     const scenes = Array.isArray(
@@ -1611,6 +1608,48 @@ function renderPublishing(
         ),
     );
 
+    const thumbnailPreview =
+        document.querySelector(
+            ".thumbnail-preview"
+        );
+
+    const thumbnailPublicPath =
+        safeText(
+            thumbnail.asset_public_path,
+            "",
+        );
+
+    if (
+        thumbnailPreview
+        &&
+        thumbnailPublicPath
+    ) {
+        const safeThumbnailPath =
+            thumbnailPublicPath
+                .replaceAll('"', "")
+                .replaceAll("'", "");
+
+        thumbnailPreview.style.backgroundImage = (
+            "linear-gradient("
+            +
+            "180deg, "
+            +
+            "rgba(4, 10, 22, 0.08), "
+            +
+            "rgba(4, 10, 22, 0.48)"
+            +
+            "), "
+            +
+            `url("${safeThumbnailPath}")`
+        );
+
+        thumbnailPreview.style.backgroundSize =
+            "cover";
+
+        thumbnailPreview.style.backgroundPosition =
+            "center";
+    }
+
     const hashtags = Array.isArray(
         metadata.hashtags
     )
@@ -1652,7 +1691,7 @@ function renderPublishing(
 
     const checklistItems =
         Object.entries(checklist)
-                .map(
+            .map(
                 (
                     [key, value],
                 ) => (
@@ -1802,10 +1841,7 @@ function renderPublishing(
         +
         checklistHtml
     );
-}
-
-
-function renderAnalytics(
+}function renderAnalytics(
     analytics,
 ) {
     const metrics = isObject(
