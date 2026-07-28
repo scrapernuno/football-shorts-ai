@@ -88,6 +88,14 @@ jobs:
           PYTHONPATH=src \
           python src/production/build_content_package.py
 
+      - name: Build Publishing Evidence
+        run: |
+          python -m py_compile \
+            src/publishing/build_publishing_evidence.py
+
+          PYTHONPATH=src \
+          python src/publishing/build_publishing_evidence.py
+
       - name: Build Publishing Package
         run: |
           PYTHONPATH=src \
@@ -138,6 +146,7 @@ jobs:
               "output/editorial_package.json",
               "output/dashboard_model.json",
               "output/content_package.json",
+              "output/publishing_evidence.json",
               "output/publishing_package.json",
               "output/analytics_package.json",
               "output/digest.html",
@@ -220,6 +229,10 @@ jobs:
 
           content_public = load_json(
               "dashboard/data/content_package.json"
+          )
+
+          publishing_evidence = load_json(
+              "output/publishing_evidence.json"
           )
 
           publishing = load_json(
@@ -521,6 +534,73 @@ jobs:
                   "Publishing package deve "
                   "iniciar em draft"
               )
+
+
+          evidence_identity = publishing_evidence.get(
+              "content_identity"
+          )
+
+
+          if not isinstance(evidence_identity, dict):
+              raise SystemExit(
+                  "Publishing evidence content_identity inválido"
+              )
+
+
+          if (
+              evidence_identity.get("content_id")
+              != publishing.get("source_content_id")
+          ):
+              raise SystemExit(
+                  "Publishing evidence não corresponde "
+                  "ao Publishing Package"
+              )
+
+
+          evidence_thumbnail = publishing_evidence.get(
+              "thumbnail"
+          )
+
+
+          if not isinstance(evidence_thumbnail, dict):
+              raise SystemExit(
+                  "Publishing evidence thumbnail inválido"
+              )
+
+
+          if evidence_thumbnail.get("status") != "ready":
+              raise SystemExit(
+                  "Thumbnail de evidência não está ready"
+              )
+
+
+          thumbnail_artifact = Path(
+              evidence_thumbnail.get(
+                  "artifact_path",
+                  "",
+              )
+          )
+
+
+          thumbnail_public = (
+              Path("dashboard")
+              /
+              evidence_thumbnail.get(
+                  "public_path",
+                  "",
+              )
+          )
+
+
+          for thumbnail_path in (
+              thumbnail_artifact,
+              thumbnail_public,
+          ):
+              if not thumbnail_path.is_file():
+                  raise SystemExit(
+                      "Thumbnail em falta: "
+                      f"{thumbnail_path}"
+                  )
 
 
           if (
