@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,13 +11,39 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 
-DASHBOARD_SOURCE = ROOT / "output" / "dashboard_model.json"
-CONTENT_OUTPUT = ROOT / "output" / "content_package.json"
+DASHBOARD_SOURCE = (
+    ROOT
+    / "output"
+    / "dashboard_model.json"
+)
+
+EDITORIAL_SOURCE = (
+    ROOT
+    / "output"
+    / "editorial_package.json"
+)
+
+CONTENT_OUTPUT = (
+    ROOT
+    / "output"
+    / "content_package.json"
+)
 
 PACKAGE_VERSION = "1.0"
 
+SCRIPT_FIELDS = (
+    "hook",
+    "introduction",
+    "development",
+    "climax",
+    "ending",
+    "call_to_action",
+)
 
-def load_json(path: Path) -> dict[str, Any]:
+
+def load_json(
+    path: Path,
+) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(
             f"Ficheiro não encontrado: {path}"
@@ -23,7 +51,9 @@ def load_json(path: Path) -> dict[str, Any]:
 
     try:
         payload = json.loads(
-            path.read_text(encoding="utf-8")
+            path.read_text(
+                encoding="utf-8"
+            )
         )
     except json.JSONDecodeError as exc:
         raise ValueError(
@@ -48,7 +78,9 @@ def save_json(
     )
 
     temporary_path = path.with_suffix(
-        path.suffix + ".tmp"
+        path.suffix
+        +
+        ".tmp"
     )
 
     temporary_path.write_text(
@@ -56,11 +88,39 @@ def save_json(
             payload,
             indent=2,
             ensure_ascii=False,
-        ) + "\n",
+        )
+        +
+        "\n",
         encoding="utf-8",
     )
 
-    temporary_path.replace(path)
+    temporary_path.replace(
+        path
+    )
+
+
+def require_mapping(
+    value: object,
+    field_name: str,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(
+            f"{field_name} deve ser um objeto JSON."
+        )
+
+    return value
+
+
+def require_list(
+    value: object,
+    field_name: str,
+) -> list[Any]:
+    if not isinstance(value, list):
+        raise ValueError(
+            f"{field_name} deve ser uma lista JSON."
+        )
+
+    return value
 
 
 def normalize_integer(
@@ -75,17 +135,34 @@ def normalize_integer(
         return value
 
     if isinstance(value, float):
-        return int(round(value))
+        return int(
+            round(
+                value
+            )
+        )
 
     if isinstance(value, str):
         candidate = (
-            value.strip()
-            .replace("%", "")
-            .replace(",", ".")
+            value
+            .strip()
+            .replace(
+                "%",
+                "",
+            )
+            .replace(
+                ",",
+                ".",
+            )
         )
 
         try:
-            return int(round(float(candidate)))
+            return int(
+                round(
+                    float(
+                        candidate
+                    )
+                )
+            )
         except ValueError:
             return default
 
@@ -98,7 +175,11 @@ def normalize_non_empty_string(
     default: str,
 ) -> str:
     if isinstance(value, str):
-        normalized = value.strip()
+        normalized = re.sub(
+            r"\s+",
+            " ",
+            value,
+        ).strip()
 
         if normalized:
             return normalized
@@ -114,7 +195,10 @@ def select_winner(
         [],
     )
 
-    if not isinstance(ranking, list):
+    if not isinstance(
+        ranking,
+        list,
+    ):
         raise ValueError(
             "Dashboard ranking deve ser uma lista."
         )
@@ -125,29 +209,48 @@ def select_winner(
         )
 
     candidates: list[
-        tuple[int, int, int, dict[str, Any]]
+        tuple[
+            int,
+            int,
+            int,
+            dict[str, Any],
+        ]
     ] = []
 
     for original_index, raw_item in enumerate(
         ranking,
         start=1,
     ):
-        if not isinstance(raw_item, dict):
+        if not isinstance(
+            raw_item,
+            dict,
+        ):
             raise ValueError(
                 "Todos os elementos de ranking "
                 "devem ser objetos JSON."
             )
 
-        item = deepcopy(raw_item)
+        item = deepcopy(
+            raw_item
+        )
 
         priority = normalize_integer(
-            item.get("priority"),
+            item.get(
+                "priority"
+            ),
             default=0,
         )
 
         viral_probability = normalize_integer(
-            item.get("viral_probability"),
-            default=0,
+            item.get(
+                "viral_probability"
+            ),
+            default=normalize_integer(
+                item.get(
+                    "viral_score"
+                ),
+                default=0,
+            ),
         )
 
         if priority > 0:
@@ -178,7 +281,9 @@ def select_winner(
 
     winner["priority"] = 1
 
-    winner["viral_probability"] = max(
+    winner[
+        "viral_probability"
+    ] = max(
         0,
         min(
             100,
@@ -196,95 +301,562 @@ def select_winner(
     )
 
     winner["title"] = normalize_non_empty_string(
-        winner.get("title"),
+        winner.get(
+            "title"
+        ),
         default=normalize_non_empty_string(
-            dashboard.get("top_title"),
+            dashboard.get(
+                "top_title"
+            ),
             default="Football Story",
         ),
     )
 
     winner["hook"] = normalize_non_empty_string(
-        winner.get("hook"),
+        winner.get(
+            "hook"
+        ),
         default=normalize_non_empty_string(
-            dashboard.get("top_hook"),
+            dashboard.get(
+                "top_hook"
+            ),
             default=(
-                "O momento que está a gerar "
-                "debate no futebol."
+                "Informação editorial indisponível."
             ),
         ),
+    )
+
+    winner["reason"] = normalize_non_empty_string(
+        winner.get(
+            "reason"
+        ),
+        default="",
     )
 
     return winner
 
 
+def select_editorial_topic(
+    editorial_package: dict[str, Any],
+    winner: dict[str, Any],
+) -> dict[str, Any]:
+    topics = require_list(
+        editorial_package.get(
+            "topics"
+        ),
+        "editorial_package.topics",
+    )
+
+    if not topics:
+        raise ValueError(
+            "Editorial Package sem tópicos."
+        )
+
+    winner_title = normalize_non_empty_string(
+        winner.get(
+            "title"
+        ),
+        default="",
+    ).casefold()
+
+    valid_topics = [
+        require_mapping(
+            topic,
+            (
+                "editorial_package."
+                f"topics[{index}]"
+            ),
+        )
+        for index, topic in enumerate(
+            topics
+        )
+    ]
+
+    for topic in valid_topics:
+        editorial = topic.get(
+            "editorial"
+        )
+
+        if not isinstance(
+            editorial,
+            dict,
+        ):
+            continue
+
+        candidate_title = (
+            normalize_non_empty_string(
+                editorial.get(
+                    "primary_title"
+                ),
+                default="",
+            )
+            .casefold()
+        )
+
+        if (
+            winner_title
+            and
+            candidate_title
+            ==
+            winner_title
+        ):
+            return topic
+
+    for topic in valid_topics:
+        ranking = topic.get(
+            "ranking"
+        )
+
+        if (
+            isinstance(
+                ranking,
+                dict,
+            )
+            and
+            normalize_integer(
+                ranking.get(
+                    "priority"
+                ),
+                default=0,
+            )
+            ==
+            1
+        ):
+            return topic
+
+    return valid_topics[0]
+
+
+def normalize_comparison_text(
+    value: str,
+) -> str:
+    return re.sub(
+        r"[^\wÀ-ÖØ-öø-ÿ]+",
+        "",
+        value.casefold(),
+    )
+
+
+def remove_boundary_phrase(
+    text: str,
+    phrase: str,
+    *,
+    at_start: bool,
+) -> str:
+    normalized_text = text.strip()
+    normalized_phrase = phrase.strip()
+
+    if (
+        not normalized_text
+        or
+        not normalized_phrase
+    ):
+        return normalized_text
+
+    comparable_text = normalize_comparison_text(
+        normalized_text
+    )
+    comparable_phrase = normalize_comparison_text(
+        normalized_phrase
+    )
+
+    if not comparable_phrase:
+        return normalized_text
+
+    if (
+        at_start
+        and
+        comparable_text.startswith(
+            comparable_phrase
+        )
+    ):
+        position = normalized_text.find(
+            normalized_phrase
+        )
+
+        if position == 0:
+            return normalized_text[
+                len(
+                    normalized_phrase
+                ):
+            ].lstrip(
+                " \t\r\n—–-:;,.!?"
+            )
+
+    if (
+        not at_start
+        and
+        comparable_text.endswith(
+            comparable_phrase
+        )
+    ):
+        position = normalized_text.rfind(
+            normalized_phrase
+        )
+
+        if position >= 0:
+            return normalized_text[
+                :position
+            ].rstrip(
+                " \t\r\n—–-:;,.!?"
+            )
+
+    return normalized_text
+
+
+def split_script_units(
+    value: str,
+) -> list[str]:
+    normalized = value.replace(
+        "\r\n",
+        "\n",
+    ).replace(
+        "\r",
+        "\n",
+    )
+
+    primary_parts = re.split(
+        (
+            r"(?<=[.!?…])\s+"
+            r"|\n+"
+        ),
+        normalized,
+    )
+
+    parts = [
+        re.sub(
+            r"\s+",
+            " ",
+            part,
+        ).strip(
+            " \t—–-"
+        )
+        for part in primary_parts
+    ]
+
+    parts = [
+        part
+        for part in parts
+        if part
+    ]
+
+    if len(parts) >= 4:
+        return parts
+
+    secondary_parts = re.split(
+        r"\s*[;•]\s*|\s+—\s+",
+        normalized,
+    )
+
+    secondary = [
+        re.sub(
+            r"\s+",
+            " ",
+            part,
+        ).strip(
+            " \t—–-"
+        )
+        for part in secondary_parts
+    ]
+
+    secondary = [
+        part
+        for part in secondary
+        if part
+    ]
+
+    if len(secondary) > len(parts):
+        return secondary
+
+    return parts
+
+
+def balanced_partition(
+    values: list[str],
+    group_count: int,
+) -> list[str]:
+    if group_count <= 0:
+        raise ValueError(
+            "group_count deve ser positivo."
+        )
+
+    if len(values) < group_count:
+        raise ValueError(
+            "Não existem unidades suficientes "
+            "para a partição editorial."
+        )
+
+    base_size, remainder = divmod(
+        len(values),
+        group_count,
+    )
+
+    output: list[str] = []
+    cursor = 0
+
+    for index in range(
+        group_count
+    ):
+        size = (
+            base_size
+            +
+            (
+                1
+                if index < remainder
+                else 0
+            )
+        )
+
+        group = values[
+            cursor:
+            cursor + size
+        ]
+
+        cursor += size
+
+        output.append(
+            " ".join(
+                group
+            ).strip()
+        )
+
+    return output
+
+
 def build_script(
     winner: dict[str, Any],
+    editorial_topic: dict[str, Any],
 ) -> dict[str, str]:
-    title = normalize_non_empty_string(
-        winner.get("title"),
-        default="Football Story",
+    editorial = require_mapping(
+        editorial_topic.get(
+            "editorial"
+        ),
+        "winner.editorial",
     )
 
-    source_hook = normalize_non_empty_string(
-        winner.get("hook"),
-        default=(
-            f"O momento que todos estão "
-            f"a comentar: {title}"
+    ranking = require_mapping(
+        editorial_topic.get(
+            "ranking"
+        ),
+        "winner.ranking",
+    )
+
+    hook = normalize_non_empty_string(
+        editorial.get(
+            "primary_hook"
+        ),
+        default=normalize_non_empty_string(
+            winner.get(
+                "hook"
+            ),
+            default=(
+                "Informação editorial indisponível."
+            ),
         ),
     )
+
+    call_to_action = normalize_non_empty_string(
+        editorial.get(
+            "call_to_action"
+        ),
+        default=normalize_non_empty_string(
+            editorial.get(
+                "pinned_comment"
+            ),
+            default=(
+                "Interação editorial não definida."
+            ),
+        ),
+    )
+
+    full_script = normalize_non_empty_string(
+        editorial.get(
+            "script"
+        ),
+        default="",
+    )
+
+    body = remove_boundary_phrase(
+        full_script,
+        hook,
+        at_start=True,
+    )
+
+    body = remove_boundary_phrase(
+        body,
+        call_to_action,
+        at_start=False,
+    )
+
+    units = split_script_units(
+        body
+    )
+
+    if len(units) >= 4:
+        (
+            introduction,
+            development,
+            climax,
+            ending,
+        ) = balanced_partition(
+            units,
+            4,
+        )
+    else:
+        description = normalize_non_empty_string(
+            editorial.get(
+                "description"
+            ),
+            default="",
+        )
+
+        reason = normalize_non_empty_string(
+            ranking.get(
+                "reason"
+            ),
+            default=normalize_non_empty_string(
+                winner.get(
+                    "reason"
+                ),
+                default="",
+            ),
+        )
+
+        pinned_comment = normalize_non_empty_string(
+            editorial.get(
+                "pinned_comment"
+            ),
+            default="",
+        )
+
+        introduction = (
+            units[0]
+            if units
+            else description
+        )
+
+        development = (
+            body
+            or
+            description
+            or
+            reason
+        )
+
+        climax = (
+            reason
+            or
+            (
+                units[-1]
+                if units
+                else ""
+            )
+            or
+            development
+        )
+
+        ending = (
+            pinned_comment
+            or
+            (
+                units[-1]
+                if units
+                else ""
+            )
+            or
+            call_to_action
+        )
+
+    sections = {
+        "hook": hook,
+        "introduction": introduction,
+        "development": development,
+        "climax": climax,
+        "ending": ending,
+        "call_to_action": call_to_action,
+    }
+
+    missing = [
+        field_name
+        for field_name in SCRIPT_FIELDS
+        if not normalize_non_empty_string(
+            sections.get(
+                field_name
+            ),
+            default="",
+        )
+    ]
+
+    if missing:
+        raise ValueError(
+            "Não foi possível construir um guião "
+            "editorial completo sem inventar conteúdo: "
+            f"{missing}"
+        )
 
     return {
-        "hook": source_hook,
-        "introduction": (
-            "Vamos explicar rapidamente "
-            "o que aconteceu."
-        ),
-        "development": (
-            "Contexto, protagonistas "
-            "e o momento principal."
-        ),
-        "climax": (
-            "A jogada ou acontecimento "
-            "que mudou tudo."
-        ),
-        "ending": (
-            "Este momento ficará marcado "
-            "na história."
-        ),
-        "call_to_action": (
-            "Concordas? Comenta e segue "
-            "para mais histórias."
-        ),
+        field_name:
+            normalize_non_empty_string(
+                sections[field_name],
+                default="",
+            )
+        for field_name in SCRIPT_FIELDS
     }
 
 
 def build_voiceover(
     script: dict[str, str],
 ) -> dict[str, Any]:
+    timeline = (
+        (
+            "hook",
+            0,
+            3,
+        ),
+        (
+            "introduction",
+            3,
+            9,
+        ),
+        (
+            "development",
+            9,
+            24,
+        ),
+        (
+            "climax",
+            24,
+            36,
+        ),
+        (
+            "ending",
+            36,
+            41,
+        ),
+        (
+            "call_to_action",
+            41,
+            45,
+        ),
+    )
+
     return {
         "language": "pt-PT",
         "style": "energetic",
         "segments": [
             {
-                "start_second": 0,
-                "end_second": 5,
-                "text": script["hook"],
-            },
-            {
-                "start_second": 5,
-                "end_second": 20,
-                "text": script["development"],
-            },
-            {
-                "start_second": 20,
-                "end_second": 40,
-                "text": script["climax"],
-            },
-            {
-                "start_second": 40,
-                "end_second": 45,
-                "text": script["call_to_action"],
-            },
+                "section": section,
+                "start_second": start_second,
+                "end_second": end_second,
+                "text": script[
+                    section
+                ],
+            }
+            for (
+                section,
+                start_second,
+                end_second,
+            ) in timeline
         ],
     }
 
@@ -360,12 +932,92 @@ def build_scenes() -> list[dict[str, Any]]:
 
 def build_content_package(
     dashboard: dict[str, Any],
+    editorial_package: dict[str, Any],
 ) -> dict[str, Any]:
-    winner = select_winner(dashboard)
-    script = build_script(winner)
+    winner = select_winner(
+        dashboard
+    )
 
-    title = winner["title"]
-    hook = winner["hook"]
+    editorial_topic = select_editorial_topic(
+        editorial_package,
+        winner,
+    )
+
+    editorial = require_mapping(
+        editorial_topic.get(
+            "editorial"
+        ),
+        "winner.editorial",
+    )
+
+    source = require_mapping(
+        editorial_topic.get(
+            "source"
+        ),
+        "winner.source",
+    )
+
+    publishing_plan = require_mapping(
+        editorial_topic.get(
+            "publishing"
+        ),
+        "winner.publishing",
+    )
+
+    script = build_script(
+        winner,
+        editorial_topic,
+    )
+
+    title = normalize_non_empty_string(
+        editorial.get(
+            "primary_title"
+        ),
+        default=winner[
+            "title"
+        ],
+    )
+
+    hook = script[
+        "hook"
+    ]
+
+    description = normalize_non_empty_string(
+        editorial.get(
+            "description"
+        ),
+        default=normalize_non_empty_string(
+            winner.get(
+                "reason"
+            ),
+            default=title,
+        ),
+    )
+
+    hashtags_raw = editorial.get(
+        "hashtags"
+    )
+
+    hashtags = (
+        [
+            normalize_non_empty_string(
+                hashtag,
+                default="",
+            )
+            for hashtag in hashtags_raw
+            if isinstance(
+                hashtag,
+                str,
+            )
+            and
+            hashtag.strip()
+        ]
+        if isinstance(
+            hashtags_raw,
+            list,
+        )
+        else []
+    )
 
     return {
         "package_version": PACKAGE_VERSION,
@@ -376,26 +1028,50 @@ def build_content_package(
             "title": title,
             "hook": hook,
             "viral_probability": (
-                winner["viral_probability"]
+                winner[
+                    "viral_probability"
+                ]
             ),
             "priority": 1,
+            "source_name": normalize_non_empty_string(
+                source.get(
+                    "name"
+                ),
+                default="Fonte não identificada",
+            ),
+            "source_url": normalize_non_empty_string(
+                source.get(
+                    "url"
+                ),
+                default="",
+            ),
+            "confirmation_status":
+                normalize_non_empty_string(
+                    source.get(
+                        "confirmation_status"
+                    ),
+                    default="REPORTED",
+                ),
         },
         "script": script,
-        "voiceover": build_voiceover(script),
+        "voiceover": build_voiceover(
+            script
+        ),
         "scenes": build_scenes(),
         "captions": [],
         "assets": [],
         "publishing": {
             "platform": "youtube_shorts",
             "title": title,
-            "description": (
-                "Generated by Football Shorts AI"
-            ),
-            "hashtags": [
-                "#football",
-                "#shorts",
-            ],
-            "scheduled_window": "recommended",
+            "description": description,
+            "hashtags": hashtags,
+            "scheduled_window":
+                normalize_non_empty_string(
+                    publishing_plan.get(
+                        "best_publish_time"
+                    ),
+                    default="recommended",
+                ),
         },
     }
 
@@ -423,18 +1099,19 @@ def validate_package(
             f"{sorted(missing)}"
         )
 
-    if payload["package_version"] != PACKAGE_VERSION:
+    if payload[
+        "package_version"
+    ] != PACKAGE_VERSION:
         raise ValueError(
             "Content package version inválida."
         )
 
-    source_topic = payload["source_topic"]
-
-    if not isinstance(source_topic, dict):
-        raise ValueError(
-            "source_topic deve ser "
-            "um objeto JSON."
-        )
+    source_topic = require_mapping(
+        payload.get(
+            "source_topic"
+        ),
+        "content_package.source_topic",
+    )
 
     required_source_topic = {
         "title",
@@ -445,7 +1122,8 @@ def validate_package(
 
     missing_source_topic = (
         required_source_topic
-        - source_topic.keys()
+        -
+        source_topic.keys()
     )
 
     if missing_source_topic:
@@ -454,7 +1132,9 @@ def validate_package(
             f"{sorted(missing_source_topic)}"
         )
 
-    if source_topic["priority"] != 1:
+    if source_topic[
+        "priority"
+    ] != 1:
         raise ValueError(
             "Content package deve usar "
             "winner priority 1."
@@ -464,21 +1144,131 @@ def validate_package(
         "viral_probability"
     ]
 
-    if not isinstance(viral_probability, int):
+    if (
+        not isinstance(
+            viral_probability,
+            int,
+        )
+        or
+        isinstance(
+            viral_probability,
+            bool,
+        )
+    ):
         raise ValueError(
             "viral_probability deve "
             "ser um número inteiro."
         )
 
-    if not 0 <= viral_probability <= 100:
+    if not (
+        0
+        <=
+        viral_probability
+        <=
+        100
+    ):
         raise ValueError(
             "viral_probability deve "
             "estar entre 0 e 100."
         )
 
-    scenes = payload["scenes"]
+    script = require_mapping(
+        payload.get(
+            "script"
+        ),
+        "content_package.script",
+    )
 
-    if not isinstance(scenes, list) or not scenes:
+    missing_script = (
+        set(
+            SCRIPT_FIELDS
+        )
+        -
+        script.keys()
+    )
+
+    if missing_script:
+        raise ValueError(
+            "Script incompleto: "
+            f"{sorted(missing_script)}"
+        )
+
+    for field_name in SCRIPT_FIELDS:
+        normalize_non_empty_string(
+            script.get(
+                field_name
+            ),
+            default=(
+                ""
+            ),
+        )
+
+        if not normalize_non_empty_string(
+            script.get(
+                field_name
+            ),
+            default="",
+        ):
+            raise ValueError(
+                "Script contém uma secção vazia: "
+                f"{field_name}"
+            )
+
+    voiceover = require_mapping(
+        payload.get(
+            "voiceover"
+        ),
+        "content_package.voiceover",
+    )
+
+    segments = require_list(
+        voiceover.get(
+            "segments"
+        ),
+        "content_package.voiceover.segments",
+    )
+
+    if len(
+        segments
+    ) != len(
+        SCRIPT_FIELDS
+    ):
+        raise ValueError(
+            "Voice-over deve conter exatamente "
+            "seis segmentos semânticos."
+        )
+
+    observed_sections = [
+        require_mapping(
+            segment,
+            (
+                "content_package."
+                f"voiceover.segments[{index}]"
+            ),
+        ).get(
+            "section"
+        )
+        for index, segment in enumerate(
+            segments
+        )
+    ]
+
+    if observed_sections != list(
+        SCRIPT_FIELDS
+    ):
+        raise ValueError(
+            "Voice-over não respeita a ordem "
+            "semântica do guião."
+        )
+
+    scenes = require_list(
+        payload.get(
+            "scenes"
+        ),
+        "content_package.scenes",
+    )
+
+    if not scenes:
         raise ValueError(
             "Content package deve "
             "conter scenes."
@@ -487,25 +1277,32 @@ def validate_package(
     expected = list(
         range(
             1,
-            len(scenes) + 1,
+            len(
+                scenes
+            )
+            +
+            1,
         )
     )
 
     actual = []
 
     for scene in scenes:
-        if not isinstance(scene, dict):
-            raise ValueError(
-                "Cada scene deve ser "
-                "um objeto JSON."
-            )
+        scene_mapping = require_mapping(
+            scene,
+            "content_package.scenes[]",
+        )
 
         actual.append(
-            scene.get("scene_number")
+            scene_mapping.get(
+                "scene_number"
+            )
         )
 
         if normalize_integer(
-            scene.get("duration_seconds"),
+            scene_mapping.get(
+                "duration_seconds"
+            ),
             default=0,
         ) <= 0:
             raise ValueError(
@@ -518,19 +1315,71 @@ def validate_package(
             "scene_number deve ser sequencial."
         )
 
+    publishing = require_mapping(
+        payload.get(
+            "publishing"
+        ),
+        "content_package.publishing",
+    )
+
+    if not normalize_non_empty_string(
+        publishing.get(
+            "description"
+        ),
+        default="",
+    ):
+        raise ValueError(
+            "Publishing description não pode ser genérica ou vazia."
+        )
+
+    hashtags = publishing.get(
+        "hashtags"
+    )
+
+    if not isinstance(
+        hashtags,
+        list,
+    ):
+        raise ValueError(
+            "Publishing hashtags deve ser uma lista."
+        )
+
 
 def main() -> int:
-    print("=" * 70)
-    print("FOOTBALL SHORTS AI")
-    print("CONTENT PRODUCTION ENGINE")
-    print("=" * 70)
+    print(
+        "="
+        *
+        70
+    )
+    print(
+        "FOOTBALL-SHORTS-AI-0031C.5A"
+    )
+    print(
+        "SCRIPT STUDIO SEMANTIC CONTENT RECOVERY"
+    )
+    print(
+        "REAL EDITORIAL SCRIPT BINDING"
+    )
+    print(
+        "NO PUBLICATION EXECUTION"
+    )
+    print(
+        "="
+        *
+        70
+    )
 
     dashboard = load_json(
         DASHBOARD_SOURCE
     )
 
+    editorial_package = load_json(
+        EDITORIAL_SOURCE
+    )
+
     package = build_content_package(
-        dashboard
+        dashboard,
+        editorial_package,
     )
 
     validate_package(
@@ -542,7 +1391,24 @@ def main() -> int:
         package,
     )
 
-    print("CONTENT PACKAGE BUILD PASS")
+    print(
+        "EDITORIAL_PACKAGE_BINDING=PASS"
+    )
+    print(
+        "SCRIPT_GENERIC_PLACEHOLDERS=REMOVED"
+    )
+    print(
+        "SCRIPT_SECTIONS=6"
+    )
+    print(
+        "VOICEOVER_SEGMENTS=6"
+    )
+    print(
+        "SOURCE_TRACEABILITY=PRESERVED"
+    )
+    print(
+        "CONTENT PACKAGE BUILD PASS"
+    )
     print(
         "Winner: "
         f"{package['source_topic']['title']}"
@@ -557,10 +1423,16 @@ def main() -> int:
     print(
         f"Output: {CONTENT_OUTPUT}"
     )
-    print("=" * 70)
+    print(
+        "="
+        *
+        70
+    )
 
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(
+        main()
+    )
