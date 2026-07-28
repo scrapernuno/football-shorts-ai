@@ -12,6 +12,9 @@ from urllib.parse import urlparse
 from trends.build_trend_discovery_request import (
     build_and_write_discovery_request,
 )
+from trends.discover_tiktok_trends import (
+    discover_and_write,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +33,22 @@ INTAKE_PATH = (
     "config"
     /
     "tiktok_trend_intake.json"
+)
+
+RUNTIME_INTAKE_PATH = (
+    ROOT
+    /
+    "output"
+    /
+    "tiktok_trend_runtime_intake.json"
+)
+
+DISCOVERY_RESULTS_PATH = (
+    ROOT
+    /
+    "output"
+    /
+    "tiktok_trend_discovery_results.json"
 )
 
 OUTPUT_PATH = (
@@ -65,6 +84,7 @@ TIKTOK_HOSTS = {
     "www.tiktok.com",
     "m.tiktok.com",
     "vm.tiktok.com",
+    "ads.tiktok.com",
 }
 
 
@@ -1358,7 +1378,7 @@ def build_intelligence(
         "source_mode":
             (
                 "automatic_topic_binding_with_"
-                "manual_governed_candidate_intake"
+                "governed_web_discovery_and_manual_evidence_overlay"
             ),
 
         "region":
@@ -1417,6 +1437,15 @@ def build_intelligence(
             {
                 "creative_center_used_for_manual_discovery":
                     True,
+
+                "server_side_web_search_enabled":
+                    True,
+
+                "browser_api_calls_enabled":
+                    False,
+
+                "direct_tiktok_api_calls_enabled":
+                    False,
 
                 "oembed_reference_supported":
                     True,
@@ -1512,6 +1541,25 @@ def validate_intelligence(
             "Não pode ser declarada pesquisa "
             "global de trends pela Display API."
         )
+
+    if boundaries.get(
+        "server_side_web_search_enabled"
+    ) is not True:
+
+        raise ValueError(
+            "Web search server-side não foi ativada."
+        )
+
+    for field_name in (
+        "browser_api_calls_enabled",
+        "direct_tiktok_api_calls_enabled",
+    ):
+
+        if boundaries.get(field_name) is not False:
+
+            raise ValueError(
+                f"{field_name} deve permanecer false."
+            )
 
     if payload.get(
         "publication_execution_enabled"
@@ -1617,7 +1665,7 @@ def main() -> int:
     )
 
     print(
-        "FOOTBALL-SHORTS-AI-0031C.4C"
+        "FOOTBALL-SHORTS-AI-0031C.4D"
     )
 
     print(
@@ -1629,7 +1677,7 @@ def main() -> int:
     )
 
     print(
-        "NO NETWORK - NO DOWNLOAD"
+        "SERVER-SIDE WEB SEARCH - NO DOWNLOAD"
     )
 
     print(
@@ -1642,12 +1690,14 @@ def main() -> int:
         70
     )
 
+    discovery_results = discover_and_write()
+
     content = load_json(
         CONTENT_PATH
     )
 
     intake = load_json(
-        INTAKE_PATH
+        RUNTIME_INTAKE_PATH
     )
 
     discovery_request = (
@@ -1661,6 +1711,90 @@ def main() -> int:
         content,
         intake,
         discovery_request,
+    )
+
+    discovery_binding = require_mapping(
+        discovery_results.get(
+            "topic_binding"
+        ),
+        "discovery_results.topic_binding",
+    )
+
+    if discovery_binding.get(
+        "content_identity_sha256"
+    ) != intelligence[
+        "content"
+    ][
+        "identity_sha256"
+    ]:
+
+        raise ValueError(
+            "Resultados de discovery pertencem "
+            "a outra notícia."
+        )
+
+    intelligence[
+        "discovery_execution"
+    ] = {
+        "provider":
+            require_mapping(
+                discovery_results.get(
+                    "provider"
+                ),
+                "discovery_results.provider",
+            ).get(
+                "provider_id"
+            ),
+
+        "status":
+            require_mapping(
+                discovery_results.get(
+                    "execution"
+                ),
+                "discovery_results.execution",
+            ).get(
+                "status"
+            ),
+
+        "result_identity_sha256":
+            discovery_results.get(
+                "result_identity_sha256"
+            ),
+
+        "video_reference_count":
+            len(
+                require_list(
+                    discovery_results.get(
+                        "video_candidates"
+                    ),
+                    (
+                        "discovery_results."
+                        "video_candidates"
+                    ),
+                )
+            ),
+
+        "sound_reference_count":
+            len(
+                require_list(
+                    discovery_results.get(
+                        "sound_candidates"
+                    ),
+                    (
+                        "discovery_results."
+                        "sound_candidates"
+                    ),
+                )
+            ),
+    }
+
+    intelligence[
+        "discovered_hashtags"
+    ] = require_list(
+        discovery_results.get(
+            "hashtags"
+        ),
+        "discovery_results.hashtags",
     )
 
     validate_intelligence(
@@ -1678,6 +1812,10 @@ def main() -> int:
 
     print(
         "TOPIC_BINDING=AUTOMATIC"
+    )
+
+    print(
+        "GOVERNED_WEB_DISCOVERY=PASS"
     )
 
     print(
