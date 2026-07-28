@@ -112,6 +112,7 @@ jobs:
         run: |
           python -m py_compile \
             src/trends/build_trend_discovery_request.py \
+            src/trends/discover_tiktok_trends.py \
             src/trends/build_tiktok_trend_intelligence.py \
             src/trends/build_platform_variants.py \
             src/trends/sync_trend_intelligence.py \
@@ -211,6 +212,8 @@ jobs:
               "output/content_package.json",
               "output/media_acquisition_plan.json",
               "output/trend_discovery_request.json",
+              "output/tiktok_trend_discovery_results.json",
+              "output/tiktok_trend_runtime_intake.json",
               "output/tiktok_trend_intelligence.json",
               "output/platform_variants.json",
               "output/publishing_evidence.json",
@@ -227,6 +230,7 @@ jobs:
               "dashboard/data/content_package.json",
               "dashboard/data/media_acquisition_plan.json",
               "dashboard/data/trend_discovery_request.json",
+              "dashboard/data/tiktok_trend_discovery_results.json",
               "dashboard/data/tiktok_trend_intelligence.json",
               "dashboard/data/platform_variants.json",
               "dashboard/data/publishing_package.json",
@@ -316,6 +320,18 @@ jobs:
 
           trend_discovery_request_public = load_json(
               "dashboard/data/trend_discovery_request.json"
+          )
+
+          trend_discovery_results = load_json(
+              "output/tiktok_trend_discovery_results.json"
+          )
+
+          trend_discovery_results_public = load_json(
+              "dashboard/data/tiktok_trend_discovery_results.json"
+          )
+
+          trend_runtime_intake = load_json(
+              "output/tiktok_trend_runtime_intake.json"
           )
 
           tiktok_trends = load_json(
@@ -840,9 +856,21 @@ jobs:
               or discovery_boundaries.get(
                   "network_execution_enabled"
               )
-              is not False
+              is not True
+              or discovery_boundaries.get(
+                  "network_execution_scope"
+              )
+              != "github_actions_server_side_web_search"
+              or discovery_boundaries.get(
+                  "web_search_provider"
+              )
+              != "openai_web_search"
               or discovery_boundaries.get(
                   "browser_api_calls_enabled"
+              )
+              is not False
+              or discovery_boundaries.get(
+                  "direct_tiktok_api_calls_enabled"
               )
               is not False
               or discovery_boundaries.get(
@@ -869,6 +897,114 @@ jobs:
           ):
               raise SystemExit(
                   "Trend Discovery lifecycle inválido"
+              )
+
+
+          if (
+              trend_discovery_results
+              != trend_discovery_results_public
+          ):
+              raise SystemExit(
+                  "Trend Discovery Results públicos "
+                  "não correspondem ao output"
+              )
+
+
+          results_binding = trend_discovery_results.get(
+              "topic_binding"
+          )
+
+
+          results_execution = trend_discovery_results.get(
+              "execution"
+          )
+
+
+          results_governance = trend_discovery_results.get(
+              "governance"
+          )
+
+
+          if (
+              not isinstance(results_binding, dict)
+              or results_binding.get(
+                  "content_identity_sha256"
+              )
+              != discovery_identity
+          ):
+              raise SystemExit(
+                  "Trend Discovery Results sem binding válido"
+              )
+
+
+          if (
+              not isinstance(results_execution, dict)
+              or results_execution.get(
+                  "server_side_network_execution_enabled"
+              )
+              is not True
+              or results_execution.get(
+                  "browser_api_calls_enabled"
+              )
+              is not False
+              or results_execution.get(
+                  "direct_tiktok_api_calls_enabled"
+              )
+              is not False
+              or results_execution.get(
+                  "automatic_candidate_selection_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery execution boundary inválida"
+              )
+
+
+          if (
+              not isinstance(results_governance, dict)
+              or results_governance.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or results_governance.get(
+                  "watermark_removal_allowed"
+              )
+              is not False
+              or results_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Trend Discovery results governance inválida"
+              )
+
+
+          runtime_binding = trend_runtime_intake.get(
+              "topic_binding"
+          )
+
+
+          if (
+              not isinstance(runtime_binding, dict)
+              or runtime_binding.get(
+                  "content_identity_sha256"
+              )
+              != discovery_identity
+              or trend_runtime_intake.get(
+                  "selected_video_candidate_id"
+              )
+              is not None
+              and not isinstance(
+                  trend_runtime_intake.get(
+                      "selected_video_candidate_id"
+                  ),
+                  str,
+              )
+          ):
+              raise SystemExit(
+                  "Trend runtime intake inválido"
               )
 
 
