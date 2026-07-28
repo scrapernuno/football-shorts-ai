@@ -6,6 +6,7 @@ const DATA_FILES = {
     content: "data/content_package.json",
     publishing: "data/publishing_package.json",
     analytics: "data/analytics_package.json",
+    mediaPlan: "data/media_acquisition_plan.json",
 };
 
 
@@ -547,7 +548,8 @@ function renderOverview(
 
     setStatus(
         "overview-production-status",
-        productionStatus,    );
+        productionStatus,
+    );
 
     setText(
         "overview-generated-at",
@@ -577,10 +579,7 @@ function renderOverview(
             `${viralProbability * 3.6}deg`,
         );
     }
-}
-
-
-function renderPipelineStatus(
+}function renderPipelineStatus(
     content,
     publishing,
     analytics,
@@ -1092,10 +1091,7 @@ function renderScriptStudio(
             segments.length
         ),
     );
-}
-
-
-function renderStoryboard(
+}function renderStoryboard(
     content,
 ) {
     const scenes = Array.isArray(
@@ -1252,45 +1248,34 @@ function renderStoryboard(
                 },
             )
             .join("");
-}function renderAssets(
-    content,
-) {
-    const scenes = Array.isArray(
-        content.scenes
-    )
-        ? content.scenes
-        : [];
+}
 
+
+function renderAssets(
+    content,
+    mediaPlan,
+) {
     const explicitAssets = Array.isArray(
         content.assets
     )
         ? content.assets
         : [];
 
+    const scenePlans = (
+        isObject(
+            mediaPlan
+        )
+        &&
+        Array.isArray(
+            mediaPlan.scene_plans
+        )
+    )
+        ? mediaPlan.scene_plans
+        : [];
+
     const assets = explicitAssets.length
         ? explicitAssets
-        : scenes
-            .filter(isObject)
-            .map(
-                (
-                    scene,
-                    index,
-                ) => ({
-                    asset_type: "video",
-                    description: firstDefined(
-                        scene.visual_instruction,
-                        `Asset da cena ${index + 1}`,
-                    ),
-                    reference: firstDefined(
-                        scene.asset_reference,
-                        `scene-${index + 1}`,
-                    ),
-                    scene_number: firstDefined(
-                        scene.scene_number,
-                        index + 1,
-                    ),
-                }),
-            );
+        : scenePlans;
 
     setText(
         "asset-count",
@@ -1313,7 +1298,7 @@ function renderStoryboard(
     if (!assets.length) {
         container.innerHTML = `
             <p class="empty-state">
-                Nenhum asset disponível.
+                Nenhum asset ou plano disponível.
             </p>
         `;
         return;
@@ -1325,59 +1310,224 @@ function renderStoryboard(
                 (
                     asset,
                     index,
-                ) => `
-                    <article class="asset-card">
+                ) => {
+                    const sceneNumber =
+                        firstDefined(
+                            asset.scene_number,
+                            index + 1,
+                        );
 
-                        <strong>
-                            Cena ${escapeHtml(
-                                firstDefined(
-                                    asset.scene_number,
-                                    index + 1,
-                                ),
-                            )}
-                            ·
-                            ${escapeHtml(
-                                safeText(
-                                    asset.asset_type,
-                                    "video",
-                                ),
-                            )}
-                        </strong>
+                    const isDelivered =
+                        asset.status
+                        ===
+                        "delivered";
 
-                        <span>
-                            ${escapeHtml(
-                                safeText(
-                                    firstDefined(
-                                        asset.description,
+                    if (isDelivered) {
+                        return `
+                            <article class="asset-card">
+
+                                <strong>
+                                    Cena ${escapeHtml(sceneNumber)}
+                                    ·
+                                    ${escapeHtml(
+                                        safeText(
+                                            asset.asset_type,
+                                            "media",
+                                        ),
+                                    )}
+                                    · DELIVERED
+                                </strong>
+
+                                <span>
+                                    ${escapeHtml(
+                                        safeText(
+                                            asset.description,
+                                            "Asset entregue.",
+                                        ),
+                                    )}
+                                </span>
+
+                                <span>
+                                    Provider:
+                                    ${escapeHtml(
+                                        safeText(
+                                            asset.provider,
+                                            "—",
+                                        ),
+                                    )}
+                                </span>
+
+                                <span>
+                                    Direitos:
+                                    ${escapeHtml(
+                                        safeText(
+                                            asset.rights_status,
+                                            "unresolved",
+                                        )
+                                        .replaceAll(
+                                            "_",
+                                            " ",
+                                        )
+                                        .toUpperCase(),
+                                    )}
+                                </span>
+
+                            </article>
+                        `;
+                    }
+
+                    const routes = Array.isArray(
+                        asset.provider_route
+                    )
+                        ? asset.provider_route
+                        : [];
+
+                    const allowedRoutes = routes
+                        .filter(
+                            (route) => (
+                                isObject(route)
+                                &&
+                                route.allowed === true
+                            ),
+                        )
+                        .sort(
+                            (
+                                left,
+                                right,
+                            ) => (
+                                toNumber(
+                                    left.priority,
+                                    99,
+                                )
+                                -
+                                toNumber(
+                                    right.priority,
+                                    99,
+                                )
+                            ),
+                        );
+
+                    const routeHtml = allowedRoutes
+                        .map(
+                            (route) => {
+                                const activation =
+                                    safeText(
+                                        route.activation_status,
+                                        "unknown",
+                                    )
+                                    .replaceAll(
+                                        "_",
+                                        " ",
+                                    )
+                                    .toUpperCase();
+
+                                return `
+                                    <span>
+                                        #${escapeHtml(
+                                            route.priority
+                                        )}
+                                        ${escapeHtml(
+                                            route.provider_id
+                                        )}
+                                        ·
+                                        ${escapeHtml(
+                                            activation
+                                        )}
+                                    </span>
+                                `;
+                            },
+                        )
+                        .join("");
+
+                    const subjectScope =
+                        safeText(
+                            asset.subject_scope,
+                            "specific_football",
+                        )
+                        .replaceAll(
+                            "_",
+                            " ",
+                        )
+                        .toUpperCase();
+
+                    const acquisitionStatus =
+                        safeText(
+                            asset.acquisition_status,
+                            "configuration_required",
+                        )
+                        .replaceAll(
+                            "_",
+                            " ",
+                        )
+                        .toUpperCase();
+
+                    const rightsStatus =
+                        safeText(
+                            asset.rights_status,
+                            "unresolved",
+                        )
+                        .replaceAll(
+                            "_",
+                            " ",
+                        )
+                        .toUpperCase();
+
+                    return `
+                        <article class="asset-card">
+
+                            <strong>
+                                Cena ${escapeHtml(sceneNumber)}
+                                ·
+                                ${escapeHtml(
+                                    safeText(
+                                        asset.asset_role,
+                                        "media",
+                                    ),
+                                )}
+                                ·
+                                ${escapeHtml(acquisitionStatus)}
+                            </strong>
+
+                            <span>
+                                ${escapeHtml(
+                                    safeText(
                                         asset.visual_instruction,
+                                        "Instrução visual indisponível.",
                                     ),
-                                    "Asset por definir.",
-                                ),
-                            )}
-                        </span>
+                                )}
+                            </span>
 
-                        <span>
-                            Ref:
-                            ${escapeHtml(
-                                safeText(
-                                    firstDefined(
-                                        asset.reference,
-                                        asset.asset_reference,
-                                        asset.search_query,
-                                    ),
-                                    "sem referência",
-                                ),
-                            )}
-                        </span>
+                            <span>
+                                Âmbito:
+                                ${escapeHtml(subjectScope)}
+                            </span>
 
-                    </article>
-                `,
+                            <span>
+                                Direitos:
+                                ${escapeHtml(rightsStatus)}
+                            </span>
+
+                            <span>
+                                Providers permitidos:
+                            </span>
+
+                            ${routeHtml || `
+                                <span>
+                                    Nenhum provider permitido.
+                                </span>
+                            `}
+
+                            <span>
+                                Sem asset licenciado:
+                                BLOCKED
+                            </span>
+
+                        </article>
+                    `;
+                },
             )
             .join("");
-}
-
-
-function normalizePublishingChecklistEntry(
+}function normalizePublishingChecklistEntry(
     key,
     value,
 ) {
@@ -2023,6 +2173,7 @@ function renderProductionStudio(
         content,
         publishing,
         analytics,
+        mediaPlan,
     } = state;
 
     renderHeader(
@@ -2063,7 +2214,8 @@ function renderProductionStudio(
     );
 
     renderAssets(
-        content
+        content,
+        mediaPlan,
     );
 
     renderPublishing(
