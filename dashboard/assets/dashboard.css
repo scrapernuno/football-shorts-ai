@@ -2185,3 +2185,37 @@ a {
     font-weight: 600;
     line-height: 1.55;
 }
+/* ==========================================================
+   FOOTBALL-SHORTS-AI-0031C.5D
+   PUBLISHING STUDIO THUMBNAIL PREVIEW RECOVERY
+   Append to dashboard/assets/dashboard.css
+   ========================================================== */
+
+.thumbnail-card {
+    min-width: 0;
+}
+
+.thumbnail-preview {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+    align-items: stretch;
+    padding: 0;
+    background-repeat: no-repeat;
+}
+
+.thumbnail-preview::before {
+    opacity: 0;
+}
+
+.thumbnail-preview strong {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
