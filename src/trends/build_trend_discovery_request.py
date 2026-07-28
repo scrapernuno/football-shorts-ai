@@ -445,7 +445,10 @@ def build_discovery_request(
                     "config/tiktok_trend_intake.json",
 
                 "mode":
-                    "manual_governed_intake",
+                    (
+                        "automatic_reference_discovery_"
+                        "plus_manual_governed_intake"
+                    ),
 
                 "automatic_candidate_selection":
                     False,
@@ -457,9 +460,18 @@ def build_discovery_request(
         "capability_boundaries":
             {
                 "network_execution_enabled":
-                    False,
+                    True,
+
+                "network_execution_scope":
+                    "github_actions_server_side_web_search",
+
+                "web_search_provider":
+                    "openai_web_search",
 
                 "browser_api_calls_enabled":
+                    False,
+
+                "direct_tiktok_api_calls_enabled":
                     False,
 
                 "global_display_api_trend_search_assumed":
@@ -556,9 +568,33 @@ def validate_discovery_request(
         "request.capability_boundaries",
     )
 
+    if boundaries.get(
+        "network_execution_enabled"
+    ) is not True:
+
+        raise ValueError(
+            "A descoberta server-side deve estar ativada."
+        )
+
+    if boundaries.get(
+        "network_execution_scope"
+    ) != "github_actions_server_side_web_search":
+
+        raise ValueError(
+            "Âmbito de rede governado inválido."
+        )
+
+    if boundaries.get(
+        "web_search_provider"
+    ) != "openai_web_search":
+
+        raise ValueError(
+            "Provider de web search inválido."
+        )
+
     for field_name in (
-        "network_execution_enabled",
         "browser_api_calls_enabled",
+        "direct_tiktok_api_calls_enabled",
         "global_display_api_trend_search_assumed",
         "third_party_download_allowed",
         "watermark_removal_allowed",
@@ -658,7 +694,7 @@ def main() -> int:
     )
 
     print(
-        "NO NETWORK - NO BROWSER API"
+        "SERVER-SIDE WEB SEARCH - NO BROWSER API"
     )
 
     print(
