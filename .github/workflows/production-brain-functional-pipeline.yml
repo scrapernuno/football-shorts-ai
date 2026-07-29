@@ -44,6 +44,7 @@ jobs:
             src/production_brain/brain.py \
             src/production_brain/certify_functional_pipeline.py \
             src/production_brain/certify_live_knowledge_pipeline.py \
+            src/production_brain/certify_multi_provider_knowledge_pipeline.py \
             src/engines/research_engine.py \
             src/engines/story_engine.py \
             src/engines/production_engine.py \
@@ -79,3 +80,6 @@ jobs:
 
       - name: Certify controlled live knowledge pipeline
         run: python -m production_brain.certify_live_knowledge_pipeline
+
+      - name: Certify governed multi-provider knowledge pipeline
+        run: python -m production_brain.certify_multi_provider_knowledge_pipeline
