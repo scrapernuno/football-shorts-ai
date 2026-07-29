@@ -8,6 +8,7 @@ from knowledge.contracts import (
     KnowledgeFact,
     KnowledgeSource,
 )
+from knowledge.deduplication import deduplicate_package
 
 
 ProviderRole = Literal["primary", "secondary", "fallback"]
@@ -126,6 +127,8 @@ class DeterministicKnowledgeOrchestrator:
     completed. Required provider failure aborts orchestration immediately.
     """
 
+    provider_name = "deterministic_multi_provider_orchestrator"
+
     def __init__(self, registrations: tuple[ProviderRegistration, ...]) -> None:
         if not registrations:
             raise ValueError("at least one provider registration is required")
@@ -137,6 +140,13 @@ class DeterministicKnowledgeOrchestrator:
         self._registrations = tuple(
             sorted(registrations, key=lambda item: (item.priority, item.provider_id))
         )
+
+    @property
+    def provider_mode(self) -> str:
+        return "live" if any(
+            registration.provider.provider_mode == "live"
+            for registration in self._registrations
+        ) else "offline_fixture"
 
     def fetch(self, topic: str) -> ExternalKnowledgePackage:
         """Provide protocol compatibility by returning only the merged package."""
@@ -192,7 +202,9 @@ class DeterministicKnowledgeOrchestrator:
         if not completed_packages:
             raise RuntimeError("no knowledge provider completed successfully")
 
-        merged_package = self._merge(normalized_topic, completed_packages)
+        merged_package = deduplicate_package(
+            self._merge(normalized_topic, completed_packages)
+        )
         return MultiProviderKnowledgeResult(
             topic=normalized_topic,
             package=merged_package,
