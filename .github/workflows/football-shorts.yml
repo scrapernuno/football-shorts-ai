@@ -9,8 +9,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: github-pages
-  cancel-in-progress: true
+  group: football-shorts-ai-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   football-shorts:
@@ -18,7 +18,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 25
+    timeout-minutes: 45
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -47,10 +47,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Ensure FFmpeg
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           if ! command -v ffmpeg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ffmpeg
           fi
 
           ffmpeg -version
