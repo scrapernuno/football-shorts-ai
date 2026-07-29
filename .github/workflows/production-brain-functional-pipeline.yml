@@ -10,10 +10,12 @@ on:
       - "src/dashboard/certify_video_library.py"
       - "src/dashboard/certify_video_player.py"
       - "src/dashboard/certify_video_actions.py"
+      - "src/dashboard/certify_video_dashboard.py"
       - "dashboard/data/video_library.json"
       - "dashboard/videos.html"
       - "dashboard/assets/video-library.css"
       - "dashboard/assets/video-library.js"
+      - "docs/FOOTBALL-SHORTS-AI-0044F-VIDEO-DASHBOARD-FINAL-CERTIFICATION.md"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -28,10 +30,12 @@ on:
       - "src/dashboard/certify_video_library.py"
       - "src/dashboard/certify_video_player.py"
       - "src/dashboard/certify_video_actions.py"
+      - "src/dashboard/certify_video_dashboard.py"
       - "dashboard/data/video_library.json"
       - "dashboard/videos.html"
       - "dashboard/assets/video-library.css"
       - "dashboard/assets/video-library.js"
+      - "docs/FOOTBALL-SHORTS-AI-0044F-VIDEO-DASHBOARD-FINAL-CERTIFICATION.md"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -81,6 +85,7 @@ jobs:
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
             src/dashboard/certify_video_actions.py \
+            src/dashboard/certify_video_dashboard.py \
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py \
             tests/knowledge/test_multi_provider_orchestration.py \
@@ -120,3 +125,6 @@ jobs:
 
       - name: Certify governed video actions
         run: python -m dashboard.certify_video_actions
+
+      - name: Certify complete governed video dashboard
+        run: python -m dashboard.certify_video_dashboard
