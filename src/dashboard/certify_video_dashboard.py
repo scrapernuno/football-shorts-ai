@@ -21,16 +21,22 @@ REQUIRED_HTML_MARKERS = (
     'id="video-player"',
     'id="download-video-action"',
     'id="publishing-studio-action"',
-    'id="copy-publishing-package-action"',
+    'id="copy-publishing-id-action"',
+    'id="detail-publishing-package"',
+    'id="detail-checksum"',
 )
 
 REQUIRED_JS_MARKERS = (
     "VIDEO_LIBRARY_URL",
     "validateLibrary",
     "selectVideo",
+    "configureActions",
     "download-video-action",
     "publishing-studio-action",
-    "copy-publishing-package-action",
+    "copy-publishing-id-action",
+    "publishing_package_id",
+    "checksum_sha256",
+    'video.status === "ready" || video.status === "published"',
 )
 
 
@@ -43,14 +49,19 @@ def certify() -> dict[str, str | int]:
     for path in REQUIRED_FILES:
         _require(path.is_file(), f"required file missing: {path.relative_to(ROOT)}")
 
-    payload = json.loads((ROOT / "dashboard/data/video_library.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "dashboard/data/video_library.json").read_text(encoding="utf-8")
+    )
     _require(payload.get("schema_version") == "1.0", "unsupported video library schema")
     videos = payload.get("videos")
     _require(isinstance(videos, list), "video library videos must be a list")
 
     ids = [video.get("video_id") for video in videos if isinstance(video, dict)]
     _require(len(ids) == len(videos), "every video entry must be an object with video_id")
-    _require(all(isinstance(video_id, str) and video_id.strip() for video_id in ids), "video_id must not be empty")
+    _require(
+        all(isinstance(video_id, str) and video_id.strip() for video_id in ids),
+        "video_id must not be empty",
+    )
     _require(len(ids) == len(set(ids)), "video_id values must be unique")
 
     html = (ROOT / "dashboard/videos.html").read_text(encoding="utf-8")
@@ -64,11 +75,14 @@ def certify() -> dict[str, str | int]:
 
     _require("@media (max-width: 960px)" in stylesheet, "tablet responsive boundary missing")
     _require("@media (max-width: 620px)" in stylesheet, "mobile responsive boundary missing")
+    _require(".video-actions" in stylesheet, "video action layout missing")
+    _require(".action-button.is-disabled" in stylesheet, "fail-closed action style missing")
     _require("video_file" in javascript, "governed video file gating missing")
     _require("publishing_package_id" in javascript, "publishing handoff gating missing")
-    _require("ready" in javascript and "published" in javascript, "download readiness states missing")
+    _require('download.href = file.path' in javascript, "download path binding missing")
+    _require("navigator.clipboard.writeText" in javascript, "publishing package copy action missing")
 
-    result: dict[str, str | int] = {
+    return {
         "artifact": "FOOTBALL-SHORTS-AI-0044F",
         "status": "PASS",
         "schema_version": payload["schema_version"],
@@ -81,14 +95,18 @@ def certify() -> dict[str, str | int]:
         "responsive_dashboard": "PASS",
         "fail_closed_gating": "PASS",
     }
-    return result
 
 
-def main() -> None:
+def main() -> int:
+    print("=" * 72)
+    print("FOOTBALL-SHORTS-AI-0044F")
+    print("GOVERNED VIDEO DASHBOARD FINAL CERTIFICATION")
+    print("=" * 72)
     result = certify()
     for key, value in result.items():
         print(f"{key.upper()}={value}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
