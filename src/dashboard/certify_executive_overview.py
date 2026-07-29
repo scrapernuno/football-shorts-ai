@@ -142,13 +142,35 @@ REQUIRED_JAVASCRIPT_FUNCTIONS = frozenset(
 
 
 FORBIDDEN_JAVASCRIPT_PATTERNS = {
-    "EXTERNAL_HTTP": r"https?://",
     "WEBSOCKET": r"\bWebSocket\s*\(",
     "LOCAL_STORAGE": r"\blocalStorage\b",
     "SESSION_STORAGE": r"\bsessionStorage\b",
     "INDEXED_DB": r"\bindexedDB\b",
     "DOCUMENT_COOKIE": r"\bdocument\.cookie\b",
 }
+
+
+ALLOWED_EXTERNAL_JAVASCRIPT_ORIGINS = frozenset(
+    {
+        "https://www.tiktok.com",
+    }
+)
+
+
+ALLOWED_EXTERNAL_JAVASCRIPT_PREFIXES = (
+    "https://www.tiktok.com/player/v1/",
+)
+
+
+REQUIRED_TIKTOK_PLAYER_MARKERS = frozenset(
+    {
+        "FOOTBALL-SHORTS-AI-0031C.5G",
+        "renderTikTokViralReferenceReview",
+        "activateTikTokReferenceButton",
+        "handleTikTokReviewPlayerMessage",
+        "https://www.tiktok.com/player/v1/",
+    }
+)
 
 
 ALLOWED_PRODUCTION_STATUSES = {
@@ -852,6 +874,141 @@ def validate_javascript(
     )
 
 
+    external_urls = sorted(
+        set(
+            re.findall(
+                r"https?://[^\\s\"'`<>)}]+",
+                source,
+                flags=re.IGNORECASE,
+            )
+        )
+    )
+
+
+    unauthorized_external_urls = sorted(
+        url
+        for url in external_urls
+        if (
+            url
+            not in
+            ALLOWED_EXTERNAL_JAVASCRIPT_ORIGINS
+            and
+            not any(
+                url.startswith(
+                    prefix
+                )
+                for prefix
+                in ALLOWED_EXTERNAL_JAVASCRIPT_PREFIXES
+            )
+        )
+    )
+
+
+    require(
+        not unauthorized_external_urls,
+        (
+            "dashboard.js contém URLs "
+            "externos não autorizados: "
+            f"{unauthorized_external_urls}"
+        ),
+    )
+
+
+    tiktok_player_present = any(
+        url.startswith(
+            "https://www.tiktok.com/player/v1/"
+        )
+        for url in external_urls
+    )
+
+
+    if tiktok_player_present:
+
+        missing_tiktok_markers = sorted(
+            marker
+            for marker
+            in REQUIRED_TIKTOK_PLAYER_MARKERS
+            if marker
+            not in source
+        )
+
+
+        require(
+            not missing_tiktok_markers,
+            (
+                "O player oficial TikTok perdeu "
+                "marcadores governados: "
+                f"{missing_tiktok_markers}"
+            ),
+        )
+
+
+        require(
+            "fullscreen; autoplay;"
+            not in source,
+            (
+                "O iframe oficial TikTok não pode "
+                "receber permissão de autoplay."
+            ),
+        )
+
+
+        require(
+            re.search(
+                (
+                    r"iframe\.allow\s*=\s*"
+                    r"\([^)]*"
+                    r"fullscreen;"
+                ),
+                source,
+                flags=re.DOTALL,
+            )
+            is not None,
+            (
+                "Não foi possível confirmar "
+                "a política de permissões "
+                "do iframe TikTok."
+            ),
+        )
+
+
+        require(
+            "iframe.loading = \"lazy\""
+            in source,
+            (
+                "O player TikTok deve "
+                "permanecer lazy-loaded."
+            ),
+        )
+
+
+        require(
+            re.search(
+                (
+                    r"function\s+"
+                    r"activateTikTokReferenceButton"
+                    r"\s*\("
+                ),
+                source,
+            )
+            is not None,
+            (
+                "O player TikTok deve ser "
+                "ativado por ação explícita."
+            ),
+        )
+
+
+        print(
+            "TIKTOK_IFRAME_AUTOPLAY_PERMISSION=BLOCKED"
+        )
+
+
+        print(
+            "TIKTOK_PLAYER_LAZY_LOAD=PASS"
+        )
+
+
     forbidden_matches = sorted(
         name
         for name, pattern
@@ -868,11 +1025,29 @@ def validate_javascript(
     require(
         not forbidden_matches,
         (
-            "dashboard.js contém "
-            "capacidades externas ou "
-            "persistentes proibidas: "
+            "dashboard.js contém capacidades "
+            "persistentes ou canais externos "
+            "proibidos: "
             f"{forbidden_matches}"
         ),
+    )
+
+
+    print(
+        "EXTERNAL_URL_COUNT="
+        f"{len(external_urls)}"
+    )
+
+
+    print(
+        "UNAUTHORIZED_EXTERNAL_URL_COUNT="
+        f"{len(unauthorized_external_urls)}"
+    )
+
+
+    print(
+        "OFFICIAL_TIKTOK_PLAYER_ALLOWED="
+        f"{'YES' if tiktok_player_present else 'NOT_PRESENT'}"
     )
 
 
@@ -1388,6 +1563,11 @@ def main() -> int:
 
     print(
         "NO EXTERNAL API"
+    )
+
+    print(
+        "OFFICIAL TIKTOK PLAYER "
+        "ALLOWLISTED FOR INTERNAL REVIEW ONLY"
     )
 
     print(
