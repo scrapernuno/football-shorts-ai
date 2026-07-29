@@ -16,6 +16,7 @@ on:
       - "dashboard/assets/video-library.css"
       - "dashboard/assets/video-library.js"
       - "docs/FOOTBALL-SHORTS-AI-0044F-VIDEO-DASHBOARD-FINAL-CERTIFICATION.md"
+      - "docs/FOOTBALL-SHORTS-AI-0045A-VIDEO-RENDERING-READINESS-AUDIT.md"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -37,6 +38,7 @@ on:
       - "dashboard/assets/video-library.css"
       - "dashboard/assets/video-library.js"
       - "docs/FOOTBALL-SHORTS-AI-0044F-VIDEO-DASHBOARD-FINAL-CERTIFICATION.md"
+      - "docs/FOOTBALL-SHORTS-AI-0045A-VIDEO-RENDERING-READINESS-AUDIT.md"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -84,6 +86,7 @@ jobs:
             src/knowledge/deduplication.py \
             src/knowledge/policy.py \
             src/video/contracts.py \
+            src/video/audit_rendering_readiness.py \
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
             src/dashboard/certify_video_actions.py \
@@ -132,3 +135,6 @@ jobs:
 
       - name: Certify complete governed video dashboard
         run: python -m dashboard.certify_video_dashboard
+
+      - name: Audit governed video rendering readiness
+        run: python -m video.audit_rendering_readiness
