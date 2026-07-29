@@ -5,12 +5,14 @@ on:
     paths:
       - "src/production_brain/**"
       - "src/engines/**"
+      - "src/knowledge/**"
       - "tests/production_brain/test_functional_pipeline.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   pull_request:
     paths:
       - "src/production_brain/**"
       - "src/engines/**"
+      - "src/knowledge/**"
       - "tests/production_brain/test_functional_pipeline.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   workflow_dispatch:
@@ -34,7 +36,7 @@ jobs:
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
 
-      - name: Compile functional pipeline
+      - name: Compile functional pipeline and knowledge layer
         run: |
           python -m py_compile \
             src/production_brain/brain.py \
@@ -42,10 +44,13 @@ jobs:
             src/engines/research_engine.py \
             src/engines/story_engine.py \
             src/engines/production_engine.py \
-            src/engines/publishing_engine.py
+            src/engines/publishing_engine.py \
+            src/knowledge/contracts.py \
+            src/knowledge/adapters.py \
+            src/knowledge/fixtures.py
 
-      - name: Run functional pipeline test
+      - name: Run functional pipeline and evidence test
         run: pytest -q tests/production_brain/test_functional_pipeline.py
 
-      - name: Certify functional pipeline
+      - name: Certify functional pipeline and governed research evidence
         run: python -m production_brain.certify_functional_pipeline
