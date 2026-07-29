@@ -50,9 +50,11 @@ jobs:
             src/production_brain/contracts.py \
             src/production_brain/certify_engine_adapter_design_decision.py
 
-      - name: Certify engine adapter design decision
-        env:
-          PYTHONPATH: ${{ github.workspace }}/src
+      - name: Configure PYTHONPATH
+        run: |
+          echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
+
+      - name: Certify 0040D decision
         run: |
           python src/production_brain/certify_engine_adapter_design_decision.py
 
@@ -76,9 +78,9 @@ jobs:
 
           **Engine Adapter Design Decision: CERTIFIED**
 
-          - Decision: `READY_FOR_CONTRACT_IMPLEMENTATION`
-          - Prerequisite: `FOOTBALL-SHORTS-AI-0040C`
-          - Runtime adapters: not authorized
-          - Production Brain orchestration: not authorized
-          - Next authorized artefact: `FOOTBALL-SHORTS-AI-0040E`
+          - Decision: READY_FOR_CONTRACT_IMPLEMENTATION
+          - Prerequisite: FOOTBALL-SHORTS-AI-0040C
+          - Runtime adapters: NOT AUTHORIZED
+          - Production Brain orchestration: NOT AUTHORIZED
+          - Next authorised artefact: FOOTBALL-SHORTS-AI-0040E
           EOF
