@@ -134,7 +134,11 @@ jobs:
             src/trends/providers/registry.py \
             src/trends/providers/openai_web_search.py \
             src/trends/providers/tiktok_business_discovery.py \
-            src/trends/certify_tiktok_business_pre_activation.py
+            src/trends/certify_tiktok_business_pre_activation.py \
+            src/trends/build_tiktok_viral_reference_review.py \
+            src/trends/sync_tiktok_viral_reference_review.py \
+            src/trends/inject_tiktok_viral_reference_review_ui.py \
+            src/trends/certify_tiktok_viral_reference_review.py
 
       - name: Certify TikTok Business Pre-Activation
         run: |
@@ -150,6 +154,11 @@ jobs:
         run: |
           PYTHONPATH=src \
           python src/trends/build_platform_variants.py
+
+      - name: Build TikTok Viral Reference Review
+        run: |
+          PYTHONPATH=src \
+          python src/trends/build_tiktok_viral_reference_review.py
 
       - name: Build Publishing Evidence
         run: |
@@ -198,10 +207,20 @@ jobs:
           PYTHONPATH=src \
           python src/preview/inject_production_preview_ui.py
 
+      - name: Inject TikTok Viral Review UI
+        run: |
+          PYTHONPATH=src \
+          python src/trends/inject_tiktok_viral_reference_review_ui.py
+
       - name: Sync Production Preview
         run: |
           PYTHONPATH=src \
           python src/preview/sync_production_preview.py
+
+      - name: Sync TikTok Viral Reference Review
+        run: |
+          PYTHONPATH=src \
+          python src/trends/sync_tiktok_viral_reference_review.py
 
       - name: Build Analytics Package
         run: |
@@ -243,6 +262,11 @@ jobs:
           PYTHONPATH=src \
           python src/preview/certify_production_preview.py
 
+      - name: Certify TikTok Viral Reference Review
+        run: |
+          PYTHONPATH=src \
+          python src/trends/certify_tiktok_viral_reference_review.py
+
       - name: Validate Dashboard JavaScript
         run: |
           node --check dashboard/assets/dashboard.js
@@ -283,6 +307,7 @@ jobs:
               "output/tiktok_trend_runtime_intake.json",
               "output/tiktok_trend_intelligence.json",
               "output/platform_variants.json",
+              "output/tiktok_viral_reference_review.json",
               "output/publishing_evidence.json",
               "output/publishing_package.json",
               "output/production_preview.json",
@@ -304,6 +329,7 @@ jobs:
               "dashboard/data/tiktok_trend_discovery_results.json",
               "dashboard/data/tiktok_trend_intelligence.json",
               "dashboard/data/platform_variants.json",
+              "dashboard/data/tiktok_viral_reference_review.json",
               "dashboard/data/publishing_package.json",
               "dashboard/data/production_preview.json",
               "dashboard/assets/generated/production-preview.mp4",
@@ -442,6 +468,14 @@ jobs:
 
           production_preview_public = load_json(
               "dashboard/data/production_preview.json"
+          )
+
+          tiktok_viral_review = load_json(
+              "output/tiktok_viral_reference_review.json"
+          )
+
+          tiktok_viral_review_public = load_json(
+              "dashboard/data/tiktok_viral_reference_review.json"
           )
 
           analytics = load_json(
@@ -1457,6 +1491,231 @@ jobs:
               raise SystemExit(
                   "Dashboard sem integração Production Preview: "
                   f"{missing_preview_markers}"
+              )
+
+
+          if tiktok_viral_review != tiktok_viral_review_public:
+              raise SystemExit(
+                  "TikTok Viral Review público "
+                  "não corresponde ao output"
+              )
+
+
+          viral_review_status = tiktok_viral_review.get(
+              "status"
+          )
+
+
+          if viral_review_status not in {
+              "ready_for_internal_review",
+              "no_verified_viral_references",
+          }:
+              raise SystemExit(
+                  "TikTok Viral Review status inválido"
+              )
+
+
+          viral_selected = tiktok_viral_review.get(
+              "selected_references"
+          )
+
+
+          if (
+              not isinstance(viral_selected, list)
+              or len(viral_selected) > 3
+          ):
+              raise SystemExit(
+                  "TikTok Viral Review selection inválida"
+              )
+
+
+          for index, reference in enumerate(
+              viral_selected
+          ):
+              if not isinstance(reference, dict):
+                  raise SystemExit(
+                      "TikTok Viral Review reference inválida"
+                  )
+
+
+              trend_signal = reference.get(
+                  "trend_signal"
+              )
+
+
+              viral_signal = reference.get(
+                  "viral_signal"
+              )
+
+
+              rights = reference.get(
+                  "rights"
+              )
+
+
+              embed = reference.get(
+                  "embed"
+              )
+
+
+              if (
+                  not isinstance(trend_signal, dict)
+                  or trend_signal.get("status") != "verified"
+                  or int(
+                      trend_signal.get(
+                          "confidence_score",
+                          0,
+                      )
+                  ) < 60
+              ):
+                  raise SystemExit(
+                      "TikTok Viral Review contém "
+                      f"trend não verificada no índice {index}"
+                  )
+
+
+              if (
+                  not isinstance(viral_signal, dict)
+                  or viral_signal.get("status") != "verified"
+                  or int(
+                      viral_signal.get(
+                          "confidence_score",
+                          0,
+                      )
+                  ) < 60
+              ):
+                  raise SystemExit(
+                      "TikTok Viral Review contém "
+                      f"viralidade não verificada no índice {index}"
+                  )
+
+
+              if (
+                  int(
+                      reference.get(
+                          "editorial_relevance_score",
+                          0,
+                      )
+                  ) < 65
+                  or int(
+                      reference.get(
+                          "total_score",
+                          0,
+                      )
+                  ) < 70
+              ):
+                  raise SystemExit(
+                      "TikTok Viral Review contém "
+                      f"score insuficiente no índice {index}"
+                  )
+
+
+              if (
+                  not isinstance(embed, dict)
+                  or not str(
+                      embed.get(
+                          "player_url",
+                          "",
+                      )
+                  ).startswith(
+                      "https://www.tiktok.com/player/v1/"
+                  )
+              ):
+                  raise SystemExit(
+                      "TikTok Viral Review não usa "
+                      f"player oficial no índice {index}"
+                  )
+
+
+              if (
+                  not isinstance(rights, dict)
+                  or rights.get(
+                      "automatic_download_allowed"
+                  )
+                  is not False
+                  or rights.get(
+                      "automatic_clip_extraction_allowed"
+                  )
+                  is not False
+                  or rights.get(
+                      "reuse_in_master_allowed"
+                  )
+                  is not False
+              ):
+                  raise SystemExit(
+                      "TikTok Viral Review rights gate inválido "
+                      f"no índice {index}"
+                  )
+
+
+          viral_governance = tiktok_viral_review.get(
+              "governance"
+          )
+
+
+          if (
+              not isinstance(viral_governance, dict)
+              or viral_governance.get(
+                  "official_tiktok_player_only"
+              )
+              is not True
+              or viral_governance.get(
+                  "lazy_user_initiated_player_load"
+              )
+              is not True
+              or viral_governance.get(
+                  "automatic_reference_ranking_enabled"
+              )
+              is not True
+              or viral_governance.get(
+                  "browser_api_calls_enabled"
+              )
+              is not False
+              or viral_governance.get(
+                  "automatic_reuse_selection_enabled"
+              )
+              is not False
+              or viral_governance.get(
+                  "third_party_download_allowed"
+              )
+              is not False
+              or viral_governance.get(
+                  "automatic_clip_extraction_allowed"
+              )
+              is not False
+              or viral_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "TikTok Viral Review governance inválida"
+              )
+
+
+          required_viral_review_markers = [
+              "FOOTBALL-SHORTS-AI-0031C.5G",
+              "renderTikTokViralReferenceReview",
+              "activateTikTokReferenceButton",
+              (
+                  'tiktokViralReview: '
+                  '"data/tiktok_viral_reference_review.json"'
+              ),
+              "https://www.tiktok.com/player/v1/",
+          ]
+
+
+          missing_viral_review_markers = [
+              marker
+              for marker in required_viral_review_markers
+              if marker not in dashboard_javascript
+          ]
+
+
+          if missing_viral_review_markers:
+              raise SystemExit(
+                  "Dashboard sem TikTok Viral Review: "
+                  f"{missing_viral_review_markers}"
               )
 
 
