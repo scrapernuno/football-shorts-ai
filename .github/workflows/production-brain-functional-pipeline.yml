@@ -9,6 +9,7 @@ on:
       - "src/video/**"
       - "src/dashboard/certify_video_library.py"
       - "src/dashboard/certify_video_player.py"
+      - "src/dashboard/certify_video_actions.py"
       - "dashboard/data/video_library.json"
       - "dashboard/videos.html"
       - "dashboard/assets/video-library.css"
@@ -26,6 +27,7 @@ on:
       - "src/video/**"
       - "src/dashboard/certify_video_library.py"
       - "src/dashboard/certify_video_player.py"
+      - "src/dashboard/certify_video_actions.py"
       - "dashboard/data/video_library.json"
       - "dashboard/videos.html"
       - "dashboard/assets/video-library.css"
@@ -78,6 +80,7 @@ jobs:
             src/video/contracts.py \
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
+            src/dashboard/certify_video_actions.py \
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py \
             tests/knowledge/test_multi_provider_orchestration.py \
@@ -114,3 +117,6 @@ jobs:
 
       - name: Certify governed dashboard video player
         run: python -m dashboard.certify_video_player
+
+      - name: Certify governed video actions
+        run: python -m dashboard.certify_video_actions
