@@ -7,11 +7,11 @@ ROOT = Path(__file__).resolve().parents[2]
 INDEX = ROOT / "dashboard/index.html"
 JAVASCRIPT = ROOT / "dashboard/assets/dashboard.js"
 CSS = ROOT / "dashboard/assets/dashboard.css"
-MARKER = "FOOTBALL-SHORTS-AI-0031C.5E"
+MARKER = "FOOTBALL-SHORTS-AI-0031C.5F"
 
 HTML_SECTION = '''
             <!-- ================================================== -->
-            <!-- FOOTBALL-SHORTS-AI-0031C.5E PRODUCTION PREVIEW -->
+            <!-- FOOTBALL-SHORTS-AI-0031C.5F VIRAL COMPACT PREVIEW -->
             <!-- ================================================== -->
 
             <section
@@ -45,7 +45,6 @@ HTML_SECTION = '''
                                 kind="captions"
                                 srclang="pt"
                                 label="Português"
-                                default
                             >
                         </video>
                     </article>
