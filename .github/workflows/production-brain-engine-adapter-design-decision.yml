@@ -1,0 +1,84 @@
+name: FOOTBALL-SHORTS-AI-0040D Engine Adapter Design Decision
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    paths:
+      - ".github/workflows/production-brain-engine-adapter-design-decision.yml"
+      - "docs/architecture/FOOTBALL-SHORTS-AI-0040D-engine-adapter-design-decision.md"
+      - "governance/production_brain/engine_adapter_design_decision.json"
+      - "src/production_brain/certify_engine_adapter_design_decision.py"
+      - "src/production_brain/contracts.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-brain-engine-adapter-design-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify-engine-adapter-design:
+    name: Certify Engine Adapter Design Decision
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture tracked baseline
+        run: |
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/0040d-before.txt
+
+          if [ -s /tmp/0040d-before.txt ]; then
+            echo "::error::Tracked checkout is not clean before certification."
+            cat /tmp/0040d-before.txt
+            exit 1
+          fi
+
+      - name: Compile canonical contract and certification authority
+        run: |
+          python -m py_compile \
+            src/production_brain/contracts.py \
+            src/production_brain/certify_engine_adapter_design_decision.py
+
+      - name: Certify engine adapter design decision
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python src/production_brain/certify_engine_adapter_design_decision.py
+
+      - name: Verify tracked source immutability
+        run: |
+          git diff --exit-code -- .
+
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/0040d-after.txt
+
+          diff -u \
+            /tmp/0040d-before.txt \
+            /tmp/0040d-after.txt
+
+          echo "TRACKED_SOURCE_IMMUTABILITY=PASS"
+
+      - name: Publish certification summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          # FOOTBALL-SHORTS-AI-0040D
+
+          **Engine Adapter Design Decision: CERTIFIED**
+
+          - Decision: `READY_FOR_CONTRACT_IMPLEMENTATION`
+          - Prerequisite: `FOOTBALL-SHORTS-AI-0040C`
+          - Runtime adapters: not authorized
+          - Production Brain orchestration: not authorized
+          - Next authorized artefact: `FOOTBALL-SHORTS-AI-0040E`
+          EOF
