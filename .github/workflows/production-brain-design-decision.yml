@@ -1,0 +1,85 @@
+name: FOOTBALL-SHORTS-AI-0040B Production Brain Design Decision
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/production-brain-design-decision.yml"
+      - "docs/architecture/FOOTBALL-SHORTS-AI-0040B-production-brain-design-decision.md"
+      - "src/governance/production_brain_design_contract.json"
+      - "src/governance/certify_production_brain_design_decision.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-brain-design-decision-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify-design-decision:
+    name: Certify Production Brain Design Decision
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture tracked baseline
+        run: |
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/0040b-before.txt
+
+          if [ -s /tmp/0040b-before.txt ]; then
+            echo "::error::Tracked checkout is not clean before certification."
+            cat /tmp/0040b-before.txt
+            exit 1
+          fi
+
+      - name: Compile certification authority
+        run: |
+          python -m py_compile \
+            src/governance/certify_production_brain_design_decision.py
+
+      - name: Certify design decision
+        run: |
+          PYTHONPATH=src \
+          python src/governance/certify_production_brain_design_decision.py
+
+      - name: Verify tracked source immutability
+        run: |
+          git diff --exit-code -- .
+
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/0040b-after.txt
+
+          diff -u /tmp/0040b-before.txt /tmp/0040b-after.txt
+          echo "TRACKED_SOURCE_IMMUTABILITY=PASS"
+
+      - name: Publish certification summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          # FOOTBALL-SHORTS-AI-0040B
+
+          **Production Brain Design Decision: CERTIFIED**
+
+          - Decision: `APPROVED_FOR_CONTRACT_FOUNDATION_ONLY`
+          - Next authorized artefact: `FOOTBALL-SHORTS-AI-0040C`
+          - Runtime implementation: not authorized
+          - Workflow migration: not authorized
+          - Canonical engines: 14
+          EOF
+
+      - name: Upload certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-ai-0040b-production-brain-design-decision
+          path: output/governance/production_brain_design_decision/
+          if-no-files-found: error
+          retention-days: 30
