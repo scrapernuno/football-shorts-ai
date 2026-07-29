@@ -20,6 +20,7 @@ on:
       - "tests/knowledge/**"
       - "tests/video/**"
       - "tests/dashboard/test_video_library.py"
+      - "tests/dashboard/test_video_actions.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   pull_request:
     paths:
@@ -40,6 +41,7 @@ on:
       - "tests/knowledge/**"
       - "tests/video/**"
       - "tests/dashboard/test_video_library.py"
+      - "tests/dashboard/test_video_actions.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   workflow_dispatch:
 
@@ -93,7 +95,8 @@ jobs:
             tests/knowledge/test_confidence_conflict_policy.py \
             tests/knowledge/test_research_multi_provider_integration.py \
             tests/video/test_video_asset_contract.py \
-            tests/dashboard/test_video_library.py
+            tests/dashboard/test_video_library.py \
+            tests/dashboard/test_video_actions.py
 
       - name: Run functional pipeline and governed contract tests
         run: |
@@ -106,7 +109,8 @@ jobs:
             tests/knowledge/test_confidence_conflict_policy.py \
             tests/knowledge/test_research_multi_provider_integration.py \
             tests/video/test_video_asset_contract.py \
-            tests/dashboard/test_video_library.py
+            tests/dashboard/test_video_library.py \
+            tests/dashboard/test_video_actions.py
 
       - name: Certify offline governed research evidence
         run: python -m production_brain.certify_functional_pipeline
