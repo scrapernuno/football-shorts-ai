@@ -2157,6 +2157,14 @@ jobs:
           PYTHONPATH=src \
           python src/dashboard/recover_executive_overview_external_player_certification.py
 
+      - name: Recover TikTok Player Autoplay Certification
+        run: |
+          python -m py_compile \
+            src/dashboard/recover_tiktok_player_autoplay_certification.py
+
+          PYTHONPATH=src \
+          python src/dashboard/recover_tiktok_player_autoplay_certification.py
+
       - name: Certify Executive Overview
         run: |
           python -m py_compile \
@@ -2205,4 +2213,3 @@ jobs:
     steps:
       - name: Deploy GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
