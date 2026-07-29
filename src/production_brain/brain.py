@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from engines.research_engine import ResearchEngine
-from engines.story_engine import StoryEngine
 from engines.production_engine import ProductionEngine
 from engines.publishing_engine import PublishingEngine
+from engines.research_engine import ResearchEngine
+from engines.story_engine import StoryEngine
+from knowledge.runtime import KnowledgeRuntimeConfig, select_knowledge_provider
 
 
 OUTPUT = Path("output")
@@ -20,10 +21,16 @@ def write_package(name: str, payload: dict) -> None:
     )
 
 
-def execute(topic: str) -> dict:
+def execute(
+    topic: str,
+    *,
+    knowledge_provider: object | None = None,
+    knowledge_config: KnowledgeRuntimeConfig | None = None,
+) -> dict:
     context = {"topic": topic}
 
-    research = ResearchEngine().execute(context)
+    provider = knowledge_provider or select_knowledge_provider(knowledge_config)
+    research = ResearchEngine(provider=provider).execute(context)
     context["research"] = research
     write_package("research_package.json", research)
 
