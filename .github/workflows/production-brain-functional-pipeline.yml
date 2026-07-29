@@ -7,9 +7,12 @@ on:
       - "src/engines/**"
       - "src/knowledge/**"
       - "src/video/**"
+      - "src/dashboard/certify_video_library.py"
+      - "dashboard/data/video_library.json"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
+      - "tests/dashboard/test_video_library.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   pull_request:
     paths:
@@ -17,9 +20,12 @@ on:
       - "src/engines/**"
       - "src/knowledge/**"
       - "src/video/**"
+      - "src/dashboard/certify_video_library.py"
+      - "dashboard/data/video_library.json"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
+      - "tests/dashboard/test_video_library.py"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   workflow_dispatch:
 
@@ -62,13 +68,15 @@ jobs:
             src/knowledge/deduplication.py \
             src/knowledge/policy.py \
             src/video/contracts.py \
+            src/dashboard/certify_video_library.py \
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py \
             tests/knowledge/test_multi_provider_orchestration.py \
             tests/knowledge/test_evidence_deduplication.py \
             tests/knowledge/test_confidence_conflict_policy.py \
             tests/knowledge/test_research_multi_provider_integration.py \
-            tests/video/test_video_asset_contract.py
+            tests/video/test_video_asset_contract.py \
+            tests/dashboard/test_video_library.py
 
       - name: Run functional pipeline and governed contract tests
         run: |
@@ -80,7 +88,8 @@ jobs:
             tests/knowledge/test_evidence_deduplication.py \
             tests/knowledge/test_confidence_conflict_policy.py \
             tests/knowledge/test_research_multi_provider_integration.py \
-            tests/video/test_video_asset_contract.py
+            tests/video/test_video_asset_contract.py \
+            tests/dashboard/test_video_library.py
 
       - name: Certify offline governed research evidence
         run: python -m production_brain.certify_functional_pipeline
@@ -90,3 +99,6 @@ jobs:
 
       - name: Certify governed multi-provider knowledge pipeline
         run: python -m production_brain.certify_multi_provider_knowledge_pipeline
+
+      - name: Certify governed dashboard video library
+        run: python -m dashboard.certify_video_library
