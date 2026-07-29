@@ -1,0 +1,101 @@
+name: FOOTBALL-SHORTS-AI-0040A Production Brain Readiness Audit
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "src/**"
+      - "dashboard/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-brain-readiness-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  production-brain-readiness-audit:
+    name: Production Brain Readiness Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture read-only baseline
+        run: |
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/production-brain-readiness-before.txt
+
+          if [ -s /tmp/production-brain-readiness-before.txt ]; then
+            echo "::error::Repository checkout is not clean before audit."
+            cat /tmp/production-brain-readiness-before.txt
+            exit 1
+          fi
+
+      - name: Compile audit authorities
+        run: |
+          python -m py_compile \
+            src/governance/audit_production_brain_readiness.py \
+            src/governance/certify_production_brain_readiness.py
+
+      - name: Run production brain readiness audit
+        env:
+          PYTHONPATH: src
+        run: |
+          python src/governance/audit_production_brain_readiness.py
+
+      - name: Verify tracked source immutability
+        run: |
+          git diff --exit-code -- .
+
+          git status --porcelain=v1 --untracked-files=no \
+            > /tmp/production-brain-readiness-after.txt
+
+          diff -u \
+            /tmp/production-brain-readiness-before.txt \
+            /tmp/production-brain-readiness-after.txt
+
+          echo "TRACKED_SOURCE_IMMUTABILITY=PASS"
+
+      - name: Certify production brain readiness audit
+        env:
+          PYTHONPATH: src
+        run: |
+          python src/governance/certify_production_brain_readiness.py
+
+      - name: Publish audit summary
+        if: always()
+        run: |
+          REPORT="output/audits/production_brain_readiness/production_brain_readiness_report.md"
+          DECISION="output/audits/production_brain_readiness/production_brain_decision.md"
+
+          if [ -s "$REPORT" ]; then
+            cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ -s "$DECISION" ]; then
+            printf '\n---\n\n' >> "$GITHUB_STEP_SUMMARY"
+            cat "$DECISION" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload readiness audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-ai-0040a-production-brain-readiness
+          path: output/audits/production_brain_readiness/
+          if-no-files-found: error
+          retention-days: 30
