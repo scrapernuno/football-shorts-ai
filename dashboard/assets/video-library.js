@@ -155,6 +155,59 @@ function setDetail(id, value) {
     byId(id).textContent = safeText(value);
 }
 
+function setActionEnabled(element, enabled) {
+    element.classList.toggle("is-disabled", !enabled);
+    element.setAttribute("aria-disabled", enabled ? "false" : "true");
+    if (element instanceof HTMLButtonElement) {
+        element.disabled = !enabled;
+    }
+}
+
+function resetActions() {
+    const download = byId("download-video-action");
+    download.href = "#";
+    download.removeAttribute("download");
+    setActionEnabled(download, false);
+    setActionEnabled(byId("publishing-studio-action"), false);
+    setActionEnabled(byId("copy-publishing-id-action"), false);
+    byId("action-message").textContent = "As ações permanecem bloqueadas até existir evidência suficiente.";
+}
+
+function configureActions(video) {
+    resetActions();
+
+    const file = video.video_file;
+    const canDownload = Boolean(
+        file
+        && typeof file.path === "string"
+        && file.path.trim()
+        && (video.status === "ready" || video.status === "published")
+    );
+
+    const download = byId("download-video-action");
+    if (canDownload) {
+        download.href = file.path;
+        download.setAttribute("download", `${video.video_id}.${safeText(file.container, "mp4")}`);
+        setActionEnabled(download, true);
+    }
+
+    const hasPublishingPackage = typeof video.publishing_package_id === "string"
+        && video.publishing_package_id.trim();
+
+    if (hasPublishingPackage) {
+        setActionEnabled(byId("publishing-studio-action"), true);
+        setActionEnabled(byId("copy-publishing-id-action"), true);
+    }
+
+    if (canDownload && hasPublishingPackage) {
+        byId("action-message").textContent = "Download e handoff para publicação disponíveis.";
+    } else if (canDownload) {
+        byId("action-message").textContent = "Download disponível; publishing package ainda não associado.";
+    } else if (hasPublishingPackage) {
+        byId("action-message").textContent = "Publishing package associado; o download aguarda um ficheiro ready ou published.";
+    }
+}
+
 function resetPlayer() {
     const player = byId("video-player");
     player.pause();
@@ -185,7 +238,10 @@ function selectVideo(videoId) {
     setDetail("detail-duration", formatDuration(video.duration_seconds));
     setDetail("detail-format", `${video.width}×${video.height} · ${safeText(video.orientation)}`);
     setDetail("detail-render-engine", video.render_engine);
+    setDetail("detail-publishing-package", video.publishing_package_id);
+    setDetail("detail-checksum", video.video_file?.checksum_sha256);
 
+    configureActions(video);
     resetPlayer();
 
     const file = video.video_file;
@@ -232,6 +288,34 @@ function bindFilters() {
     });
 }
 
+function bindActions() {
+    byId("download-video-action").addEventListener("click", (event) => {
+        if (event.currentTarget.getAttribute("aria-disabled") === "true") {
+            event.preventDefault();
+        }
+    });
+
+    byId("publishing-studio-action").addEventListener("click", (event) => {
+        if (event.currentTarget.getAttribute("aria-disabled") === "true") {
+            event.preventDefault();
+        }
+    });
+
+    byId("copy-publishing-id-action").addEventListener("click", async () => {
+        const video = state.library?.videos.find((item) => item.video_id === state.selectedVideoId);
+        const packageId = video?.publishing_package_id;
+        if (typeof packageId !== "string" || !packageId.trim()) {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(packageId);
+            byId("action-message").textContent = "Publishing Package ID copiado.";
+        } catch {
+            byId("action-message").textContent = `Publishing Package ID: ${packageId}`;
+        }
+    });
+}
+
 function showError(error) {
     byId("video-library-error-message").textContent = error instanceof Error ? error.message : String(error);
     byId("video-library-error").hidden = false;
@@ -243,6 +327,8 @@ async function initialize() {
         state.library = await loadLibrary();
         byId("library-generated-at").textContent = formatDate(state.library.generated_at);
         bindFilters();
+        bindActions();
+        resetActions();
         renderList();
         if (state.library.videos.length > 0) {
             selectVideo(state.library.videos[0].video_id);
