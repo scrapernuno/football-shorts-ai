@@ -53,15 +53,18 @@ jobs:
             src/knowledge/fixtures.py \
             src/knowledge/live_provider.py \
             src/knowledge/runtime.py \
+            src/knowledge/orchestration.py \
             tests/knowledge/test_live_provider.py \
-            tests/knowledge/test_runtime_selection.py
+            tests/knowledge/test_runtime_selection.py \
+            tests/knowledge/test_multi_provider_orchestration.py
 
       - name: Run functional pipeline and knowledge tests
         run: |
           pytest -q \
             tests/production_brain/test_functional_pipeline.py \
             tests/knowledge/test_live_provider.py \
-            tests/knowledge/test_runtime_selection.py
+            tests/knowledge/test_runtime_selection.py \
+            tests/knowledge/test_multi_provider_orchestration.py
 
       - name: Certify offline governed research evidence
         run: python -m production_brain.certify_functional_pipeline
