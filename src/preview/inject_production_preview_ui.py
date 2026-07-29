@@ -187,8 +187,8 @@ function renderProductionPreview(
 
 CSS_APPEND = r'''
 /* ==========================================================
-   FOOTBALL-SHORTS-AI-0031C.5E
-   AI PRODUCTION PREVIEW
+   FOOTBALL-SHORTS-AI-0031C.5F
+   VIRAL COMPACT PRODUCTION PREVIEW
    ========================================================== */
 
 .production-preview-grid {
@@ -392,9 +392,23 @@ def main() -> int:
     save(JAVASCRIPT, inject_js(read(JAVASCRIPT)))
     save(CSS, inject_css(read(CSS)))
 
-    for path in (INDEX, JAVASCRIPT, CSS):
-        if MARKER not in read(path):
-            raise ValueError(f"Marcador ausente em {path}")
+    required_markers = {
+        INDEX: MARKER,
+        JAVASCRIPT: MARKER,
+        CSS: MARKER,
+    }
+
+    missing_markers = [
+        str(path)
+        for path, marker in required_markers.items()
+        if marker not in read(path)
+    ]
+
+    if missing_markers:
+        raise ValueError(
+            "Marcador de implementação ausente em: "
+            + ", ".join(missing_markers)
+        )
 
     print("PRODUCTION_PREVIEW_HTML=PASS")
     print("PRODUCTION_PREVIEW_JAVASCRIPT=PASS")
