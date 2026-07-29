@@ -1,0 +1,33 @@
+{
+  "artifact_id": "FOOTBALL-SHORTS-AI-0040D",
+  "status": "DECIDED",
+  "decision": "READY_FOR_CONTRACT_IMPLEMENTATION",
+  "prerequisite": "FOOTBALL-SHORTS-AI-0040C",
+  "boundary": {
+    "cardinality": "one_adapter_to_one_engine_authority",
+    "dependency_resolution": "explicit_dependency_injection",
+    "registry": "explicit_immutable_fail_closed",
+    "dynamic_discovery": "forbidden"
+  },
+  "required_properties": [
+    "no_context_mutation",
+    "expected_failures_translate_to_failed_result",
+    "deterministic_translation",
+    "explicit_dependency_injection",
+    "immutable_registry"
+  ],
+  "forbidden_properties": [
+    "business_logic_migration",
+    "implicit_network_access",
+    "dynamic_runtime_discovery",
+    "implicit_provider_lookup"
+  ],
+  "does_not_authorize": [
+    "executable_engine_adapters",
+    "production_brain_orchestration",
+    "workflow_migration",
+    "publication_execution",
+    "network_access",
+    "secret_management"
+  ]
+}
