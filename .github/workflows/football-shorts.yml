@@ -46,6 +46,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Ensure FFmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+
+          ffmpeg -version
+          ffprobe -version
+
       - name: Compile project
         run: |
           python -m compileall src
@@ -167,6 +177,30 @@ jobs:
           PYTHONPATH=src \
           python src/publishing/refine_publishing_studio.py
 
+      - name: Build AI Production Preview
+        env:
+          OPENAI_TTS_MODEL: gpt-4o-mini-tts
+          OPENAI_TTS_VOICE: marin
+        run: |
+          python -m py_compile \
+            src/preview/build_production_preview.py \
+            src/preview/sync_production_preview.py \
+            src/preview/inject_production_preview_ui.py \
+            src/preview/certify_production_preview.py
+
+          PYTHONPATH=src \
+          python src/preview/build_production_preview.py
+
+      - name: Inject Production Preview UI
+        run: |
+          PYTHONPATH=src \
+          python src/preview/inject_production_preview_ui.py
+
+      - name: Sync Production Preview
+        run: |
+          PYTHONPATH=src \
+          python src/preview/sync_production_preview.py
+
       - name: Build Analytics Package
         run: |
           PYTHONPATH=src \
@@ -201,6 +235,11 @@ jobs:
         run: |
           PYTHONPATH=src \
           python src/trends/certify_tiktok_trend_governance.py
+
+      - name: Certify Production Preview
+        run: |
+          PYTHONPATH=src \
+          python src/preview/certify_production_preview.py
 
       - name: Validate Dashboard JavaScript
         run: |
@@ -244,6 +283,10 @@ jobs:
               "output/platform_variants.json",
               "output/publishing_evidence.json",
               "output/publishing_package.json",
+              "output/production_preview.json",
+              "output/assets/previews/production-preview.mp4",
+              "output/assets/previews/production-preview.vtt",
+              "output/assets/previews/production-preview-voice.mp3",
               "output/analytics_package.json",
               "output/digest.html",
 
@@ -260,6 +303,9 @@ jobs:
               "dashboard/data/tiktok_trend_intelligence.json",
               "dashboard/data/platform_variants.json",
               "dashboard/data/publishing_package.json",
+              "dashboard/data/production_preview.json",
+              "dashboard/assets/generated/production-preview.mp4",
+              "dashboard/assets/generated/production-preview.vtt",
               "dashboard/data/analytics_package.json",
           ]
 
@@ -386,6 +432,14 @@ jobs:
 
           publishing_public = load_json(
               "dashboard/data/publishing_package.json"
+          )
+
+          production_preview = load_json(
+              "output/production_preview.json"
+          )
+
+          production_preview_public = load_json(
+              "dashboard/data/production_preview.json"
           )
 
           analytics = load_json(
@@ -1317,6 +1371,90 @@ jobs:
           ):
               raise SystemExit(
                   "Publishing checklist inválido"
+              )
+
+
+          if production_preview != production_preview_public:
+              raise SystemExit(
+                  "Production Preview público "
+                  "não corresponde ao output"
+              )
+
+
+          preview_format = production_preview.get(
+              "format"
+          )
+
+
+          preview_governance = production_preview.get(
+              "governance"
+          )
+
+
+          if (
+              production_preview.get("status")
+              != "ready_for_internal_review"
+              or not isinstance(preview_format, dict)
+              or preview_format.get("width") != 1080
+              or preview_format.get("height") != 1920
+              or preview_format.get("aspect_ratio") != "9:16"
+              or preview_format.get("duration_seconds") != 45
+          ):
+              raise SystemExit(
+                  "Production Preview contract inválido"
+              )
+
+
+          if (
+              not isinstance(preview_governance, dict)
+              or preview_governance.get(
+                  "internal_review_only"
+              )
+              is not True
+              or preview_governance.get(
+                  "not_for_publication"
+              )
+              is not True
+              or preview_governance.get(
+                  "publication_execution_enabled"
+              )
+              is not False
+              or preview_governance.get(
+                  "unlicensed_assets_used"
+              )
+              is not False
+              or preview_governance.get(
+                  "synthetic_player_likenesses_generated"
+              )
+              is not False
+              or preview_governance.get(
+                  "commercial_music_embedded"
+              )
+              is not False
+          ):
+              raise SystemExit(
+                  "Production Preview governance inválida"
+              )
+
+
+          required_preview_markers = [
+              "FOOTBALL-SHORTS-AI-0031C.5E",
+              "renderProductionPreview",
+              'productionPreview: "data/production_preview.json"',
+          ]
+
+
+          missing_preview_markers = [
+              marker
+              for marker in required_preview_markers
+              if marker not in dashboard_javascript
+          ]
+
+
+          if missing_preview_markers:
+              raise SystemExit(
+                  "Dashboard sem integração Production Preview: "
+                  f"{missing_preview_markers}"
               )
 
 
