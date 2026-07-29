@@ -1,0 +1,107 @@
+{
+  "artifact_id": "FOOTBALL-SHORTS-AI-0040B",
+  "title": "Production Brain Design Decision",
+  "status": "APPROVED_FOR_CONTRACT_FOUNDATION_ONLY",
+  "schema_version": "1.0.0",
+  "authority": {
+    "predecessor": "FOOTBALL-SHORTS-AI-0040A",
+    "predecessor_decision": "READY_FOR_DESIGN",
+    "next_authorized_artifact": "FOOTBALL-SHORTS-AI-0040C"
+  },
+  "production_brain": {
+    "role": "deterministic_orchestration_authority",
+    "owns": [
+      "execution_ordering",
+      "context_handover",
+      "precondition_evaluation",
+      "result_registration",
+      "failure_attribution",
+      "lifecycle_state",
+      "audit_evidence_aggregation"
+    ],
+    "must_not_own": [
+      "engine_business_logic",
+      "autonomous_publishing",
+      "package_schema_mutation",
+      "secret_persistence",
+      "implicit_network_execution"
+    ]
+  },
+  "production_context": {
+    "required_fields": [
+      "schema_version",
+      "execution_id",
+      "correlation_id",
+      "started_at",
+      "source_topic_ref",
+      "artifact_root",
+      "engine_results",
+      "lifecycle_state",
+      "failure",
+      "governance"
+    ],
+    "payload_policy": "references_not_duplicated_payloads",
+    "mutation_policy": "immutable_by_convention"
+  },
+  "engine_contract": {
+    "required_members": [
+      "engine_id",
+      "contract_version",
+      "requires",
+      "produces",
+      "execute",
+      "validate_result"
+    ]
+  },
+  "engine_result": {
+    "required_fields": [
+      "engine_id",
+      "contract_version",
+      "status",
+      "started_at",
+      "completed_at",
+      "input_refs",
+      "output_refs",
+      "evidence_refs",
+      "error"
+    ],
+    "allowed_statuses": [
+      "pending",
+      "running",
+      "succeeded",
+      "failed",
+      "blocked",
+      "skipped"
+    ]
+  },
+  "engine_sequence": [
+    "research",
+    "knowledge",
+    "evidence",
+    "reference",
+    "story",
+    "emotion",
+    "audience",
+    "originality",
+    "production",
+    "quality",
+    "publishing",
+    "analytics",
+    "learning",
+    "dashboard"
+  ],
+  "failure_policy": "fail_closed",
+  "compatibility": {
+    "existing_package_paths_preserved": true,
+    "existing_builders_remain_independently_callable": true,
+    "existing_workflow_order_preserved_until_migration_certification": true,
+    "dashboard_unaware_during_compatibility_mode": true,
+    "publication_controls_preserved": true
+  },
+  "implementation_authority": {
+    "runtime_implementation_authorized": false,
+    "contract_foundation_authorized": true,
+    "workflow_migration_authorized": false,
+    "autonomous_publishing_authorized": false
+  }
+}
