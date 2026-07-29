@@ -43,6 +43,7 @@ jobs:
           python -m py_compile \
             src/production_brain/brain.py \
             src/production_brain/certify_functional_pipeline.py \
+            src/production_brain/certify_live_knowledge_pipeline.py \
             src/engines/research_engine.py \
             src/engines/story_engine.py \
             src/engines/production_engine.py \
@@ -62,5 +63,8 @@ jobs:
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py
 
-      - name: Certify functional pipeline and governed research evidence
+      - name: Certify offline governed research evidence
         run: python -m production_brain.certify_functional_pipeline
+
+      - name: Certify controlled live knowledge pipeline
+        run: python -m production_brain.certify_live_knowledge_pipeline
