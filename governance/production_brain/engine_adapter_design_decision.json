@@ -1,0 +1,52 @@
+{
+  "artifact_id": "FOOTBALL-SHORTS-AI-0040D",
+  "title": "Engine Adapter Design Decision",
+  "status": "DECIDED",
+  "decision": "READY_FOR_CONTRACT_IMPLEMENTATION",
+  "prerequisite": "FOOTBALL-SHORTS-AI-0040C",
+  "boundary": {
+    "adapter_role": "anti_corruption_boundary",
+    "cardinality": "one_adapter_to_one_engine_authority",
+    "public_contract": "src.production_brain.contracts.EngineContract",
+    "input": "ProductionContext",
+    "output": "EngineResult",
+    "dependency_resolution": "explicit_dependency_injection",
+    "registry": "explicit_immutable_fail_closed",
+    "dynamic_discovery": "forbidden"
+  },
+  "required_properties": [
+    "stable_engine_id",
+    "single_production_stage",
+    "stage_match_validation",
+    "repository_relative_artifacts",
+    "deterministic_non_secret_evidence",
+    "expected_failures_translate_to_failed_result",
+    "unexpected_defects_propagate",
+    "no_context_mutation",
+    "no_stage_sequencing"
+  ],
+  "forbidden_properties": [
+    "business_logic_migration",
+    "business_logic_duplication",
+    "implicit_network_access",
+    "undeclared_secret_access",
+    "implicit_publication",
+    "global_mutable_engine_discovery",
+    "silent_failure_normalization",
+    "github_actions_runtime_dependency"
+  ],
+  "side_effect_policy": "deny_by_default",
+  "authorizes": [
+    "FOOTBALL-SHORTS-AI-0040E_ENGINE_ADAPTER_CONTRACT_FOUNDATION"
+  ],
+  "does_not_authorize": [
+    "executable_engine_adapters",
+    "adapter_registry_implementation",
+    "production_brain_orchestration",
+    "workflow_migration",
+    "publication_execution",
+    "network_calls",
+    "secret_resolution",
+    "production_activation"
+  ]
+}
