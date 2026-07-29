@@ -1,0 +1,62 @@
+name: FOOTBALL-SHORTS-AI-0040C Production Brain Contract Foundation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/production-brain-contract-foundation.yml"
+      - "src/production_brain/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-brain-contract-foundation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify-contract-foundation:
+    name: Certify Production Brain Contract Foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile contract foundation
+        run: |
+          python -m py_compile \
+            src/production_brain/__init__.py \
+            src/production_brain/contracts.py \
+            src/production_brain/certify_contract_foundation.py
+
+      - name: Certify contract foundation
+        env:
+          PYTHONPATH: src
+        run: |
+          python src/production_brain/certify_contract_foundation.py
+
+      - name: Verify no runtime orchestration authority
+        run: |
+          if grep -RInE \
+            'class +(ProductionBrain|ProductionBrainOrchestrator|Orchestrator)' \
+            src/production_brain; then
+            echo "::error::Runtime orchestrator introduced during contract foundation."
+            exit 1
+          fi
+
+          echo "RUNTIME_ORCHESTRATION_AUTHORITY=ABSENT"
+
+      - name: Upload certification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-ai-0040c-contract-foundation
+          path: output/certifications/production_brain/contract_foundation_certification.json
+          if-no-files-found: error
+          retention-days: 30
