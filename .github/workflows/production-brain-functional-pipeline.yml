@@ -6,16 +6,20 @@ on:
       - "src/production_brain/**"
       - "src/engines/**"
       - "src/knowledge/**"
+      - "src/video/**"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
+      - "tests/video/**"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   pull_request:
     paths:
       - "src/production_brain/**"
       - "src/engines/**"
       - "src/knowledge/**"
+      - "src/video/**"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
+      - "tests/video/**"
       - ".github/workflows/production-brain-functional-pipeline.yml"
   workflow_dispatch:
 
@@ -38,7 +42,7 @@ jobs:
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
 
-      - name: Compile functional pipeline and knowledge layer
+      - name: Compile functional pipeline and governed contracts
         run: |
           python -m py_compile \
             src/production_brain/brain.py \
@@ -57,14 +61,16 @@ jobs:
             src/knowledge/orchestration.py \
             src/knowledge/deduplication.py \
             src/knowledge/policy.py \
+            src/video/contracts.py \
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py \
             tests/knowledge/test_multi_provider_orchestration.py \
             tests/knowledge/test_evidence_deduplication.py \
             tests/knowledge/test_confidence_conflict_policy.py \
-            tests/knowledge/test_research_multi_provider_integration.py
+            tests/knowledge/test_research_multi_provider_integration.py \
+            tests/video/test_video_asset_contract.py
 
-      - name: Run functional pipeline and knowledge tests
+      - name: Run functional pipeline and governed contract tests
         run: |
           pytest -q \
             tests/production_brain/test_functional_pipeline.py \
@@ -73,7 +79,8 @@ jobs:
             tests/knowledge/test_multi_provider_orchestration.py \
             tests/knowledge/test_evidence_deduplication.py \
             tests/knowledge/test_confidence_conflict_policy.py \
-            tests/knowledge/test_research_multi_provider_integration.py
+            tests/knowledge/test_research_multi_provider_integration.py \
+            tests/video/test_video_asset_contract.py
 
       - name: Certify offline governed research evidence
         run: python -m production_brain.certify_functional_pipeline
