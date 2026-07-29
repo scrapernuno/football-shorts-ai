@@ -2149,6 +2149,14 @@ jobs:
           )
           PY
 
+      - name: Recover Executive Overview TikTok Player Authority
+        run: |
+          python -m py_compile \
+            src/dashboard/recover_executive_overview_external_player_certification.py
+
+          PYTHONPATH=src \
+          python src/dashboard/recover_executive_overview_external_player_certification.py
+
       - name: Certify Executive Overview
         run: |
           python -m py_compile \
