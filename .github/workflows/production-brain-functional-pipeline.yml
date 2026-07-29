@@ -8,7 +8,11 @@ on:
       - "src/knowledge/**"
       - "src/video/**"
       - "src/dashboard/certify_video_library.py"
+      - "src/dashboard/certify_video_player.py"
       - "dashboard/data/video_library.json"
+      - "dashboard/videos.html"
+      - "dashboard/assets/video-library.css"
+      - "dashboard/assets/video-library.js"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -21,7 +25,11 @@ on:
       - "src/knowledge/**"
       - "src/video/**"
       - "src/dashboard/certify_video_library.py"
+      - "src/dashboard/certify_video_player.py"
       - "dashboard/data/video_library.json"
+      - "dashboard/videos.html"
+      - "dashboard/assets/video-library.css"
+      - "dashboard/assets/video-library.js"
       - "tests/production_brain/test_functional_pipeline.py"
       - "tests/knowledge/**"
       - "tests/video/**"
@@ -69,6 +77,7 @@ jobs:
             src/knowledge/policy.py \
             src/video/contracts.py \
             src/dashboard/certify_video_library.py \
+            src/dashboard/certify_video_player.py \
             tests/knowledge/test_live_provider.py \
             tests/knowledge/test_runtime_selection.py \
             tests/knowledge/test_multi_provider_orchestration.py \
@@ -102,3 +111,6 @@ jobs:
 
       - name: Certify governed dashboard video library
         run: python -m dashboard.certify_video_library
+
+      - name: Certify governed dashboard video player
+        run: python -m dashboard.certify_video_player
