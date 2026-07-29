@@ -1,0 +1,51 @@
+name: Production Brain Functional Pipeline
+
+on:
+  push:
+    paths:
+      - "src/production_brain/**"
+      - "src/engines/**"
+      - "tests/production_brain/test_functional_pipeline.py"
+      - ".github/workflows/production-brain-functional-pipeline.yml"
+  pull_request:
+    paths:
+      - "src/production_brain/**"
+      - "src/engines/**"
+      - "tests/production_brain/test_functional_pipeline.py"
+      - ".github/workflows/production-brain-functional-pipeline.yml"
+  workflow_dispatch:
+
+jobs:
+  certify-functional-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python -m pip install --upgrade pytest
+
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
+
+      - name: Compile functional pipeline
+        run: |
+          python -m py_compile \
+            src/production_brain/brain.py \
+            src/production_brain/certify_functional_pipeline.py \
+            src/engines/research_engine.py \
+            src/engines/story_engine.py \
+            src/engines/production_engine.py \
+            src/engines/publishing_engine.py
+
+      - name: Run functional pipeline test
+        run: pytest -q tests/production_brain/test_functional_pipeline.py
+
+      - name: Certify functional pipeline
+        run: python -m production_brain.certify_functional_pipeline
