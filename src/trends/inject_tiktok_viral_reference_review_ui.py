@@ -255,9 +255,9 @@ function activateTikTokReferenceButton(
         iframe.referrerPolicy =
             "strict-origin-when-cross-origin";
         iframe.allow = (
-            "fullscreen; autoplay; "
+            "fullscreen; encrypted-media; "
             +
-            "encrypted-media; picture-in-picture"
+            "picture-in-picture"
         );
         iframe.setAttribute(
             "allowfullscreen",
