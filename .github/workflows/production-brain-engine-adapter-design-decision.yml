@@ -1,0 +1,35 @@
+name: FOOTBALL-SHORTS-AI-0040D Engine Adapter Design Decision
+
+on:
+  pull_request:
+    paths:
+      - "docs/architecture/FOOTBALL-SHORTS-AI-0040D-engine-adapter-design-decision.md"
+      - "governance/production_brain/engine_adapter_design_decision.json"
+      - "src/production_brain/certify_engine_adapter_design_decision.py"
+      - "src/production_brain/contracts.py"
+      - ".github/workflows/production-brain-engine-adapter-design-decision.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile canonical contract and certification authority
+        run: |
+          python -m py_compile \
+            src/production_brain/contracts.py \
+            src/production_brain/certify_engine_adapter_design_decision.py
+
+      - name: Certify 0040D decision
+        run: python src/production_brain/certify_engine_adapter_design_decision.py
