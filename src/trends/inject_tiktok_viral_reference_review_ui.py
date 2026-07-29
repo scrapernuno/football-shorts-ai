@@ -823,7 +823,34 @@ def inject_index(value: str) -> str:
 
 
 def inject_javascript(value: str) -> str:
+    legacy_autoplay_permission = (
+        '        iframe.allow = (\n'
+        '            "fullscreen; autoplay; "\n'
+        '            +\n'
+        '            "encrypted-media; picture-in-picture"\n'
+        '        );'
+    )
+
+    governed_permission = (
+        '        iframe.allow = (\n'
+        '            "fullscreen; encrypted-media; "\n'
+        '            +\n'
+        '            "picture-in-picture"\n'
+        '        );'
+    )
+
+    if legacy_autoplay_permission in value:
+        value = value.replace(
+            legacy_autoplay_permission,
+            governed_permission,
+            1,
+        )
+
     if MARKER in value:
+        if "fullscreen; autoplay;" in value:
+            raise ValueError(
+                "Permissão autoplay TikTok não foi removida."
+            )
         return value
 
     data_marker = (
@@ -936,6 +963,19 @@ def main() -> int:
             + ", ".join(missing)
         )
 
+    javascript_source = read(JAVASCRIPT)
+
+    if "fullscreen; autoplay;" in javascript_source:
+        raise ValueError(
+            "dashboard.js ainda concede autoplay ao iframe TikTok."
+        )
+
+    if "fullscreen; encrypted-media; " not in javascript_source:
+        raise ValueError(
+            "Permissão governada do iframe TikTok não foi encontrada."
+        )
+
+    print("TIKTOK_LEGACY_AUTOPLAY_PERMISSION_RECOVERY=PASS")
     print("TIKTOK_VIRAL_REVIEW_HTML=PASS")
     print("TIKTOK_VIRAL_REVIEW_JAVASCRIPT=PASS")
     print("TIKTOK_VIRAL_REVIEW_CSS=PASS")
