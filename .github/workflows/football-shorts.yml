@@ -2213,3 +2213,4 @@ jobs:
     steps:
       - name: Deploy GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
