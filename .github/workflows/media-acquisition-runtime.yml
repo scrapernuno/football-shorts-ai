@@ -5,12 +5,16 @@ on:
   push:
     paths:
       - "src/assets/media_acquisition_runtime.py"
+      - "src/assets/controlled_provider_discovery.py"
       - "tests/assets/test_media_acquisition_runtime.py"
+      - "tests/assets/test_controlled_provider_discovery.py"
       - ".github/workflows/media-acquisition-runtime.yml"
   pull_request:
     paths:
       - "src/assets/media_acquisition_runtime.py"
+      - "src/assets/controlled_provider_discovery.py"
       - "tests/assets/test_media_acquisition_runtime.py"
+      - "tests/assets/test_controlled_provider_discovery.py"
       - ".github/workflows/media-acquisition-runtime.yml"
 
 permissions:
@@ -40,29 +44,36 @@ jobs:
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
 
-      - name: Compile governed runtime
+      - name: Compile governed runtime and discovery adapters
         run: |
           set -euo pipefail
           python -m py_compile \
             src/assets/contracts.py \
             src/assets/media_acquisition_runtime.py \
-            tests/assets/test_media_acquisition_runtime.py
+            src/assets/controlled_provider_discovery.py \
+            tests/assets/test_media_acquisition_runtime.py \
+            tests/assets/test_controlled_provider_discovery.py
 
       - name: Run governed runtime certification
         run: |
           set -euo pipefail
-          pytest -q tests/assets/test_media_acquisition_runtime.py
+          pytest -q \
+            tests/assets/test_media_acquisition_runtime.py \
+            tests/assets/test_controlled_provider_discovery.py
 
       - name: Emit certification summary
         run: |
           {
-            echo "## FOOTBALL-SHORTS-AI-0048A"
+            echo "## FOOTBALL-SHORTS-AI-0048B"
             echo
             echo "- Media Acquisition Runtime: PASS"
+            echo "- Owned-library discovery adapter: PASS"
+            echo "- Pexels controlled discovery adapter: PASS"
+            echo "- Portrait MP4 deterministic selection: PASS"
+            echo "- Specific-football Pexels denial: PASS"
             echo "- Rights-aware selection: PASS"
             echo "- Unlicensed media rejection: PASS"
             echo "- Watermark rejection: PASS"
             echo "- TikTok original-file and licence gate: PASS"
-            echo "- Deterministic ranking: PASS"
             echo "- Atomic manifest write: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
