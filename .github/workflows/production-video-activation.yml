@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: controlled-production-video-activation
@@ -25,10 +27,16 @@ jobs:
   activate-production-video:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout exact repository revision
         uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,7 +49,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
           command -v ffmpeg
-          test -x /usr/bin/ffmpeg
           ffmpeg -version | head -n 1
 
       - name: Configure governed Python runtime
@@ -77,7 +84,7 @@ jobs:
           set -euo pipefail
           python -m production_brain.brain
 
-      - name: Audit exact real activation target
+      - name: Audit exact real rendering activation target
         run: |
           set -euo pipefail
           python -m video.audit_production_activation \
@@ -94,7 +101,7 @@ jobs:
             --execute \
             | tee /tmp/render-result.json
 
-      - name: Promote real render into isolated dashboard library
+      - name: Promote real render into dashboard library
         run: |
           set -euo pipefail
           python -m video.promote_production_video \
@@ -110,11 +117,31 @@ jobs:
             --video-id "${{ inputs.video_id }}" \
             | tee /tmp/playback-verification.json
 
-      - name: Certify activation governance closure
+      - name: Certify activation closure
         run: |
           set -euo pipefail
           python -m video.certify_production_activation \
             | tee /tmp/activation-closure.txt
+
+      - name: Prepare governed GitHub Pages payload
+        run: |
+          set -euo pipefail
+          touch dashboard/.nojekyll
+          test -s dashboard/videos.html
+          test -s dashboard/data/video_library.json
+          test -s "dashboard/videos/${{ inputs.video_id }}.mp4"
+          test -s "dashboard/videos/${{ inputs.video_id }}.jpg"
+          test -s "dashboard/videos/${{ inputs.video_id }}.vtt"
+          find dashboard -maxdepth 4 -type f -print | sort
+
+      - name: Upload governed GitHub Pages payload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard
+
+      - name: Deploy activated dashboard to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Emit activation evidence manifest
         run: |
@@ -129,6 +156,8 @@ jobs:
           cp "dashboard/videos/${{ inputs.video_id }}.mp4" activation-evidence/
           cp "dashboard/videos/${{ inputs.video_id }}.jpg" activation-evidence/
           cp "dashboard/videos/${{ inputs.video_id }}.vtt" activation-evidence/
+          printf '%s\n' "${{ steps.deployment.outputs.page_url }}videos.html" \
+            > activation-evidence/deployed-video-dashboard-url.txt
           (
             cd activation-evidence
             sha256sum * > SHA256SUMS
@@ -138,7 +167,7 @@ jobs:
       - name: Upload governed activation evidence
         uses: actions/upload-artifact@v4
         with:
-          name: football-shorts-ai-0047b-${{ inputs.video_id }}-${{ github.run_id }}
+          name: football-shorts-ai-0047c-${{ inputs.video_id }}-${{ github.run_id }}
           path: activation-evidence/
           if-no-files-found: error
           retention-days: 14
