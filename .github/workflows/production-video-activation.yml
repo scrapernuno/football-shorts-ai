@@ -1,0 +1,135 @@
+name: Controlled Production Video Activation
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: Governed video identifier
+        required: true
+        default: VID-000001
+        type: string
+      render_id:
+        description: Governed render identifier
+        required: true
+        default: RENDER-000001
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-production-video-activation
+  cancel-in-progress: false
+
+jobs:
+  activate-production-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout exact repository revision
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install governed FFmpeg runtime dependency
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          command -v ffmpeg
+          ffmpeg -version | head -n 1
+
+      - name: Configure governed Python runtime
+        run: |
+          set -euo pipefail
+          echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
+          python -m pip install --upgrade pytest
+
+      - name: Compile activation authorities
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/production_brain/brain.py \
+            src/video/audit_production_activation.py \
+            src/video/render_production_video.py \
+            src/video/promote_production_video.py \
+            src/video/verify_dashboard_playback.py \
+            src/video/certify_production_activation.py
+
+      - name: Run governed activation regression
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/video/test_production_activation_readiness.py \
+            tests/video/test_production_render_command.py \
+            tests/video/test_dashboard_asset_installation.py \
+            tests/video/test_production_video_promotion.py \
+            tests/video/test_dashboard_playback_verification.py \
+            tests/video/test_production_activation_closure.py
+
+      - name: Generate controlled production packages
+        run: |
+          set -euo pipefail
+          python -m production_brain.brain
+
+      - name: Audit real rendering activation readiness
+        run: |
+          set -euo pipefail
+          python -m video.audit_production_activation \
+            --video-id "${{ inputs.video_id }}" \
+            --render-id "${{ inputs.render_id }}"
+
+      - name: Execute real governed FFmpeg render
+        run: |
+          set -euo pipefail
+          python -m video.render_production_video \
+            --video-id "${{ inputs.video_id }}" \
+            --render-id "${{ inputs.render_id }}" \
+            --execute \
+            | tee /tmp/render-result.json
+
+      - name: Promote real render into isolated dashboard library
+        run: |
+          set -euo pipefail
+          python -m video.promote_production_video \
+            --video-id "${{ inputs.video_id }}" \
+            --render-id "${{ inputs.render_id }}" \
+            --execute \
+            | tee /tmp/promotion-result.json
+
+      - name: Verify dashboard playback evidence
+        run: |
+          set -euo pipefail
+          python -m video.verify_dashboard_playback \
+            --video-id "${{ inputs.video_id }}" \
+            | tee /tmp/playback-verification.json
+
+      - name: Emit activation evidence manifest
+        run: |
+          set -euo pipefail
+          mkdir -p activation-evidence
+          cp /tmp/render-result.json activation-evidence/render-result.json
+          cp /tmp/promotion-result.json activation-evidence/promotion-result.json
+          cp /tmp/playback-verification.json activation-evidence/playback-verification.json
+          cp dashboard/data/video_library.json activation-evidence/video_library.json
+          cp "dashboard/videos/${{ inputs.video_id }}.mp4" activation-evidence/
+          cp "dashboard/videos/${{ inputs.video_id }}.jpg" activation-evidence/
+          cp "dashboard/videos/${{ inputs.video_id }}.vtt" activation-evidence/
+          (
+            cd activation-evidence
+            sha256sum * > SHA256SUMS
+          )
+          cat activation-evidence/SHA256SUMS
+
+      - name: Upload governed activation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-ai-0047a-${{ inputs.video_id }}-${{ github.run_id }}
+          path: activation-evidence/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
