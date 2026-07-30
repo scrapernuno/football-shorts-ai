@@ -91,6 +91,7 @@ jobs:
             src/video/library_promotion.py \
             src/video/audit_rendering_readiness.py \
             src/video/audit_production_activation.py \
+            src/video/render_production_video.py \
             src/video/certify_render_outputs.py \
             src/video/certify_library_promotion.py \
             src/video/certify_rendering_pipeline.py \
@@ -111,6 +112,7 @@ jobs:
             tests/video/test_library_promotion.py \
             tests/video/test_rendering_pipeline_certification.py \
             tests/video/test_production_activation_readiness.py \
+            tests/video/test_production_render_command.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -131,6 +133,7 @@ jobs:
             tests/video/test_library_promotion.py \
             tests/video/test_rendering_pipeline_certification.py \
             tests/video/test_production_activation_readiness.py \
+            tests/video/test_production_render_command.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -172,3 +175,6 @@ jobs:
 
       - name: Audit controlled production rendering activation readiness
         run: python -m video.audit_production_activation
+
+      - name: Plan controlled production video render
+        run: python -m video.render_production_video
