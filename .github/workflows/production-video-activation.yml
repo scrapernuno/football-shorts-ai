@@ -79,9 +79,7 @@ jobs:
       - name: Audit real rendering activation readiness
         run: |
           set -euo pipefail
-          python -m video.audit_production_activation \
-            --video-id "${{ inputs.video_id }}" \
-            --render-id "${{ inputs.render_id }}"
+          python -m video.audit_production_activation
 
       - name: Execute real governed FFmpeg render
         run: |
