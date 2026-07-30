@@ -64,7 +64,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
+          echo "PATH=$PATH"
           command -v ffmpeg
+          test -x /usr/bin/ffmpeg
           ffmpeg -version | head -n 1
 
       - name: Install test dependency
@@ -100,6 +102,7 @@ jobs:
             src/video/audit_production_activation.py \
             src/video/render_production_video.py \
             src/video/install_dashboard_assets.py \
+            src/video/promote_production_video.py \
             src/video/certify_render_outputs.py \
             src/video/certify_library_promotion.py \
             src/video/certify_rendering_pipeline.py \
@@ -122,6 +125,7 @@ jobs:
             tests/video/test_production_activation_readiness.py \
             tests/video/test_production_render_command.py \
             tests/video/test_dashboard_asset_installation.py \
+            tests/video/test_production_video_promotion.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -144,6 +148,7 @@ jobs:
             tests/video/test_production_activation_readiness.py \
             tests/video/test_production_render_command.py \
             tests/video/test_dashboard_asset_installation.py \
+            tests/video/test_production_video_promotion.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
