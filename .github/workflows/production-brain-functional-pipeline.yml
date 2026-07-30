@@ -87,6 +87,7 @@ jobs:
             src/knowledge/policy.py \
             src/video/contracts.py \
             src/video/rendering.py \
+            src/video/ffmpeg_runtime.py \
             src/video/audit_rendering_readiness.py \
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
@@ -100,6 +101,7 @@ jobs:
             tests/knowledge/test_research_multi_provider_integration.py \
             tests/video/test_video_asset_contract.py \
             tests/video/test_rendering_contract.py \
+            tests/video/test_ffmpeg_runtime.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -115,6 +117,7 @@ jobs:
             tests/knowledge/test_research_multi_provider_integration.py \
             tests/video/test_video_asset_contract.py \
             tests/video/test_rendering_contract.py \
+            tests/video/test_ffmpeg_runtime.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
