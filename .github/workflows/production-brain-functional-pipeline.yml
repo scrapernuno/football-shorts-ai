@@ -104,6 +104,7 @@ jobs:
             src/video/install_dashboard_assets.py \
             src/video/promote_production_video.py \
             src/video/verify_dashboard_playback.py \
+            src/video/certify_production_activation.py \
             src/video/certify_render_outputs.py \
             src/video/certify_library_promotion.py \
             src/video/certify_rendering_pipeline.py \
@@ -128,6 +129,7 @@ jobs:
             tests/video/test_dashboard_asset_installation.py \
             tests/video/test_production_video_promotion.py \
             tests/video/test_dashboard_playback_verification.py \
+            tests/video/test_production_activation_closure.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -152,6 +154,7 @@ jobs:
             tests/video/test_dashboard_asset_installation.py \
             tests/video/test_production_video_promotion.py \
             tests/video/test_dashboard_playback_verification.py \
+            tests/video/test_production_activation_closure.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -187,6 +190,9 @@ jobs:
 
       - name: Certify final governed rendering pipeline
         run: python -m video.certify_rendering_pipeline
+
+      - name: Certify controlled production rendering activation closure
+        run: python -m video.certify_production_activation
 
       - name: Generate controlled production packages for activation audit
         run: python -m production_brain.brain
