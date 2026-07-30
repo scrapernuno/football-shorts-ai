@@ -15,9 +15,8 @@ on:
         type: string
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
+  actions: write
 
 concurrency:
   group: controlled-production-video-activation
@@ -27,16 +26,13 @@ jobs:
   activate-production-video:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout exact repository revision
         uses: actions/checkout@v4
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -123,25 +119,44 @@ jobs:
           python -m video.certify_production_activation \
             | tee /tmp/activation-closure.txt
 
-      - name: Prepare governed GitHub Pages payload
+      - name: Validate persistent dashboard assets
         run: |
           set -euo pipefail
-          touch dashboard/.nojekyll
           test -s dashboard/videos.html
           test -s dashboard/data/video_library.json
           test -s "dashboard/videos/${{ inputs.video_id }}.mp4"
           test -s "dashboard/videos/${{ inputs.video_id }}.jpg"
           test -s "dashboard/videos/${{ inputs.video_id }}.vtt"
-          find dashboard -maxdepth 4 -type f -print | sort
 
-      - name: Upload governed GitHub Pages payload
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dashboard
+      - name: Persist activated video without replacing dashboard data
+        id: persist
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy activated dashboard to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git add \
+            dashboard/data/video_library.json \
+            "dashboard/videos/${{ inputs.video_id }}.mp4" \
+            "dashboard/videos/${{ inputs.video_id }}.jpg" \
+            "dashboard/videos/${{ inputs.video_id }}.vtt"
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No governed video asset changes to persist."
+          else
+            git commit -m "feat(video): activate ${{ inputs.video_id }}"
+            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Redeploy complete dashboard through canonical pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run football-shorts.yml --ref main
+          echo "Canonical Football Shorts AI Pipeline dispatched."
 
       - name: Emit activation evidence manifest
         run: |
@@ -156,8 +171,8 @@ jobs:
           cp "dashboard/videos/${{ inputs.video_id }}.mp4" activation-evidence/
           cp "dashboard/videos/${{ inputs.video_id }}.jpg" activation-evidence/
           cp "dashboard/videos/${{ inputs.video_id }}.vtt" activation-evidence/
-          printf '%s\n' "${{ steps.deployment.outputs.page_url }}videos.html" \
-            > activation-evidence/deployed-video-dashboard-url.txt
+          printf '%s\n' "https://dynam.../videos.html" \
+            > activation-evidence/canonical-video-dashboard-path.txt
           (
             cd activation-evidence
             sha256sum * > SHA256SUMS
@@ -167,7 +182,7 @@ jobs:
       - name: Upload governed activation evidence
         uses: actions/upload-artifact@v4
         with:
-          name: football-shorts-ai-0047c-${{ inputs.video_id }}-${{ github.run_id }}
+          name: football-shorts-ai-0047d-${{ inputs.video_id }}-${{ github.run_id }}
           path: activation-evidence/
           if-no-files-found: error
           retention-days: 14
