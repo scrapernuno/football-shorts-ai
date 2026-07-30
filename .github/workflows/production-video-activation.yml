@@ -41,6 +41,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ffmpeg
           command -v ffmpeg
+          test -x /usr/bin/ffmpeg
           ffmpeg -version | head -n 1
 
       - name: Configure governed Python runtime
@@ -76,10 +77,13 @@ jobs:
           set -euo pipefail
           python -m production_brain.brain
 
-      - name: Audit real rendering activation readiness
+      - name: Audit exact real activation target
         run: |
           set -euo pipefail
-          python -m video.audit_production_activation
+          python -m video.audit_production_activation \
+            --video-id "${{ inputs.video_id }}" \
+            --render-id "${{ inputs.render_id }}" \
+            | tee /tmp/readiness-report.txt
 
       - name: Execute real governed FFmpeg render
         run: |
@@ -106,13 +110,21 @@ jobs:
             --video-id "${{ inputs.video_id }}" \
             | tee /tmp/playback-verification.json
 
+      - name: Certify activation governance closure
+        run: |
+          set -euo pipefail
+          python -m video.certify_production_activation \
+            | tee /tmp/activation-closure.txt
+
       - name: Emit activation evidence manifest
         run: |
           set -euo pipefail
           mkdir -p activation-evidence
+          cp /tmp/readiness-report.txt activation-evidence/readiness-report.txt
           cp /tmp/render-result.json activation-evidence/render-result.json
           cp /tmp/promotion-result.json activation-evidence/promotion-result.json
           cp /tmp/playback-verification.json activation-evidence/playback-verification.json
+          cp /tmp/activation-closure.txt activation-evidence/activation-closure.txt
           cp dashboard/data/video_library.json activation-evidence/video_library.json
           cp "dashboard/videos/${{ inputs.video_id }}.mp4" activation-evidence/
           cp "dashboard/videos/${{ inputs.video_id }}.jpg" activation-evidence/
@@ -126,7 +138,7 @@ jobs:
       - name: Upload governed activation evidence
         uses: actions/upload-artifact@v4
         with:
-          name: football-shorts-ai-0047a-${{ inputs.video_id }}-${{ github.run_id }}
+          name: football-shorts-ai-0047b-${{ inputs.video_id }}-${{ github.run_id }}
           path: activation-evidence/
           if-no-files-found: error
           retention-days: 14
