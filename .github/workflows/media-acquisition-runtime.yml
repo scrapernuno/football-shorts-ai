@@ -7,18 +7,22 @@ on:
       - "src/assets/media_acquisition_runtime.py"
       - "src/assets/controlled_provider_discovery.py"
       - "src/assets/materialize_selected_media.py"
+      - "src/assets/orchestrate_media_acquisition.py"
       - "tests/assets/test_media_acquisition_runtime.py"
       - "tests/assets/test_controlled_provider_discovery.py"
       - "tests/assets/test_materialize_selected_media.py"
+      - "tests/assets/test_orchestrate_media_acquisition.py"
       - ".github/workflows/media-acquisition-runtime.yml"
   pull_request:
     paths:
       - "src/assets/media_acquisition_runtime.py"
       - "src/assets/controlled_provider_discovery.py"
       - "src/assets/materialize_selected_media.py"
+      - "src/assets/orchestrate_media_acquisition.py"
       - "tests/assets/test_media_acquisition_runtime.py"
       - "tests/assets/test_controlled_provider_discovery.py"
       - "tests/assets/test_materialize_selected_media.py"
+      - "tests/assets/test_orchestrate_media_acquisition.py"
       - ".github/workflows/media-acquisition-runtime.yml"
 
 permissions:
@@ -48,40 +52,43 @@ jobs:
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
 
-      - name: Compile governed runtime discovery and delivery authorities
+      - name: Compile governed acquisition authorities
         run: |
           set -euo pipefail
           python -m py_compile \
             src/assets/contracts.py \
+            src/assets/build_media_acquisition_plan.py \
             src/assets/media_acquisition_runtime.py \
             src/assets/controlled_provider_discovery.py \
             src/assets/materialize_selected_media.py \
+            src/assets/orchestrate_media_acquisition.py \
             tests/assets/test_media_acquisition_runtime.py \
             tests/assets/test_controlled_provider_discovery.py \
-            tests/assets/test_materialize_selected_media.py
+            tests/assets/test_materialize_selected_media.py \
+            tests/assets/test_orchestrate_media_acquisition.py
 
-      - name: Run governed acquisition and delivery certification
+      - name: Run governed acquisition orchestration certification
         run: |
           set -euo pipefail
           pytest -q \
             tests/assets/test_media_acquisition_runtime.py \
             tests/assets/test_controlled_provider_discovery.py \
-            tests/assets/test_materialize_selected_media.py
+            tests/assets/test_materialize_selected_media.py \
+            tests/assets/test_orchestrate_media_acquisition.py
 
       - name: Emit certification summary
         run: |
           {
-            echo "## FOOTBALL-SHORTS-AI-0048C"
+            echo "## FOOTBALL-SHORTS-AI-0048D"
             echo
-            echo "- Media Acquisition Runtime: PASS"
-            echo "- Owned-library discovery adapter: PASS"
-            echo "- Pexels controlled discovery adapter: PASS"
-            echo "- Rights-aware selection: PASS"
+            echo "- Acquisition plan generation: PASS"
+            echo "- Controlled provider discovery: PASS"
+            echo "- Rights-aware deterministic ranking: PASS"
             echo "- Selected asset materialization: PASS"
-            echo "- HTTPS and local-file delivery gate: PASS"
             echo "- MIME and media signature validation: PASS"
-            echo "- Maximum asset size enforcement: PASS"
             echo "- SHA-256 evidence binding: PASS"
-            echo "- Atomic asset and manifest persistence: PASS"
-            echo "- Watermark and cross-platform rights gates: PASS"
+            echo "- Atomic plan, manifest and asset persistence: PASS"
+            echo "- Stale output removal: PASS"
+            echo "- Blocked-scene delivery prevention: PASS"
+            echo "- End-to-end orchestration: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
