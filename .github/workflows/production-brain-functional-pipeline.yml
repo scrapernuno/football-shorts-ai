@@ -88,8 +88,10 @@ jobs:
             src/video/contracts.py \
             src/video/rendering.py \
             src/video/ffmpeg_runtime.py \
+            src/video/library_promotion.py \
             src/video/audit_rendering_readiness.py \
             src/video/certify_render_outputs.py \
+            src/video/certify_library_promotion.py \
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
             src/dashboard/certify_video_actions.py \
@@ -104,6 +106,7 @@ jobs:
             tests/video/test_rendering_contract.py \
             tests/video/test_ffmpeg_runtime.py \
             tests/video/test_render_outputs_certification.py \
+            tests/video/test_library_promotion.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -121,6 +124,7 @@ jobs:
             tests/video/test_rendering_contract.py \
             tests/video/test_ffmpeg_runtime.py \
             tests/video/test_render_outputs_certification.py \
+            tests/video/test_library_promotion.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -150,3 +154,6 @@ jobs:
 
       - name: Certify governed subtitle and thumbnail outputs
         run: python -m video.certify_render_outputs
+
+      - name: Certify atomic video library promotion
+        run: python -m video.certify_library_promotion
