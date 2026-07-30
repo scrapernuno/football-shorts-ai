@@ -92,6 +92,7 @@ jobs:
             src/video/audit_rendering_readiness.py \
             src/video/certify_render_outputs.py \
             src/video/certify_library_promotion.py \
+            src/video/certify_rendering_pipeline.py \
             src/dashboard/certify_video_library.py \
             src/dashboard/certify_video_player.py \
             src/dashboard/certify_video_actions.py \
@@ -107,6 +108,7 @@ jobs:
             tests/video/test_ffmpeg_runtime.py \
             tests/video/test_render_outputs_certification.py \
             tests/video/test_library_promotion.py \
+            tests/video/test_rendering_pipeline_certification.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -125,6 +127,7 @@ jobs:
             tests/video/test_ffmpeg_runtime.py \
             tests/video/test_render_outputs_certification.py \
             tests/video/test_library_promotion.py \
+            tests/video/test_rendering_pipeline_certification.py \
             tests/dashboard/test_video_library.py \
             tests/dashboard/test_video_actions.py
 
@@ -157,3 +160,6 @@ jobs:
 
       - name: Certify atomic video library promotion
         run: python -m video.certify_library_promotion
+
+      - name: Certify final governed rendering pipeline
+        run: python -m video.certify_rendering_pipeline
