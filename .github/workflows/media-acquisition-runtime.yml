@@ -1,0 +1,68 @@
+name: Governed Media Acquisition Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/assets/media_acquisition_runtime.py"
+      - "tests/assets/test_media_acquisition_runtime.py"
+      - ".github/workflows/media-acquisition-runtime.yml"
+  pull_request:
+    paths:
+      - "src/assets/media_acquisition_runtime.py"
+      - "tests/assets/test_media_acquisition_runtime.py"
+      - ".github/workflows/media-acquisition-runtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governed-media-acquisition-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certify-media-acquisition-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependency
+        run: python -m pip install --upgrade pytest
+
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}/src" >> "$GITHUB_ENV"
+
+      - name: Compile governed runtime
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/assets/contracts.py \
+            src/assets/media_acquisition_runtime.py \
+            tests/assets/test_media_acquisition_runtime.py
+
+      - name: Run governed runtime certification
+        run: |
+          set -euo pipefail
+          pytest -q tests/assets/test_media_acquisition_runtime.py
+
+      - name: Emit certification summary
+        run: |
+          {
+            echo "## FOOTBALL-SHORTS-AI-0048A"
+            echo
+            echo "- Media Acquisition Runtime: PASS"
+            echo "- Rights-aware selection: PASS"
+            echo "- Unlicensed media rejection: PASS"
+            echo "- Watermark rejection: PASS"
+            echo "- TikTok original-file and licence gate: PASS"
+            echo "- Deterministic ranking: PASS"
+            echo "- Atomic manifest write: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
