@@ -1,0 +1,114 @@
+name: FOOTBALL-SHORTS-AI-0052D Dashboard Integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/football-shorts-ai-0052d-dashboard-integration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-video-library:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Integrate Video Library into main dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("dashboard/index.html")
+          text = path.read_text(encoding="utf-8")
+
+          nav_marker = '''            <a href="#publishing">\n                Publishing\n            </a>'''
+          nav_entry = '''            <a href="#video-library">\n                Video Library\n            </a>\n\n            <a href="#publishing">\n                Publishing\n            </a>'''
+
+          if 'href="#video-library"' not in text:
+              if nav_marker not in text:
+                  raise SystemExit("0052D_NAV_ANCHOR_NOT_FOUND")
+              text = text.replace(nav_marker, nav_entry, 1)
+
+          section_marker = '''            <!-- ================================================== -->\n            <!-- PUBLISHING STUDIO -->\n            <!-- ================================================== -->'''
+          section = '''            <!-- ================================================== -->
+            <!-- VIDEO FACTORY / VIDEO LIBRARY -->
+            <!-- FOOTBALL-SHORTS-AI-0052D -->
+            <!-- ================================================== -->
+
+            <section
+                id="video-library"
+                class="panel"
+            >
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">VIDEO FACTORY</p>
+                        <h2>Video Library</h2>
+                    </div>
+
+                    <a
+                        href="videos.html"
+                        class="count-badge"
+                        style="text-decoration:none"
+                    >
+                        Abrir biblioteca completa ↗
+                    </a>
+                </div>
+
+                <p style="margin:0 0 1rem;color:var(--muted-color,#9aa7b8)">
+                    Pré-visualização dos Shorts renderizados. O primeiro vídeo ready é selecionado automaticamente.
+                </p>
+
+                <iframe
+                    src="videos.html"
+                    title="Football Shorts AI Video Library"
+                    loading="lazy"
+                    style="width:100%;height:760px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#07111f"
+                ></iframe>
+            </section>
+
+
+            <!-- ================================================== -->
+            <!-- PUBLISHING STUDIO -->
+            <!-- ================================================== -->'''
+
+          if 'id="video-library"' not in text:
+              if section_marker not in text:
+                  raise SystemExit("0052D_SECTION_ANCHOR_NOT_FOUND")
+              text = text.replace(section_marker, section, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Validate integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'href="#video-library"' dashboard/index.html
+          grep -q 'id="video-library"' dashboard/index.html
+          grep -q 'src="videos.html"' dashboard/index.html
+          test -f dashboard/videos.html
+          test -f dashboard/assets/video-library.js
+          test -f dashboard/data/video_library.json
+          test -f dashboard/videos/VID-000001.mp4
+
+      - name: Commit generated integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- dashboard/index.html; then
+            echo "0052D_ALREADY_APPLIED=YES"
+            exit 0
+          fi
+          git config user.name "football-shorts-ai-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add dashboard/index.html
+          git commit -m "Apply FOOTBALL-SHORTS-AI-0052D dashboard video integration"
+          git push
