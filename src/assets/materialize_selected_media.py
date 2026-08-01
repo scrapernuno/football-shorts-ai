@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import mimetypes
 import os
-import shutil
 import tempfile
 import urllib.request
 from dataclasses import asdict, dataclass
@@ -148,21 +146,23 @@ def _materialize_candidate(
             os.fsync(output.fileno())
         if size <= 0:
             raise MediaDeliveryError("delivered asset is empty")
-        mime_type = _detect_mime(temporary, extension)
-        _validate_media_signature(temporary, media_type, mime_type)
+        mime_type = _detect_mime(temporary)
+        _validate_media_signature(media_type, mime_type)
         os.replace(temporary, target)
         _fsync_directory(root)
     except Exception:
         temporary.unlink(missing_ok=True)
         raise
 
+    cwd = Path.cwd().resolve()
+    local_path = target.relative_to(cwd).as_posix() if cwd in target.parents else target.as_posix()
     return DeliveredAsset(
         scene_number=scene_number,
         provider_id=provider_id,
         provider_asset_id=provider_asset_id,
         media_type=media_type,
         source_url=delivery_url,
-        local_path=target.relative_to(Path.cwd().resolve()).as_posix() if Path.cwd().resolve() in target.parents else target.as_posix(),
+        local_path=local_path,
         mime_type=mime_type,
         size_bytes=size,
         checksum_sha256=digest.hexdigest(),
@@ -194,13 +194,17 @@ def _default_open_url(value: str) -> BinaryIO:
 
 def _safe_extension(url: str, media_type: str) -> str:
     suffix = Path(url.split("?", 1)[0]).suffix.lower()
-    allowed = {"video": {".mp4", ".mov", ".webm"}, "image": {".jpg", ".jpeg", ".png", ".webp"}}
+    allowed = {
+        "video": {".mp4", ".mov", ".webm"},
+        "image": {".jpg", ".jpeg", ".png", ".webp"},
+    }
     if media_type not in allowed or suffix not in allowed[media_type]:
         raise MediaDeliveryError(f"unsupported {media_type} delivery extension: {suffix or '<none>'}")
     return suffix
 
 
-def _detect_mime(path: Path, extension: str) -> str:
+def _detect_mime(path: Path) -> str:
+    """Detect MIME strictly from governed file signatures, never extensions."""
     header = path.read_bytes()[:16]
     if len(header) >= 12 and header[4:8] == b"ftyp":
         return "video/mp4"
@@ -208,15 +212,12 @@ def _detect_mime(path: Path, extension: str) -> str:
         return "image/jpeg"
     if header.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
-    if header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+    if len(header) >= 12 and header.startswith(b"RIFF") and header[8:12] == b"WEBP":
         return "image/webp"
-    guessed = mimetypes.types_map.get(extension)
-    if guessed:
-        return guessed
-    raise MediaDeliveryError("unable to determine delivered asset MIME type")
+    raise MediaDeliveryError("unable to determine delivered asset MIME type from signature")
 
 
-def _validate_media_signature(path: Path, media_type: str, mime_type: str) -> None:
+def _validate_media_signature(media_type: str, mime_type: str) -> None:
     if media_type == "video" and mime_type != "video/mp4":
         raise MediaDeliveryError("only validated MP4 video delivery is currently supported")
     if media_type == "image" and not mime_type.startswith("image/"):
@@ -257,7 +258,11 @@ def main() -> int:
     args = parser.parse_args()
     manifest_path = Path(args.manifest)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest = materialize_selected_media(payload, workspace=Path(args.workspace), maximum_asset_bytes=args.maximum_asset_bytes)
+    manifest = materialize_selected_media(
+        payload,
+        workspace=Path(args.workspace),
+        maximum_asset_bytes=args.maximum_asset_bytes,
+    )
     write_delivery_manifest(Path(args.output), manifest)
     print(json.dumps(manifest.to_dict(), ensure_ascii=False, indent=2))
     return 0
