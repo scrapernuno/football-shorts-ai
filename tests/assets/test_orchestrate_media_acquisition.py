@@ -112,7 +112,7 @@ def _candidate() -> AssetCandidate:
         provider_id="owned_library",
         provider_asset_id="OWN-ORCH-001",
         media_type="video",
-        subject_scope=SubjectScope.GENERIC_FOOTBALL,
+        subject_scope=SubjectScope.SPECIFIC_FOOTBALL,
         title="Generic stadium crowd fans",
         source_url="internal://owned/OWN-ORCH-001",
         preview_url=None,
