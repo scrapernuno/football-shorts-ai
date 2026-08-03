@@ -1,0 +1,33 @@
+{
+  "schema": "football-shorts-ai.final-render-package.v1",
+  "render_package_id": "RENDERPKG-PENDING0060I000001",
+  "timeline_id": "TIMELINE-PENDING0060I00001",
+  "output_format": "mp4",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "video_codec": "libx264",
+  "audio_codec": "aac",
+  "duration_seconds": 0,
+  "inputs": [],
+  "ffmpeg_design": {
+    "executable": "ffmpeg",
+    "arguments": [],
+    "output_uri": "artifacts/final/football-short.mp4",
+    "command_preview": "",
+    "execution_enabled": false
+  },
+  "package_state": "blocked",
+  "blockers": [
+    "AUTHORIZED_VIDEO_INPUT_MISSING",
+    "FINAL_TIMELINE_MISSING",
+    "HUMAN_RENDER_AUTHORIZATION_REQUIRED"
+  ],
+  "network_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "ffmpeg_execution_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "PENDING_RUNTIME_EXPORT"
+}
