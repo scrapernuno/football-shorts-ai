@@ -80,7 +80,13 @@ class DiscoveryCatalogSnapshot:
 
 
 def snapshot_library(library: FootballLibrary) -> DiscoveryCatalogSnapshot:
-    assets = tuple(library.assets())
+    dashboard_payload = library.to_dashboard_dict()
+    raw_assets = dashboard_payload.get("assets")
+    if not isinstance(raw_assets, list):
+        raise DiscoveryCatalogPersistenceError(
+            "football library export does not contain an assets array"
+        )
+    assets = tuple(_asset_from_mapping(item) for item in raw_assets)
     unsigned = {
         "schema": CATALOG_SCHEMA,
         "assets": [asset.to_dict() for asset in assets],
