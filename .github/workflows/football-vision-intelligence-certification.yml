@@ -1,0 +1,97 @@
+name: Football Vision Intelligence Certification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/vision/**"
+      - "tests/vision/**"
+      - ".github/workflows/football-vision-intelligence-certification.yml"
+  pull_request:
+    paths:
+      - "src/vision/**"
+      - "tests/vision/**"
+      - ".github/workflows/football-vision-intelligence-certification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: football-vision-intelligence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Certify 0057A-0057J
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install certification dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m pip install --upgrade pip
+
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+
+          python -m pip install pytest
+
+          python --version
+          python -m pip --version
+          python -m pytest --version
+
+      - name: Compile Football Vision sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q src/vision tests/vision
+
+      - name: Run focused 0057A-0057J tests
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/vision
+
+      - name: Run 0057J final certification
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python src/vision/certify_football_vision_intelligence.py | tee football-vision-certification.txt
+          grep -Fx "CERTIFIED" football-vision-certification.txt
+          grep -Fx "NETWORK_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "ACQUISITION_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "EXTERNAL_MODEL_EXECUTION_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "BIOMETRIC_ENROLMENT_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "MODEL_TRAINING_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "EXTRACTION_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "RENDER_ENABLED=DISABLED" football-vision-certification.txt
+          grep -Fx "AUTO_RENDER=DISABLED" football-vision-certification.txt
+          grep -Fx "AUTO_PUBLISH=DISABLED" football-vision-certification.txt
+
+      - name: Upload certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: football-vision-intelligence-certification
+          path: football-vision-certification.txt
+          if-no-files-found: warn
+          retention-days: 30
