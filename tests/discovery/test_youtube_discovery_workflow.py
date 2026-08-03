@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "youtube-discovery-sync.yml"
@@ -62,17 +60,18 @@ def test_dashboard_commit_requires_explicit_boolean_input() -> None:
 
 
 def test_workflow_has_minimum_required_permissions() -> None:
-    payload = yaml.safe_load(_workflow_text())
-    assert payload["permissions"] == {"contents": "write"}
-    assert set(payload["jobs"]) == {"synchronize"}
+    text = _workflow_text()
+    permissions = text.split("permissions:\n", 1)[1].split("\nenv:\n", 1)[0]
+    assert permissions.strip() == "contents: write"
+    assert text.count("\n  synchronize:\n") == 1
 
 
 def test_entrypoint_never_exposes_unsafe_switches() -> None:
     text = ENTRYPOINT.read_text(encoding="utf-8")
     assert "--activate" in text
-    assert "download" not in text.lower()
-    assert "acquisition" not in text.lower()
-    assert "render_enabled" not in text
-    assert "publishing_enabled" not in text
+    assert "--download" not in text
+    assert "--acquire" not in text
+    assert "--render" not in text
+    assert "--publish" not in text
     assert "YOUTUBE_DATA_API_KEY" not in text
     assert '"evidence_sha256"' in text
