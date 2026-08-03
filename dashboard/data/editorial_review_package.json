@@ -1,0 +1,69 @@
+{
+  "schema": "football-shorts-ai.editorial-review-package.v1",
+  "package_id": "EDITORIALPKG-INITIALFAILCLOSED0001",
+  "timeline": {
+    "timeline_id": "AUTOTIMELINE-INITIALFAILCLOSED01",
+    "alignment_id": "ALIGN-INITIALFAILCLOSED001",
+    "editorial_score_id": "EDITSCORE-INITIALFAILCLOSED",
+    "title": "Editorial Intelligence aguardando dados reais",
+    "aspect_ratio": "9:16",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "scenes": [
+      {
+        "order": 1,
+        "beat_id": "BEAT-INITIAL-0001",
+        "beat_role": "hook",
+        "beat_text": "Execute a cadeia editorial com media próprio ou licenciado para gerar a primeira proposta real.",
+        "scene_id": "SCENE-INITIAL-0001",
+        "provider": "none",
+        "source_start_seconds": 0.0,
+        "source_end_seconds": 3.0,
+        "timeline_start_seconds": 0.0,
+        "timeline_end_seconds": 3.0,
+        "duration_seconds": 3.0,
+        "transition": "none",
+        "match_score": 0.0,
+        "render_allowed": false,
+        "rights_status": "missing_evidence",
+        "blockers": [
+          "EDITORIAL_EVIDENCE_MISSING",
+          "RENDER_RIGHTS_NOT_ESTABLISHED"
+        ]
+      }
+    ],
+    "total_duration_seconds": 3.0,
+    "timeline_state": "blocked",
+    "blockers": [
+      "EDITORIAL_EVIDENCE_MISSING",
+      "RENDER_RIGHTS_NOT_ESTABLISHED"
+    ]
+  },
+  "scorecard": {
+    "score_id": "EDITSCORE-INITIALFAILCLOSED",
+    "alignment_id": "ALIGN-INITIALFAILCLOSED001",
+    "editorial_quality_score": 0.0,
+    "viral_potential_score": 0.0,
+    "retention_potential_score": 0.0,
+    "rights_readiness_score": 0.0,
+    "quality_band": "low",
+    "score_state": "blocked",
+    "blockers": [
+      "EDITORIAL_EVIDENCE_MISSING",
+      "RENDER_RIGHTS_NOT_ESTABLISHED"
+    ]
+  },
+  "alternatives_by_beat": {},
+  "blockers": [
+    "EDITORIAL_EVIDENCE_MISSING",
+    "RENDER_RIGHTS_NOT_ESTABLISHED"
+  ],
+  "review_required": true,
+  "factory_handover_enabled": false,
+  "network_enabled": false,
+  "acquisition_enabled": false,
+  "render_enabled": false,
+  "auto_render": false,
+  "auto_publish": false,
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
