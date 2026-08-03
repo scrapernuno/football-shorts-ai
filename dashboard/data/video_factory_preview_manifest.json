@@ -1,0 +1,16 @@
+{
+  "schema": "football-shorts-ai.video-factory-preview.v1",
+  "manifest_id": "PREVIEW-BLOCKED-INITIAL",
+  "preview_state": "blocked",
+  "total_duration_seconds": 0,
+  "segments": [],
+  "blockers": [
+    "FACTORY_HANDOVER_EVIDENCE_MISSING",
+    "AUTHORIZED_PREVIEW_MEDIA_MISSING"
+  ],
+  "network_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false
+}
