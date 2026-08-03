@@ -1,0 +1,19 @@
+{
+  "schema": "football-shorts-ai.thumbnail-composition.v1",
+  "composition_id": "THUMBCOMP-BLOCKED000000000000",
+  "source_variant_id": "",
+  "candidates": [],
+  "selected_candidate_id": null,
+  "composition_state": "blocked",
+  "blockers": [
+    "APPROVED_VARIANT_MISSING",
+    "THUMBNAIL_CANDIDATES_MISSING",
+    "AUTHORIZED_THUMBNAIL_MEDIA_MISSING"
+  ],
+  "network_enabled": false,
+  "generation_enabled": false,
+  "acquisition_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "NOT_CERTIFIED"
+}
