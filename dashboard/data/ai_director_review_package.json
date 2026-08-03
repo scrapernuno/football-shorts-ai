@@ -1,17 +1,24 @@
 {
-  "schema": "football-shorts-ai.ai-director-review.v1",
-  "package_id": "AIDIRECTOR-DASHBOARD-INITIAL",
-  "director_state": "blocked",
-  "recommended_variant_id": null,
-  "handover_state": "blocked",
+  "acquisition_enabled": false,
+  "approval": {},
+  "auto_publish": false,
   "blockers": [
     "AI_DIRECTOR_EVIDENCE_MISSING",
-    "HUMAN_APPROVAL_REQUIRED"
+    "FACTORY_HANDOVER_NOT_READY",
+    "HUMAN_APPROVAL_REQUIRED",
+    "VARIANT_RANKING_EVIDENCE_MISSING"
   ],
-  "variants": [],
-  "network_enabled": false,
-  "acquisition_enabled": false,
+  "director_report": {},
+  "evidence_sha256": "1610dc20fa4466fe13963dd5be1ac7b1d75952f8913d75a8c24733c65db105af",
   "extraction_enabled": false,
+  "factory_handover": {},
+  "narrative_alignment": {},
+  "network_enabled": false,
+  "package_id": "AIDIRPKG-87E54B7D1D49C5005F15",
+  "package_state": "blocked",
+  "performance_ranking": {},
   "render_enabled": false,
-  "auto_publish": false
+  "schema": "football-shorts-ai.ai-director-review-package.v1",
+  "timing_optimization": {},
+  "variants": []
 }
