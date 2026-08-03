@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Football Shorts AI Editorial Review Studio">
+  <title>Editorial Review · Football Shorts AI</title>
+  <link rel="stylesheet" href="assets/editorial-review.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FOOTBALL-SHORTS-AI-0056H</p>
+      <h1>Editorial Review Studio</h1>
+      <p>Reveja a correspondência entre texto e cenas, compare alternativas e aprove manualmente a proposta antes da Factory.</p>
+    </div>
+    <nav>
+      <a href="timeline-studio.html">Timeline Studio</a>
+      <a href="discovery.html">Discovery Library</a>
+      <a href="index.html">Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="review-shell">
+    <section class="score-grid" aria-label="Resumo editorial">
+      <article class="score-card"><span>QUALIDADE</span><strong id="quality-score">—</strong><small id="quality-band">Sem evidência</small></article>
+      <article class="score-card"><span>POTENCIAL VIRAL</span><strong id="viral-score">—</strong><small>Estimativa editorial</small></article>
+      <article class="score-card"><span>RETENÇÃO</span><strong id="retention-score">—</strong><small>Potencial previsto</small></article>
+      <article class="score-card"><span>DIREITOS</span><strong id="rights-score">—</strong><small id="rights-state">Fail-closed</small></article>
+      <article class="score-card"><span>ESTADO</span><strong id="review-state" class="status warning">NOT_LOADED</strong><small>Revisão humana obrigatória</small></article>
+    </section>
+
+    <section class="toolbar panel">
+      <div>
+        <p class="eyebrow">EVIDENCE</p>
+        <h2>Carregar proposta automática</h2>
+      </div>
+      <div class="toolbar-actions">
+        <button id="load-dashboard-data" type="button">Carregar dados da Dashboard</button>
+        <label class="file-button">Importar JSON<input id="import-json" type="file" accept="application/json"></label>
+        <button id="reset-review" type="button" class="secondary">Limpar revisão</button>
+      </div>
+      <p id="load-message" class="helper">Procura `data/editorial_review_package.json` e, em alternativa, evidência guardada localmente.</p>
+    </section>
+
+    <section class="workspace-grid">
+      <article class="panel sequence-panel">
+        <div class="section-heading">
+          <div><p class="eyebrow">STORY ↔ SCENES</p><h2>Sequência editorial</h2></div>
+          <span id="scene-count" class="pill">0 cenas</span>
+        </div>
+        <div id="scene-list" class="scene-list" aria-live="polite"></div>
+      </article>
+
+      <aside class="panel inspector">
+        <div class="section-heading"><div><p class="eyebrow">HUMAN GATE</p><h2>Decisão editorial</h2></div></div>
+        <label>Decisão
+          <select id="decision">
+            <option value="pending">Pendente</option>
+            <option value="approved">Aprovar proposta</option>
+            <option value="changes_requested">Pedir alterações</option>
+            <option value="rejected">Rejeitar</option>
+          </select>
+        </label>
+        <label>Observações
+          <textarea id="review-notes" rows="6" maxlength="2000" placeholder="Justifique a decisão, cenas a trocar ou alterações ao texto."></textarea>
+        </label>
+        <div id="blockers" class="blockers"></div>
+        <button id="save-review" type="button">Guardar revisão</button>
+        <button id="export-review" type="button" class="secondary">Exportar evidência JSON</button>
+        <button id="approve-factory" type="button" disabled>Aprovar para preparação da Factory</button>
+        <p class="safety-note">A aprovação apenas cria evidência de handover. Não descarrega media, não renderiza e não publica.</p>
+      </aside>
+    </section>
+  </main>
+
+  <template id="empty-template">
+    <div class="empty-state"><h3>Sem proposta editorial</h3><p>Carregue o pacote gerado pelo 0056G para rever o texto, cenas, scores e direitos.</p></div>
+  </template>
+
+  <script src="assets/editorial-review.js"></script>
+</body>
+</html>
