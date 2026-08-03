@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI Director Review Studio</title>
+  <link rel="stylesheet" href="assets/ai-director-review.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FOOTBALL SHORTS AI · 0058G</p>
+      <h1>AI Director Review Studio</h1>
+    </div>
+    <a class="back" href="index.html">← Dashboard</a>
+  </header>
+
+  <main>
+    <section class="status-grid" aria-label="Estado do AI Director">
+      <article><span>Estado</span><strong id="directorState">NOT_LOADED</strong></article>
+      <article><span>Recomendação</span><strong id="recommendedVariant">—</strong></article>
+      <article><span>Viral score</span><strong id="viralScore">—</strong></article>
+      <article><span>Factory handover</span><strong id="handoverState">BLOCKED</strong></article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">VARIANTES</p>
+          <h2>Comparação editorial</h2>
+        </div>
+        <button id="importButton" type="button">Importar JSON</button>
+        <input id="fileInput" type="file" accept="application/json" hidden>
+      </div>
+      <div id="variantGrid" class="variant-grid"></div>
+    </section>
+
+    <section class="panel two-column">
+      <div>
+        <p class="eyebrow">TIMELINE</p>
+        <h2>Beats, clips e transições</h2>
+        <div id="timeline" class="timeline"></div>
+      </div>
+      <aside>
+        <p class="eyebrow">REVISÃO HUMANA</p>
+        <h2>Decisão final</h2>
+        <label>Revisor<input id="reviewer" type="text" autocomplete="name"></label>
+        <label>Notas<textarea id="notes" rows="7"></textarea></label>
+        <div class="decision-row">
+          <button data-decision="approved" type="button">Aprovar</button>
+          <button data-decision="changes_requested" type="button">Pedir alterações</button>
+          <button data-decision="rejected" type="button">Rejeitar</button>
+        </div>
+        <button id="exportButton" type="button" disabled>Exportar evidência</button>
+        <p id="reviewMessage" class="message">Carregue um pacote válido.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script src="assets/ai-director-review.js"></script>
+</body>
+</html>
