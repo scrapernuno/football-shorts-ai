@@ -1,0 +1,17 @@
+{
+  "schema": "football-shorts-ai.ai-director-review.v1",
+  "package_id": "AIDIRECTOR-DASHBOARD-INITIAL",
+  "director_state": "blocked",
+  "recommended_variant_id": null,
+  "handover_state": "blocked",
+  "blockers": [
+    "AI_DIRECTOR_EVIDENCE_MISSING",
+    "HUMAN_APPROVAL_REQUIRED"
+  ],
+  "variants": [],
+  "network_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false
+}
