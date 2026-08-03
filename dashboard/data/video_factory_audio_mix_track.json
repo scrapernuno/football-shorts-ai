@@ -1,0 +1,19 @@
+{
+  "schema": "football-shorts-ai.audio-mix-track.v1",
+  "mix_id": "AUDIOMIX-BLOCKED000000000000",
+  "timeline_id": "TIMELINE-BLOCKED0000000000",
+  "cues": [],
+  "mix_state": "blocked",
+  "blockers": [
+    "TIMELINE_NOT_COMPOSED",
+    "AUDIO_MIX_CUES_MISSING",
+    "AUTHORIZED_AUDIO_MISSING"
+  ],
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "network_enabled": false,
+  "generation_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false
+}
