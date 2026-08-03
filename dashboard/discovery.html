@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Football Shorts AI Discovery Library">
+  <title>Football Shorts AI · Discovery Library</title>
+  <link rel="stylesheet" href="assets/discovery-library.css">
+</head>
+<body>
+  <header class="discovery-topbar">
+    <div>
+      <p class="eyebrow">FOOTBALL DISCOVERY PLATFORM</p>
+      <h1>Discovery Library</h1>
+      <p class="subtitle">Vídeos externos, conteúdos próprios e fontes licenciadas num catálogo único.</p>
+    </div>
+    <a class="back-link" href="index.html">← Production Studio</a>
+  </header>
+
+  <main class="discovery-shell">
+    <section class="summary-grid" aria-label="Resumo da biblioteca">
+      <article class="summary-card"><span>Total</span><strong id="summary-total">0</strong></article>
+      <article class="summary-card"><span>Preview</span><strong id="summary-preview">0</strong></article>
+      <article class="summary-card"><span>Renderizáveis</span><strong id="summary-renderable">0</strong></article>
+      <article class="summary-card"><span>Providers</span><strong id="summary-providers">0</strong></article>
+    </section>
+
+    <section class="browser-panel">
+      <div class="browser-heading">
+        <div>
+          <p class="eyebrow">VIDEO CATALOG</p>
+          <h2>Football Video Browser</h2>
+        </div>
+        <span id="result-count" class="count-badge">0 resultados</span>
+      </div>
+
+      <form id="library-filters" class="filter-grid" role="search">
+        <label class="search-field">
+          <span>Pesquisar</span>
+          <input id="search-input" type="search" placeholder="Jogador, equipa, competição, título…" autocomplete="off">
+        </label>
+
+        <label>
+          <span>Provider</span>
+          <select id="provider-filter"><option value="">Todos</option></select>
+        </label>
+
+        <label>
+          <span>Direitos</span>
+          <select id="rights-filter"><option value="">Todos</option></select>
+        </label>
+
+        <label>
+          <span>Estado</span>
+          <select id="state-filter"><option value="">Todos</option></select>
+        </label>
+
+        <label>
+          <span>Ordenar</span>
+          <select id="sort-filter">
+            <option value="score">Score</option>
+            <option value="views">Visualizações</option>
+            <option value="recent">Mais recentes</option>
+            <option value="title">Título</option>
+          </select>
+        </label>
+
+        <label class="toggle-field">
+          <input id="preview-filter" type="checkbox">
+          <span>Apenas com preview</span>
+        </label>
+      </form>
+
+      <div id="library-status" class="library-status" role="status" aria-live="polite">A carregar biblioteca…</div>
+      <div id="video-grid" class="video-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <dialog id="preview-dialog" class="preview-dialog">
+    <form method="dialog" class="dialog-close-form"><button aria-label="Fechar preview">×</button></form>
+    <div id="preview-content"></div>
+  </dialog>
+
+  <script src="assets/discovery-library.js" defer></script>
+</body>
+</html>
