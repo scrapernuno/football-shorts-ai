@@ -1,0 +1,18 @@
+{
+  "schema": "football-shorts-ai.motion-graphics-track.v1",
+  "graphics_id": "MOTIONGFX-BLOCKED000000000000",
+  "timeline_id": "TIMELINE-BLOCKED000000000000",
+  "cues": [],
+  "graphics_state": "blocked",
+  "blockers": [
+    "MOTION_GRAPHICS_CUES_MISSING",
+    "TIMELINE_NOT_COMPOSED"
+  ],
+  "network_enabled": false,
+  "generation_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
