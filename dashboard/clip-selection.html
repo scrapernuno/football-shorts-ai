@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Football Shorts AI governed clip selection studio">
+  <title>Football Shorts AI · Clip Selection</title>
+  <link rel="stylesheet" href="assets/clip-selection.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FOOTBALL DISCOVERY PLATFORM</p>
+      <h1>Governed Clip Selection</h1>
+    </div>
+    <nav>
+      <a href="discovery.html">Discovery Library</a>
+      <a href="index.html">Production Studio</a>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <section class="panel source-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SOURCE PREVIEW</p>
+          <h2 id="asset-title">Selecione um vídeo</h2>
+        </div>
+        <span id="rights-badge" class="badge neutral">—</span>
+      </div>
+
+      <div id="player-shell" class="player-shell">
+        <p id="player-message">Abra esta página através de um cartão da Discovery Library ou escolha um vídeo abaixo.</p>
+      </div>
+
+      <div class="source-meta" id="source-meta"></div>
+
+      <label for="asset-select">Vídeo da biblioteca</label>
+      <select id="asset-select">
+        <option value="">A carregar biblioteca…</option>
+      </select>
+    </section>
+
+    <section class="panel editor-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">EDITORIAL MARKERS</p>
+          <h2>Proposta de excerto</h2>
+        </div>
+        <span id="duration-badge" class="badge">0.0 s</span>
+      </div>
+
+      <div class="time-grid">
+        <label>
+          Início (segundos)
+          <input id="clip-start" type="number" min="0" step="0.1" value="0">
+        </label>
+        <label>
+          Fim (segundos)
+          <input id="clip-end" type="number" min="0.5" step="0.1" value="5">
+        </label>
+      </div>
+
+      <label>
+        Intenção editorial
+        <select id="editorial-intent">
+          <option value="reference">Referência</option>
+          <option value="analysis">Análise</option>
+          <option value="commentary">Comentário</option>
+          <option value="story_context">Contexto da história</option>
+          <option value="production_source">Fonte de produção</option>
+        </select>
+      </label>
+
+      <label>
+        Nota editorial
+        <textarea id="clip-note" rows="4" placeholder="Descreva por que este momento é relevante."></textarea>
+      </label>
+
+      <div id="rights-message" class="notice neutral">
+        Selecione um vídeo para verificar os direitos e a elegibilidade para renderização.
+      </div>
+
+      <div class="actions">
+        <button id="save-clip" type="button">Guardar proposta</button>
+        <button id="clear-clips" type="button" class="secondary">Limpar propostas locais</button>
+      </div>
+    </section>
+
+    <section class="panel proposals-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">LOCAL WORKSPACE</p>
+          <h2>Excertos propostos</h2>
+        </div>
+        <span id="proposal-count" class="badge">0</span>
+      </div>
+      <div id="proposal-list" class="proposal-list">
+        <p class="empty-state">Ainda não existem propostas.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="assets/clip-selection.js"></script>
+</body>
+</html>
