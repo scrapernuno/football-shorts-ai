@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Video Factory Preview</title>
+  <link rel="stylesheet" href="assets/video-preview.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">FOOTBALL SHORTS AI · 0060B</p><h1>Browser Timeline Preview</h1></div>
+    <a href="index.html">← Dashboard</a>
+  </header>
+  <main>
+    <section class="status-grid">
+      <article><span>Estado</span><strong id="previewState">NOT_LOADED</strong></article>
+      <article><span>Segmento</span><strong id="segmentPosition">0 / 0</strong></article>
+      <article><span>Beat</span><strong id="currentRole">—</strong></article>
+      <article><span>Duração</span><strong id="totalDuration">0s</strong></article>
+    </section>
+    <section class="player-grid">
+      <article class="player-panel">
+        <video id="previewVideo" playsinline preload="metadata"></video>
+        <div class="controls">
+          <button id="previousButton" type="button">◀ Anterior</button>
+          <button id="playButton" type="button">▶ Reproduzir</button>
+          <button id="nextButton" type="button">Seguinte ▶</button>
+          <label><input id="loopSegment" type="checkbox"> Repetir segmento</label>
+        </div>
+        <div class="progress"><div id="progressValue"></div></div>
+      </article>
+      <aside class="panel">
+        <p class="eyebrow">BEAT ATUAL</p>
+        <h2 id="beatTitle">Sem preview</h2>
+        <p id="scriptText">Carregue um manifesto autorizado.</p>
+        <dl>
+          <div><dt>Clip</dt><dd id="clipId">—</dd></div>
+          <div><dt>Fonte</dt><dd id="sourceUri">—</dd></div>
+          <div><dt>Intervalo</dt><dd id="sourceRange">—</dd></div>
+          <div><dt>Transição</dt><dd id="transition">—</dd></div>
+        </dl>
+        <button id="importButton" type="button">Importar manifesto JSON</button>
+        <input id="fileInput" type="file" accept="application/json" hidden>
+        <p id="message" class="message">A reprodução exige preview_state=preview_ready e preview_allowed=true.</p>
+      </aside>
+    </section>
+    <section class="panel"><p class="eyebrow">TIMELINE</p><h2>Segmentos autorizados</h2><div id="timeline" class="timeline"></div></section>
+  </main>
+  <script src="assets/video-preview.js"></script>
+</body>
+</html>
