@@ -1,12 +1,4 @@
-"""
-FOOTBALL-SHORTS-AI-0056J
-EDITORIAL INTELLIGENCE FINAL CERTIFICATION
-
-Executes deterministic owned-media and reference-only scenarios across 0056A-0056I.
-No network, media acquisition, model execution, rendering, training or publication
-is performed.
-"""
-
+"""FOOTBALL-SHORTS-AI-0056J — Editorial Intelligence Final Certification."""
 from __future__ import annotations
 
 import hashlib
@@ -18,7 +10,7 @@ from typing import Mapping
 from editorial.automatic_timeline_builder import build_automatic_timeline
 from editorial.editorial_quality_scoring import score_editorial_quality
 from editorial.football_scene_understanding import build_football_scene_understanding
-from editorial.performance_feedback_learning import build_performance_feedback_learning
+from editorial.performance_feedback_learning import PublishedShortMetrics, build_editorial_learning_report
 from editorial.semantic_scene_indexer import build_semantic_scene_index
 from editorial.story_alignment_optimizer import optimize_story_alignment
 from editorial.story_scene_matching import build_story_scene_matching
@@ -26,7 +18,7 @@ from editorial.viral_hook_optimizer import optimize_viral_hook
 
 
 class EditorialIntelligenceCertificationError(ValueError):
-    """Raised when the 0056 certification evidence is incomplete or inconsistent."""
+    """Raised when 0056 certification evidence is incomplete or unsafe."""
 
 
 @dataclass(frozen=True)
@@ -51,6 +43,8 @@ class EditorialIntelligenceCertification:
             raise EditorialIntelligenceCertificationError("owned scenario is not ready for review")
         if self.owned_scenario.get("score_state") != "scored":
             raise EditorialIntelligenceCertificationError("owned scenario is not scored")
+        if self.owned_scenario.get("learning_state") != "review_ready":
+            raise EditorialIntelligenceCertificationError("owned learning is not review-ready")
         if self.reference_scenario.get("timeline_state") != "blocked":
             raise EditorialIntelligenceCertificationError("reference scenario must remain blocked")
         if self.reference_scenario.get("score_state") != "blocked":
@@ -86,17 +80,14 @@ class EditorialIntelligenceCertification:
 
 def certify_editorial_intelligence(*, repository_root: Path | str = Path(".")) -> EditorialIntelligenceCertification:
     root = Path(repository_root)
-    owned = _run_scenario(rights_status="owned")
-    reference = _run_scenario(rights_status="reference_only")
-    artifacts = tuple(
-        path
-        for path in (
-            "dashboard/editorial-review.html",
-            "dashboard/assets/editorial-review.css",
-            "dashboard/assets/editorial-review.js",
-        )
-        if (root / path).is_file()
+    owned = _run_scenario("owned")
+    reference = _run_scenario("reference_only")
+    expected_artifacts = (
+        "dashboard/editorial-review.html",
+        "dashboard/assets/editorial-review.css",
+        "dashboard/assets/editorial-review.js",
     )
+    artifacts = tuple(path for path in expected_artifacts if (root / path).is_file())
     controls = {
         "network_enabled": False,
         "model_execution_enabled": False,
@@ -116,24 +107,23 @@ def certify_editorial_intelligence(*, repository_root: Path | str = Path(".")) -
         "dashboard_artifacts": list(artifacts),
         "controls": controls,
     }
-    provisional = canonical_sha256(core)
-    certification_id = f"EDITORIALCERT-{provisional[:20].upper()}"
+    certification_id = f"EDITORIALCERT-{canonical_sha256(core)[:20].upper()}"
     unsigned = {**core, "certification_id": certification_id}
-    evidence = canonical_sha256(unsigned)
     result = EditorialIntelligenceCertification(
         certification_id=certification_id,
-        evidence_sha256=evidence,
+        evidence_sha256=canonical_sha256(unsigned),
         owned_scenario=owned,
         reference_scenario=reference,
         dashboard_artifacts=artifacts,
         controls=controls,
-        **{key: value for key, value in unsigned.items() if key not in {"certification_id", "evidence_sha256", "owned_scenario", "reference_scenario", "dashboard_artifacts", "controls"}},
+        schema=str(unsigned["schema"]),
+        status=str(unsigned["status"]),
     )
     result.validate()
     return result
 
 
-def _run_scenario(*, rights_status: str) -> dict[str, object]:
+def _run_scenario(rights_status: str) -> dict[str, object]:
     render_allowed = rights_status == "owned"
     asset = {
         "asset_id": f"EXT-CERT-{rights_status.upper()}",
@@ -142,128 +132,47 @@ def _run_scenario(*, rights_status: str) -> dict[str, object]:
         "rights_status": rights_status,
         "preview_allowed": True,
         "render_allowed": render_allowed,
-        "evidence_sha256": hashlib.sha256(rights_status.encode("utf-8")).hexdigest(),
+        "evidence_sha256": hashlib.sha256(rights_status.encode()).hexdigest(),
     }
     segments = [
-        {
-            "start_seconds": 0.0,
-            "end_seconds": 2.0,
-            "scene_type": "shot",
-            "shot_type": "close_up",
-            "emotion": "surprise",
-            "players": ["Cristiano Ronaldo"],
-            "teams": ["Portugal"],
-            "competition": "UEFA Nations League",
-            "semantic_tags": ["hook", "shot", "spectacular"],
-            "ball_visible": True,
-            "face_visible": True,
-            "motion_intensity": 0.98,
-            "visual_quality": 0.94,
-            "emotion_intensity": 0.96,
-            "hook_potential": 0.99,
-            "climax_potential": 0.72,
-        },
-        {
-            "start_seconds": 2.0,
-            "end_seconds": 5.0,
-            "scene_type": "goal",
-            "shot_type": "wide",
-            "emotion": "celebration",
-            "players": ["Cristiano Ronaldo"],
-            "teams": ["Portugal"],
-            "competition": "UEFA Nations League",
-            "semantic_tags": ["goal", "net", "climax"],
-            "ball_visible": True,
-            "scoreboard_visible": True,
-            "crowd_reaction": 0.99,
-            "motion_intensity": 0.90,
-            "visual_quality": 0.96,
-            "emotion_intensity": 1.0,
-            "hook_potential": 0.84,
-            "climax_potential": 1.0,
-        },
-        {
-            "start_seconds": 5.0,
-            "end_seconds": 8.0,
-            "scene_type": "celebration",
-            "shot_type": "medium",
-            "emotion": "joy",
-            "players": ["Cristiano Ronaldo"],
-            "teams": ["Portugal"],
-            "competition": "UEFA Nations League",
-            "semantic_tags": ["celebration", "crowd", "reaction"],
-            "face_visible": True,
-            "crowd_reaction": 0.96,
-            "motion_intensity": 0.76,
-            "visual_quality": 0.92,
-            "emotion_intensity": 0.98,
-            "hook_potential": 0.72,
-            "climax_potential": 0.88,
-        },
+        _segment(0.0, 2.0, "shot", "close_up", "surprise", 0.98, 0.96, 0.99, 0.72, ("hook", "shot", "spectacular")),
+        _segment(2.0, 5.0, "goal", "wide", "celebration", 0.90, 1.0, 0.84, 1.0, ("goal", "net", "climax"), crowd=0.99),
+        _segment(5.0, 8.0, "celebration", "medium", "joy", 0.76, 0.98, 0.72, 0.88, ("celebration", "crowd", "reaction"), crowd=0.96),
     ]
     story = {
         "beats": [
-            {
-                "role": "hook",
-                "text": "Ninguém esperava este remate de Cristiano Ronaldo.",
-                "keywords": ["remate", "surpresa", "shot"],
-                "players": ["Cristiano Ronaldo"],
-                "actions": ["shot"],
-                "emotions": ["surprise"],
-            },
-            {
-                "role": "climax",
-                "text": "A bola entrou e decidiu tudo.",
-                "keywords": ["goal", "net", "climax"],
-                "players": ["Cristiano Ronaldo"],
-                "actions": ["goal"],
-                "emotions": ["celebration"],
-            },
-            {
-                "role": "reaction",
-                "text": "O estádio explodiu na celebração.",
-                "keywords": ["celebration", "crowd", "reaction"],
-                "actions": ["celebration"],
-                "emotions": ["joy"],
-            },
+            {"role": "hook", "text": "Ninguém esperava este remate de Cristiano Ronaldo.", "keywords": ["remate", "surpresa", "shot"], "players": ["Cristiano Ronaldo"], "actions": ["shot"], "emotions": ["surprise"]},
+            {"role": "climax", "text": "A bola entrou e decidiu tudo.", "keywords": ["goal", "net", "climax"], "players": ["Cristiano Ronaldo"], "actions": ["goal"], "emotions": ["celebration"]},
+            {"role": "reaction", "text": "O estádio explodiu na celebração.", "keywords": ["celebration", "crowd", "reaction"], "actions": ["celebration"], "emotions": ["joy"]},
         ]
     }
-
     index = build_semantic_scene_index(asset=asset, segments=segments)
     understanding = build_football_scene_understanding(index)
     matching = build_story_scene_matching(story=story, index=index, understanding=understanding)
     hook = optimize_viral_hook(matching=matching, index=index, understanding=understanding)
     alignment = optimize_story_alignment(matching=matching, hook=hook)
-    score = score_editorial_quality(
-        alignment=alignment,
-        hook=hook,
-        matching=matching,
-        index=index,
-        understanding=understanding,
+    score = score_editorial_quality(alignment=alignment, hook=hook, matching=matching, index=index, understanding=understanding)
+    timeline = build_automatic_timeline(title=f"0056 certification {rights_status}", alignment=alignment, score=score, index=index)
+    metrics = PublishedShortMetrics(
+        platform="youtube",
+        publication_id=f"PUB-{rights_status.upper()}",
+        measured_at="2026-08-03T12:00:00+00:00",
+        views=2500,
+        likes=180,
+        comments=24,
+        shares=35,
+        average_view_duration_seconds=min(7.0, timeline.total_duration_seconds),
+        video_duration_seconds=timeline.total_duration_seconds,
+        retention_3s=0.82,
+        retention_10s=0.68,
+        completion_rate=0.61,
+        impressions=9000,
+        click_through_rate=0.071,
     )
-    timeline = build_automatic_timeline(
-        title=f"0056 certification {rights_status}",
-        alignment=alignment,
-        score=score,
-        index=index,
-    )
-    feedback = build_performance_feedback_learning(
-        timeline=timeline,
-        editorial_score=score,
-        publication={
-            "publication_id": f"PUB-{rights_status.upper()}",
-            "platform": "youtube",
-            "views": 2500,
-            "likes": 180,
-            "comments": 24,
-            "shares": 35,
-            "average_view_duration_seconds": min(7.0, timeline.total_duration_seconds),
-            "retention_3s": 0.82,
-            "retention_10s": 0.68,
-            "completion_rate": 0.61,
-            "impressions": 9000,
-            "click_through_rate": 0.071,
-        },
+    feedback = build_editorial_learning_report(
+        timeline=timeline.to_dict(),
+        editorial_score=score.to_dict(),
+        metrics=metrics,
     )
     return {
         "scene_index_state": index.index_state,
@@ -275,17 +184,38 @@ def _run_scenario(*, rights_status: str) -> dict[str, object]:
         "timeline_state": timeline.timeline_state,
         "learning_state": feedback.learning_state,
         "scene_count": len(index.scenes),
-        "timeline_scene_count": len(timeline.scenes),
+        "timeline_scene_count": len(timeline.clips),
         "editorial_quality_score": score.editorial_quality_score,
         "viral_potential_score": score.viral_potential_score,
         "blockers": sorted(set((*index.blockers, *matching.blockers, *hook.blockers, *alignment.blockers, *score.blockers, *timeline.blockers))),
     }
 
 
+def _segment(start: float, end: float, scene_type: str, shot_type: str, emotion: str, motion: float, emotion_intensity: float, hook: float, climax: float, tags: tuple[str, ...], crowd: float = 0.0) -> dict[str, object]:
+    return {
+        "start_seconds": start,
+        "end_seconds": end,
+        "scene_type": scene_type,
+        "shot_type": shot_type,
+        "emotion": emotion,
+        "players": ["Cristiano Ronaldo"],
+        "teams": ["Portugal"],
+        "competition": "UEFA Nations League",
+        "semantic_tags": list(tags),
+        "ball_visible": scene_type in {"shot", "goal"},
+        "face_visible": scene_type != "goal",
+        "scoreboard_visible": scene_type == "goal",
+        "crowd_reaction": crowd,
+        "motion_intensity": motion,
+        "visual_quality": 0.94,
+        "emotion_intensity": emotion_intensity,
+        "hook_potential": hook,
+        "climax_potential": climax,
+    }
+
+
 def canonical_sha256(payload: object) -> str:
-    return hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def _validate_sha256(value: str) -> None:
@@ -306,9 +236,4 @@ if __name__ == "__main__":
         print(f"{name.upper()}={'ENABLED' if enabled else 'DISABLED'}")
 
 
-__all__ = [
-    "EditorialIntelligenceCertification",
-    "EditorialIntelligenceCertificationError",
-    "canonical_sha256",
-    "certify_editorial_intelligence",
-]
+__all__ = ["EditorialIntelligenceCertification", "EditorialIntelligenceCertificationError", "canonical_sha256", "certify_editorial_intelligence"]
