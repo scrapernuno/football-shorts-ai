@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Football Shorts AI Interactive Timeline Studio">
+  <title>Timeline Studio · Football Shorts AI</title>
+  <link rel="stylesheet" href="assets/timeline-studio.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FOOTBALL-SHORTS-AI-0054G</p>
+      <h1>Interactive Timeline Studio</h1>
+      <p>Organize os excertos guardados, defina transições e prepare uma composição vertical governada.</p>
+    </div>
+    <nav>
+      <a href="clip-selection.html">← Clip Selection</a>
+      <a href="discovery.html">Discovery Library</a>
+      <a href="index.html">Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="studio-shell">
+    <section class="panel summary-panel">
+      <div>
+        <span class="label">CLIPS</span>
+        <strong id="clip-count">0</strong>
+      </div>
+      <div>
+        <span class="label">DURAÇÃO</span>
+        <strong id="total-duration">0.0 s</strong>
+      </div>
+      <div>
+        <span class="label">FORMATO</span>
+        <strong>9:16 · 1080×1920</strong>
+      </div>
+      <div>
+        <span class="label">FACTORY READINESS</span>
+        <strong id="factory-status" class="status warning">BLOCKED</strong>
+      </div>
+    </section>
+
+    <section class="workspace-grid">
+      <article class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">COMPOSITION</p>
+            <h2>Timeline</h2>
+          </div>
+          <button id="clear-timeline" type="button" class="secondary">Limpar</button>
+        </div>
+        <p class="helper">Arraste os cartões ou utilize as setas. Clips de referência podem ser organizados, mas bloqueiam o envio à Factory.</p>
+        <div id="timeline-list" class="timeline-list" aria-live="polite"></div>
+      </article>
+
+      <aside class="panel inspector">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PROJECT</p>
+            <h2>Configuração</h2>
+          </div>
+        </div>
+
+        <label>Título do projeto
+          <input id="project-title" type="text" maxlength="120" value="Novo Football Short">
+        </label>
+
+        <label>Frames por segundo
+          <select id="fps">
+            <option value="24">24 FPS</option>
+            <option value="25">25 FPS</option>
+            <option value="30" selected>30 FPS</option>
+            <option value="50">50 FPS</option>
+            <option value="60">60 FPS</option>
+          </select>
+        </label>
+
+        <label>Narração
+          <select id="voiceover-state">
+            <option value="none">Sem narração</option>
+            <option value="planned">Planeada</option>
+            <option value="ready">Pronta</option>
+          </select>
+        </label>
+
+        <label>Música
+          <select id="music-state">
+            <option value="none">Sem música</option>
+            <option value="planned">Planeada</option>
+            <option value="ready">Pronta</option>
+          </select>
+        </label>
+
+        <label>Legendas
+          <select id="captions-state">
+            <option value="none">Sem legendas</option>
+            <option value="planned">Planeadas</option>
+            <option value="ready">Prontas</option>
+          </select>
+        </label>
+
+        <div id="blockers" class="blockers"></div>
+
+        <button id="save-project" type="button">Guardar composição</button>
+        <button id="export-project" type="button" class="secondary">Exportar JSON</button>
+        <button id="prepare-factory" type="button" disabled>Preparar para Factory</button>
+
+        <p class="safety-note">Nenhuma aquisição, renderização ou publicação é executada nesta página.</p>
+      </aside>
+    </section>
+  </main>
+
+  <template id="empty-template">
+    <div class="empty-state">
+      <h3>Sem clips na timeline</h3>
+      <p>Crie propostas em Clip Selection e regresse a este estúdio.</p>
+      <a href="clip-selection.html">Selecionar excertos</a>
+    </div>
+  </template>
+
+  <script src="assets/timeline-studio.js"></script>
+</body>
+</html>
