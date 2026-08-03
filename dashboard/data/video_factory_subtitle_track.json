@@ -1,0 +1,17 @@
+{
+  "schema": "football-shorts-ai.subtitle-track.v1",
+  "track_id": "SUBTRACK-EVIDENCEMISSING0000",
+  "timeline_id": "TIMELINE-EVIDENCEMISSING00",
+  "language": "pt-PT",
+  "cues": [],
+  "subtitle_state": "blocked",
+  "blockers": [
+    "TIMELINE_NOT_COMPOSED",
+    "SUBTITLE_CUES_MISSING"
+  ],
+  "network_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
