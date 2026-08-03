@@ -1,0 +1,21 @@
+{
+  "schema": "football-shorts-ai.voiceover-track.v1",
+  "track_id": "VOICETRACK-BLOCKED000000000001",
+  "timeline_id": "TIMELINE-BLOCKED000000000001",
+  "language": "pt-PT",
+  "voice_style": "energetic",
+  "cues": [],
+  "synchronization_state": "blocked",
+  "blockers": [
+    "TIMELINE_NOT_COMPOSED",
+    "VOICEOVER_CUES_MISSING",
+    "VOICEOVER_AUDIO_MISSING"
+  ],
+  "network_enabled": false,
+  "synthesis_enabled": false,
+  "acquisition_enabled": false,
+  "extraction_enabled": false,
+  "render_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
