@@ -1,0 +1,150 @@
+name: Football Vision 0057 Failure Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/football-vision-0057-failure-recovery.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: football-vision-0057-failure-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+          python -m pip install pytest
+
+      - name: Apply exact governed recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('src/vision/motion_ball_tracking.py'): (
+                  '    if abs(dx) > abs(dy) * 1.5:\n'
+                  '        return "right" if dx > 0 else "left"\n'
+                  '    if abs(dy) > abs(dx) * 1.5:\n'
+                  '        return "down" if dy > 0 else "up"\n',
+                  '    # Classify an axis-only movement only when the secondary axis is\n'
+                  '    # negligible. Meaningful displacement on both axes is diagonal.\n'
+                  '    if abs(dx) > abs(dy) * 3.0:\n'
+                  '        return "right" if dx > 0 else "left"\n'
+                  '    if abs(dy) > abs(dx) * 3.0:\n'
+                  '        return "down" if dy > 0 else "up"\n',
+              ),
+              Path('src/vision/player_recognition.py'): (
+                  '    if blockers:\n'
+                  '        state = "blocked" if vision.pipeline_state != "analyzed" or not observations else "review_required"\n'
+                  '    else:\n'
+                  '        state = "recognized"\n',
+                  '    if blockers:\n'
+                  '        # Missing recognition evidence on an otherwise analyzed asset\n'
+                  '        # requires human review; only an upstream-blocked vision report\n'
+                  '        # blocks the recognition contract completely.\n'
+                  '        state = "blocked" if vision.pipeline_state != "analyzed" else "review_required"\n'
+                  '    else:\n'
+                  '        state = "recognized"\n',
+              ),
+              Path('src/vision/viral_moment_detection.py'): (
+                  '    top_hook = max(candidates, key=lambda value: (value.hook_score, value.viral_moment_score, value.moment_id), default=None)\n'
+                  '    top_climax = max(candidates, key=lambda value: (value.climax_score, value.viral_moment_score, value.moment_id), default=None)\n',
+                  '    hook_candidates = [item for item in candidates if item.editorial_role == "hook"] or candidates\n'
+                  '    climax_candidates = [item for item in candidates if item.editorial_role == "climax"] or candidates\n'
+                  '    top_hook = max(hook_candidates, key=lambda value: (value.hook_score, value.viral_moment_score, value.moment_id), default=None)\n'
+                  '    top_climax = max(climax_candidates, key=lambda value: (value.climax_score, value.viral_moment_score, value.moment_id), default=None)\n',
+              ),
+          }
+
+          for path, (before, after) in replacements.items():
+              text = path.read_text(encoding='utf-8')
+              count = text.count(before)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one preimage, found {count}')
+              path.write_text(text.replace(before, after, 1), encoding='utf-8')
+              print(f'PATCHED={path}')
+          PY
+
+      - name: Compile vision sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q src/vision tests/vision
+
+      - name: Run focused failed tests
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/vision/test_motion_ball_tracking.py::test_tracks_ball_path_speed_direction_and_peak_scene \
+            tests/vision/test_player_recognition.py::test_missing_player_evidence_is_fail_closed \
+            tests/vision/test_viral_moment_detection.py::test_ranks_viral_moments_and_selects_hook_and_climax
+
+      - name: Run full vision certification tests
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/vision
+
+      - name: Run 0057J certification
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python src/vision/certify_football_vision_intelligence.py | tee /tmp/football-vision-0057-certification.txt
+          grep -Fx 'CERTIFIED' /tmp/football-vision-0057-certification.txt
+
+      - name: Commit certified recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- \
+            src/vision/motion_ball_tracking.py \
+            src/vision/player_recognition.py \
+            src/vision/viral_moment_detection.py; then
+            echo 'No recovery changes to commit.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            src/vision/motion_ball_tracking.py \
+            src/vision/player_recognition.py \
+            src/vision/viral_moment_detection.py
+          git commit -m 'fix(vision): recover 0057 certification semantics'
+          git push origin HEAD:main
