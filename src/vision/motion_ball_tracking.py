@@ -410,9 +410,11 @@ def _direction(first: NormalizedPoint, last: NormalizedPoint) -> str:
     dy = last.y - first.y
     if abs(dx) < 0.02 and abs(dy) < 0.02:
         return "stationary"
-    if abs(dx) > abs(dy) * 1.5:
+    # Classify an axis-only movement only when the secondary axis is
+    # negligible. Meaningful displacement on both axes is diagonal.
+    if abs(dx) > abs(dy) * 3.0:
         return "right" if dx > 0 else "left"
-    if abs(dy) > abs(dx) * 1.5:
+    if abs(dy) > abs(dx) * 3.0:
         return "down" if dy > 0 else "up"
     return "diagonal"
 

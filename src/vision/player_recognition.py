@@ -253,7 +253,10 @@ def build_player_recognition_report(
     if any(item.identity_label and item.identity_confidence < minimum_identity_confidence for item in observations):
         blockers.add("IDENTITY_REVIEW_REQUIRED")
     if blockers:
-        state = "blocked" if vision.pipeline_state != "analyzed" or not observations else "review_required"
+        # Missing recognition evidence on an otherwise analyzed asset
+        # requires human review; only an upstream-blocked vision report
+        # blocks the recognition contract completely.
+        state = "blocked" if vision.pipeline_state != "analyzed" else "review_required"
     else:
         state = "recognized"
     labels = tuple(sorted({item.identity_label for item in tracks if item.identity_label}))

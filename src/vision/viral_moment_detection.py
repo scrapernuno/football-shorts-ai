@@ -274,8 +274,10 @@ def build_viral_moment_ranking(
         blockers.add("VIRAL_MOMENT_REVIEW_REQUIRED")
     state = "blocked" if "VISION_REPORT_NOT_ANALYZED" in blockers or not candidates else "review_required" if blockers else "ranked"
     ranked = tuple(item.moment_id for item in sorted(candidates, key=lambda value: (-value.viral_moment_score, -value.confidence, value.moment_id)))
-    top_hook = max(candidates, key=lambda value: (value.hook_score, value.viral_moment_score, value.moment_id), default=None)
-    top_climax = max(candidates, key=lambda value: (value.climax_score, value.viral_moment_score, value.moment_id), default=None)
+    hook_candidates = [item for item in candidates if item.editorial_role == "hook"] or candidates
+    climax_candidates = [item for item in candidates if item.editorial_role == "climax"] or candidates
+    top_hook = max(hook_candidates, key=lambda value: (value.hook_score, value.viral_moment_score, value.moment_id), default=None)
+    top_climax = max(climax_candidates, key=lambda value: (value.climax_score, value.viral_moment_score, value.moment_id), default=None)
     core = {
         "schema": "football-shorts-ai.viral-moment-ranking.v1",
         "vision_report_id": vision_id,
