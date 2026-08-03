@@ -1,0 +1,158 @@
+name: YouTube Discovery Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Football search query
+        required: true
+        default: Champions League goals
+        type: string
+      max_results:
+        description: Maximum videos to discover
+        required: true
+        default: "12"
+        type: choice
+        options: ["5", "10", "12", "20", "25", "50"]
+      region_code:
+        description: ISO alpha-2 region
+        required: true
+        default: PT
+        type: string
+      language:
+        description: Relevance language
+        required: true
+        default: pt
+        type: string
+      video_duration:
+        description: YouTube duration filter
+        required: true
+        default: short
+        type: choice
+        options: [short, medium, long, any]
+      safe_search:
+        description: YouTube safe-search policy
+        required: true
+        default: moderate
+        type: choice
+        options: [moderate, strict, none]
+      commit_dashboard:
+        description: Commit the synchronized dashboard library to main
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  PYTHONPATH: src
+  DASHBOARD_PATH: dashboard/data/football_library.json
+  REPORT_PATH: artifacts/youtube-discovery-sync-report.json
+
+concurrency:
+  group: youtube-discovery-sync
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: youtube-discovery
+    env:
+      YOUTUBE_DATA_API_KEY: ${{ secrets.YOUTUBE_DATA_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate activation inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${YOUTUBE_DATA_API_KEY:-}" || {
+            echo "Required secret YOUTUBE_DATA_API_KEY is unavailable." >&2
+            exit 1
+          }
+          [[ "${{ inputs.max_results }}" =~ ^[0-9]+$ ]]
+          test "${{ inputs.max_results }}" -ge 1
+          test "${{ inputs.max_results }}" -le 50
+          [[ "${{ inputs.region_code }}" =~ ^[A-Z]{2}$ ]]
+
+      - name: Run focused contract tests
+        run: |
+          python -m pytest -q \
+            tests/discovery/test_youtube_discovery_provider.py \
+            tests/discovery/test_youtube_data_api_http_client.py \
+            tests/discovery/test_environment_secret_resolver.py \
+            tests/discovery/test_execute_youtube_discovery_sync.py
+
+      - name: Synchronize YouTube metadata
+        run: |
+          python src/discovery/run_youtube_discovery_sync.py \
+            --activate \
+            --query "${{ inputs.query }}" \
+            --max-results "${{ inputs.max_results }}" \
+            --region-code "${{ inputs.region_code }}" \
+            --language "${{ inputs.language }}" \
+            --video-duration "${{ inputs.video_duration }}" \
+            --safe-search "${{ inputs.safe_search }}" \
+            --dashboard-path "$DASHBOARD_PATH" \
+            --report-path "$REPORT_PATH"
+
+      - name: Certify generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$DASHBOARD_PATH"
+          test -s "$REPORT_PATH"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          dashboard = json.loads(Path("dashboard/data/football_library.json").read_text())
+          report = json.loads(Path("artifacts/youtube-discovery-sync-report.json").read_text())
+          assert report["status"] == "SYNCHRONIZED"
+          assert report["metadata_only"] is True
+          assert report["download_enabled"] is False
+          assert report["acquisition_enabled"] is False
+          assert report["render_enabled"] is False
+          assert report["publishing_enabled"] is False
+          assets = dashboard["library"]["assets"]
+          assert assets
+          assert all(item["provider"] == "youtube" for item in assets)
+          assert all(item["rights_status"] == "reference_only" for item in assets)
+          assert all(item["render_allowed"] is False for item in assets)
+          PY
+
+      - name: Upload governed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-discovery-sync-${{ github.run_id }}
+          path: |
+            dashboard/data/football_library.json
+            artifacts/youtube-discovery-sync-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit dashboard library
+        if: ${{ inputs.commit_dashboard }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- "$DASHBOARD_PATH"; then
+            echo "No dashboard library changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DASHBOARD_PATH"
+          git commit -m "Synchronize YouTube discovery library"
+          git push origin HEAD:main
