@@ -47,12 +47,13 @@ jobs:
       - name: Install test dependency
         run: python -m pip install --disable-pip-version-check pytest
 
-      - name: Certify 0061J and 0062A
+      - name: Certify 0061J through 0062B
         run: |
           set -euo pipefail
           python -m pytest -q \
             tests/publishing/test_controlled_visibility_final_publication.py \
-            tests/publishing/test_controlled_visibility_execution.py
+            tests/publishing/test_controlled_visibility_execution.py \
+            tests/publishing/test_youtube_visibility_oauth_adapter.py
 
       - name: Validate controlled decision
         run: |
@@ -83,23 +84,36 @@ jobs:
           print('SECOND_HUMAN_CONFIRMATION=VALIDATED')
           PY
 
-      - name: Enforce preparation boundary
+      - name: Prepare-only boundary
+        if: ${{ inputs.prepare_only }}
         run: |
           set -euo pipefail
-          if [ "$PREPARE_ONLY" != "true" ]; then
-            echo "Concrete OAuth YouTube visibility adapter is not installed in 0062A." >&2
-            echo "No visibility change was executed." >&2
-            exit 1
-          fi
           echo "PREPARE_ONLY=TRUE"
+          echo "OAUTH_SECRETS_READ=FALSE"
           echo "NETWORK_USED=FALSE"
           echo "VISIBILITY_CHANGE_EXECUTED=FALSE"
           echo "AUTO_PUBLISH=FALSE"
 
-      - name: Upload validation evidence
+      - name: Execute one authorized visibility change
+        if: ${{ !inputs.prepare_only }}
+        env:
+          YOUTUBE_OAUTH_CLIENT_ID: ${{ secrets.YOUTUBE_OAUTH_CLIENT_ID }}
+          YOUTUBE_OAUTH_CLIENT_SECRET: ${{ secrets.YOUTUBE_OAUTH_CLIENT_SECRET }}
+          YOUTUBE_OAUTH_REFRESH_TOKEN: ${{ secrets.YOUTUBE_OAUTH_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$YOUTUBE_OAUTH_CLIENT_ID"
+          test -n "$YOUTUBE_OAUTH_CLIENT_SECRET"
+          test -n "$YOUTUBE_OAUTH_REFRESH_TOKEN"
+          python -m publishing.run_controlled_visibility_execution \
+            --decision "$DECISION_JSON" \
+            --confirmation "$EXECUTION_CONFIRMATION" \
+            --output artifacts/visibility/visibility_execution_result.json
+
+      - name: Upload controlled evidence
         uses: actions/upload-artifact@v4
         with:
-          name: controlled-visibility-validation-${{ github.run_id }}
-          path: artifacts/visibility/validated_visibility_decision.json
+          name: controlled-visibility-execution-${{ github.run_id }}
+          path: artifacts/visibility/
           if-no-files-found: error
           retention-days: 30
