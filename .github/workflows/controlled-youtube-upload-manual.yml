@@ -1,0 +1,129 @@
+name: Controlled YouTube Upload Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      publishing_authorization_json:
+        description: Path to the approved 0061F authorization JSON
+        required: true
+        default: dashboard/data/youtube_publishing_authorization.json
+        type: string
+      requested_by:
+        description: Human requester
+        required: true
+        type: string
+      execution_note:
+        description: Reason for this one-time upload preparation
+        required: true
+        type: string
+      confirmation:
+        description: Type exactly EXECUTE AUTHORIZED YOUTUBE UPLOAD ONCE
+        required: true
+        type: string
+      prepare_only:
+        description: Validate and create binding evidence without reading OAuth secrets
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-youtube-upload-manual
+  cancel-in-progress: false
+
+jobs:
+  prepare-controlled-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: src
+      AUTHORIZATION_JSON: ${{ inputs.publishing_authorization_json }}
+      REQUESTED_BY: ${{ inputs.requested_by }}
+      EXECUTION_NOTE: ${{ inputs.execution_note }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      PREPARE_ONLY: ${{ inputs.prepare_only }}
+      CLIENT_ID_SECRET_NAME: YOUTUBE_OAUTH_CLIENT_ID
+      CLIENT_SECRET_SECRET_NAME: YOUTUBE_OAUTH_CLIENT_SECRET
+      REFRESH_TOKEN_SECRET_NAME: YOUTUBE_OAUTH_REFRESH_TOKEN
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Certify 0061F and 0061G contracts
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/publishing/test_controlled_youtube_publishing_gate.py \
+            tests/publishing/test_controlled_youtube_upload_workflow_binding.py
+
+      - name: Build fail-closed workflow binding
+        run: |
+          set -euo pipefail
+          test -f "$AUTHORIZATION_JSON" || {
+            echo "Authorization JSON not found: $AUTHORIZATION_JSON" >&2
+            exit 1
+          }
+          mkdir -p artifacts/youtube-upload
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from publishing.controlled_youtube_upload_workflow_binding import (
+              build_controlled_youtube_workflow_binding,
+          )
+
+          source = Path(os.environ["AUTHORIZATION_JSON"])
+          authorization = json.loads(source.read_text(encoding="utf-8"))
+          binding = build_controlled_youtube_workflow_binding(
+              publishing_authorization=authorization,
+              requested_by=os.environ["REQUESTED_BY"],
+              execution_note=os.environ["EXECUTION_NOTE"],
+              confirmation_phrase=os.environ["CONFIRMATION"],
+              client_id_secret_name=os.environ["CLIENT_ID_SECRET_NAME"],
+              client_secret_secret_name=os.environ["CLIENT_SECRET_SECRET_NAME"],
+              refresh_token_secret_name=os.environ["REFRESH_TOKEN_SECRET_NAME"],
+          )
+          output = Path("artifacts/youtube-upload/youtube_workflow_binding.json")
+          output.write_text(json.dumps(binding.to_dict(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          print(f"BINDING_STATE={binding.binding_state}")
+          print(f"MANUAL_DISPATCH_ALLOWED={str(binding.manual_dispatch_allowed).upper()}")
+          print("SECRET_VALUES_READ=FALSE")
+          print("UPLOAD_PERFORMED=FALSE")
+          print("PUBLICATION_PERFORMED=FALSE")
+          if binding.binding_state != "ready_for_manual_dispatch":
+              raise SystemExit("0061G binding is blocked")
+          PY
+
+      - name: Enforce 0061G preparation boundary
+        run: |
+          set -euo pipefail
+          if [ "$PREPARE_ONLY" != "true" ]; then
+            echo "0061G only binds and validates OAuth secret names." >&2
+            echo "Real credential resolution and resumable upload execution remain disabled pending the next controlled activation artefact." >&2
+            exit 1
+          fi
+          echo "PREPARE_ONLY=TRUE"
+          echo "OAUTH_SECRET_VALUES_NOT_READ=TRUE"
+          echo "NETWORK_ENABLED=FALSE"
+          echo "UPLOAD_ENABLED=FALSE"
+          echo "PUBLISH_ENABLED=FALSE"
+          echo "AUTO_PUBLISH=FALSE"
+
+      - name: Upload binding evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-youtube-upload-binding-${{ github.run_id }}
+          path: artifacts/youtube-upload/youtube_workflow_binding.json
+          if-no-files-found: error
+          retention-days: 30
