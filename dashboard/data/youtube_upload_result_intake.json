@@ -1,0 +1,21 @@
+{
+  "schema": "football-shorts-ai.youtube-upload-result-intake.v1",
+  "intake_id": "YTRESULT-BLOCKED000000000000",
+  "upload_id": "YTUPLOAD-BLOCKED0000000000",
+  "youtube_video_id": "",
+  "youtube_channel_id": "",
+  "processing_status": "unknown",
+  "upload_status": "unknown",
+  "privacy_status": "unknown",
+  "embeddable": false,
+  "watch_url": "",
+  "thumbnail_url": "",
+  "intake_state": "blocked",
+  "blockers": ["CONTROLLED_YOUTUBE_UPLOAD_RESULT_MISSING", "YOUTUBE_PROCESSING_VERIFICATION_REQUIRED"],
+  "visibility_change_allowed": false,
+  "network_enabled": false,
+  "upload_enabled": false,
+  "publish_enabled": false,
+  "auto_publish": false,
+  "evidence_sha256": "PUBLIC_FAIL_CLOSED_PLACEHOLDER"
+}
