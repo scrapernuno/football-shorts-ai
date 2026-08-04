@@ -1,9 +1,8 @@
 """FOOTBALL-SHORTS-AI-0061B — controlled FFmpeg render execution gate.
 
-The module validates an authorized 0061A package and creates a single-use execution
-order. FFmpeg is only invoked when an explicit human command is supplied to
-``execute_controlled_render``. Network access, acquisition and publication remain
-forbidden.
+Validates an authorized 0061A package and creates a single-use execution order.
+FFmpeg is invoked only after a second explicit human confirmation. Network access,
+media acquisition, extraction and publication remain forbidden.
 """
 from __future__ import annotations
 
@@ -13,7 +12,7 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping
 
 
 class ControlledFFmpegExecutionError(ValueError):
@@ -21,8 +20,9 @@ class ControlledFFmpegExecutionError(ValueError):
 
 
 def canonical_sha256(payload: object) -> str:
-    encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -76,12 +76,12 @@ class ControlledRenderExecutionOrder:
             raise ControlledFFmpegExecutionError("invalid authorization identity")
         if not self.render_package_id.startswith("RENDERPKG-"):
             raise ControlledFFmpegExecutionError("invalid render package identity")
-        if self.execution_state not in {"ready", "blocked", "executed", "failed"}:
+        if self.execution_state not in {"ready", "blocked"}:
             raise ControlledFFmpegExecutionError("unsupported execution state")
         if self.execution_state == "ready" and (self.blockers or not self.execution_allowed):
             raise ControlledFFmpegExecutionError("ready execution requires explicit allowance")
         if self.execution_state != "ready" and self.execution_allowed:
-            raise ControlledFFmpegExecutionError("non-ready execution cannot be allowed")
+            raise ControlledFFmpegExecutionError("blocked execution cannot be allowed")
         if not self.ffmpeg_arguments or self.ffmpeg_arguments[0] == self.ffmpeg_binary:
             raise ControlledFFmpegExecutionError("arguments must exclude executable")
         if any((self.network_enabled, self.acquisition_enabled, self.extraction_enabled, self.auto_publish)):
@@ -103,7 +103,6 @@ def build_controlled_ffmpeg_execution_order(
     requested_by: str,
     execution_note: str,
     explicit_human_command: bool,
-    ffmpeg_binary: str = "ffmpeg",
 ) -> ControlledRenderExecutionOrder:
     blockers: set[str] = set()
     authorization_id = str(authorization.get("authorization_id", ""))
@@ -122,8 +121,17 @@ def build_controlled_ffmpeg_execution_order(
     if not explicit_human_command:
         blockers.add("EXPLICIT_HUMAN_RENDER_COMMAND_REQUIRED")
 
-    arguments = tuple(str(value) for value in render_package.get("ffmpeg_arguments", ()))
-    output_uri = str(render_package.get("output_uri", ""))
+    design = render_package.get("ffmpeg_design", {})
+    if not isinstance(design, Mapping):
+        design = {}
+        blockers.add("FFMPEG_DESIGN_INVALID")
+    binary = str(design.get("executable", ""))
+    arguments = tuple(str(value) for value in design.get("arguments", ()))
+    output_uri = str(design.get("output_uri", ""))
+    if binary != "ffmpeg":
+        blockers.add("FFMPEG_EXECUTABLE_INVALID")
+    if design.get("execution_enabled") is not False:
+        blockers.add("INERT_FFMPEG_DESIGN_REQUIRED")
     if not arguments:
         blockers.add("FFMPEG_ARGUMENTS_MISSING")
     if not output_uri:
@@ -138,27 +146,25 @@ def build_controlled_ffmpeg_execution_order(
         digest = str(asset.get("sha256", "")).lower()
         if asset.get("intake_allowed") is not True:
             blockers.add("AUTHORIZED_MEDIA_NOT_INTAKE_ALLOWED")
-        if not uri or len(digest) != 64:
+        if not uri or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
             blockers.add("AUTHORIZED_MEDIA_HASH_INCOMPLETE")
         expected_hashes.append((uri, digest))
-
     if not expected_hashes:
         blockers.add("AUTHORIZED_MEDIA_MISSING")
 
     state = "ready" if not blockers else "blocked"
-    allowed = state == "ready"
     core = {
         "schema": "football-shorts-ai.controlled-ffmpeg-execution.v1",
         "authorization_id": authorization_id,
         "render_package_id": render_package_id,
         "requested_by": requested_by.strip(),
         "execution_note": execution_note.strip(),
-        "ffmpeg_binary": ffmpeg_binary,
+        "ffmpeg_binary": binary,
         "ffmpeg_arguments": list(arguments),
         "output_uri": output_uri,
         "expected_input_hashes": [list(item) for item in sorted(expected_hashes)],
         "execution_state": state,
-        "execution_allowed": allowed,
+        "execution_allowed": state == "ready",
         "blockers": sorted(blockers),
         "network_enabled": False,
         "acquisition_enabled": False,
@@ -168,19 +174,12 @@ def build_controlled_ffmpeg_execution_order(
     execution_id = f"FFMPEGEXEC-{canonical_sha256(core)[:20].upper()}"
     unsigned = {**core, "execution_id": execution_id}
     order = ControlledRenderExecutionOrder(
-        schema=core["schema"],
-        execution_id=execution_id,
-        authorization_id=authorization_id,
-        render_package_id=render_package_id,
-        requested_by=requested_by.strip(),
-        execution_note=execution_note.strip(),
-        ffmpeg_binary=ffmpeg_binary,
-        ffmpeg_arguments=arguments,
-        output_uri=output_uri,
-        expected_input_hashes=tuple(sorted(expected_hashes)),
-        execution_state=state,
-        execution_allowed=allowed,
-        blockers=tuple(sorted(blockers)),
+        schema=core["schema"], execution_id=execution_id,
+        authorization_id=authorization_id, render_package_id=render_package_id,
+        requested_by=requested_by.strip(), execution_note=execution_note.strip(),
+        ffmpeg_binary=binary, ffmpeg_arguments=arguments, output_uri=output_uri,
+        expected_input_hashes=tuple(sorted(expected_hashes)), execution_state=state,
+        execution_allowed=state == "ready", blockers=tuple(sorted(blockers)),
         evidence_sha256=canonical_sha256(unsigned),
     )
     order.validate()
@@ -201,7 +200,7 @@ def execute_controlled_render(
     explicit_execute: bool,
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> dict[str, object]:
-    """Execute one authorized FFmpeg command after fresh local hash verification."""
+    """Execute one authorized local FFmpeg command after fresh hash verification."""
     order.validate()
     if not explicit_execute:
         raise ControlledFFmpegExecutionError("explicit execution confirmation required")
@@ -220,13 +219,12 @@ def execute_controlled_render(
     if output.exists():
         raise ControlledFFmpegExecutionError("output already exists; single-use execution refused")
 
-    environment = {"PATH": os.environ.get("PATH", "")}
     completed = runner(
         [order.ffmpeg_binary, *order.ffmpeg_arguments],
         check=False,
         capture_output=True,
         text=True,
-        env=environment,
+        env={"PATH": os.environ.get("PATH", "")},
     )
     if completed.returncode != 0:
         raise ControlledFFmpegExecutionError(f"ffmpeg failed with rc={completed.returncode}")
@@ -246,9 +244,7 @@ def execute_controlled_render(
 
 
 __all__ = [
-    "ControlledFFmpegExecutionError",
-    "ControlledRenderExecutionOrder",
-    "build_controlled_ffmpeg_execution_order",
-    "canonical_sha256",
+    "ControlledFFmpegExecutionError", "ControlledRenderExecutionOrder",
+    "build_controlled_ffmpeg_execution_order", "canonical_sha256",
     "execute_controlled_render",
 ]
