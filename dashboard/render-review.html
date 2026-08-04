@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Controlled Render Review</title>
+  <link rel="stylesheet" href="assets/video-preview.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">FOOTBALL SHORTS AI · 0061D</p><h1>Controlled Render Review</h1></div>
+    <a href="index.html">← Dashboard</a>
+  </header>
+  <main>
+    <section class="status-grid">
+      <article><span>Estado</span><strong id="reviewState">NOT_LOADED</strong></article>
+      <article><span>Duração</span><strong id="duration">—</strong></article>
+      <article><span>Formato</span><strong id="format">—</strong></article>
+      <article><span>SHA-256</span><strong id="digest">—</strong></article>
+    </section>
+    <section class="player-grid">
+      <article class="player-panel">
+        <video id="renderVideo" controls playsinline preload="metadata"></video>
+      </article>
+      <aside class="panel">
+        <p class="eyebrow">REVISÃO HUMANA</p>
+        <h2>Resultado controlado</h2>
+        <dl>
+          <div><dt>Execution</dt><dd id="executionId">—</dd></div>
+          <div><dt>Render package</dt><dd id="packageId">—</dd></div>
+          <div><dt>Reviewer</dt><dd id="reviewer">—</dd></div>
+          <div><dt>Codecs</dt><dd id="codecs">—</dd></div>
+        </dl>
+        <p id="message" class="message">Aguardando resultado real do workflow controlado.</p>
+        <p><strong>Publicação automática: DESATIVADA</strong></p>
+      </aside>
+    </section>
+  </main>
+  <script src="assets/render-review.js"></script>
+</body>
+</html>
