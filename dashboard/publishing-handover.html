@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Publishing Handover Review</title>
+  <link rel="stylesheet" href="assets/video-preview.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">FOOTBALL SHORTS AI · 0061E</p><h1>Publishing Handover Review</h1></div>
+    <a href="render-review.html">← Render Review</a>
+  </header>
+  <main>
+    <section class="status-grid">
+      <article><span>Estado</span><strong id="handoverState">BLOCKED</strong></article>
+      <article><span>Decisão</span><strong id="decisionState">—</strong></article>
+      <article><span>Publicação</span><strong id="publishState">DISABLED</strong></article>
+      <article><span>Privacidade</span><strong id="privacyState">PRIVATE</strong></article>
+    </section>
+    <section class="player-grid">
+      <article class="player-panel">
+        <video id="finalVideo" controls playsinline preload="metadata"></video>
+        <p id="message" class="message">A publicação permanece desativada.</p>
+      </article>
+      <aside class="panel">
+        <p class="eyebrow">DECISÃO HUMANA</p>
+        <h2>Handover editorial</h2>
+        <label>Revisor<input id="reviewer" type="text"></label>
+        <label>Título<input id="title" type="text"></label>
+        <label>Descrição<textarea id="description" rows="5"></textarea></label>
+        <label>Tags<input id="tags" type="text" placeholder="football, shorts, goal"></label>
+        <label>Privacidade<select id="privacy"><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
+        <label>Nota<textarea id="note" rows="4"></textarea></label>
+        <div class="decision-row">
+          <button data-decision="approved" type="button">Aprovar handover</button>
+          <button data-decision="changes_requested" type="button">Pedir alterações</button>
+          <button data-decision="rejected" type="button">Rejeitar</button>
+        </div>
+        <button id="exportButton" type="button" disabled>Exportar evidência</button>
+      </aside>
+    </section>
+  </main>
+  <script src="assets/publishing-handover.js"></script>
+</body>
+</html>
