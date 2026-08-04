@@ -1,0 +1,23 @@
+{
+  "schema": "football-shorts-ai.render-result-intake.v1",
+  "intake_id": "RENDERINTAKE-PENDING000000000000",
+  "execution_id": "FFMPEGEXEC-PENDING000000000000",
+  "render_package_id": "RENDERPKG-PENDING000000000000",
+  "output_uri": "",
+  "output_sha256": "",
+  "duration_seconds": 0,
+  "width": 0,
+  "height": 0,
+  "video_codec": "",
+  "audio_codec": "",
+  "reviewer": "",
+  "review_state": "blocked",
+  "blockers": [
+    "CONTROLLED_RENDER_RESULT_MISSING",
+    "HUMAN_REVIEW_REQUIRED"
+  ],
+  "publication_allowed": false,
+  "auto_publish": false,
+  "network_enabled": false,
+  "evidence_sha256": "pending"
+}
