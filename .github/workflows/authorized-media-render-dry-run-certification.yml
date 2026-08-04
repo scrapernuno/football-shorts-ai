@@ -1,0 +1,54 @@
+name: Authorized Media Render Dry-Run Certification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/factory/authorized_media_render_dry_run.py'
+      - 'tests/factory/test_authorized_media_render_dry_run.py'
+      - '.github/workflows/authorized-media-render-dry-run-certification.yml'
+  pull_request:
+    paths:
+      - 'src/factory/authorized_media_render_dry_run.py'
+      - 'tests/factory/test_authorized_media_render_dry_run.py'
+
+permissions:
+  contents: read
+
+jobs:
+  certify-0061c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile contract
+        run: python -m py_compile src/factory/authorized_media_render_dry_run.py
+      - name: Run 0061A-0061C focused tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m pytest -q \
+            tests/factory/test_controlled_render_authorization.py \
+            tests/factory/test_controlled_ffmpeg_render_execution.py \
+            tests/factory/test_authorized_media_render_dry_run.py
+      - name: Record certification evidence
+        run: |
+          mkdir -p artifacts/certification
+          {
+            echo 'AUTHORIZED_MEDIA_RENDER_DRY_RUN=CERTIFIED'
+            echo 'NETWORK_ENABLED=DISABLED'
+            echo 'ACQUISITION_ENABLED=DISABLED'
+            echo 'FFMPEG_EXECUTION_ENABLED=DISABLED'
+            echo 'AUTO_PUBLISH=DISABLED'
+            echo 'REAL_RENDER=NOT_PERFORMED'
+          } | tee artifacts/certification/0061c.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: football-shorts-ai-0061c-evidence
+          path: artifacts/certification/0061c.txt
+          retention-days: 30
