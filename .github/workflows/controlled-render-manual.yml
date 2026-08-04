@@ -1,0 +1,149 @@
+name: Controlled Render Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorization_json:
+        description: Path to the authorized 0061A JSON package in the checked-out repository
+        required: true
+        default: artifacts/render/controlled_render_authorization.json
+        type: string
+      render_package_json:
+        description: Path to the ready 0060I render package JSON
+        required: true
+        default: dashboard/data/video_factory_render_package.json
+        type: string
+      requested_by:
+        description: Human requester name or GitHub handle
+        required: true
+        type: string
+      execution_note:
+        description: Reason for this single controlled render
+        required: true
+        type: string
+      confirmation:
+        description: Type exactly EXECUTE AUTHORIZED RENDER ONCE
+        required: true
+        type: string
+      prepare_only:
+        description: Validate and produce execution evidence without running FFmpeg
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: src
+  RESULT_PATH: artifacts/render/controlled_render_result.json
+
+jobs:
+  controlled-render:
+    name: Validate and execute one authorized render
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: controlled-render-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install FFmpeg
+        if: ${{ inputs.prepare_only == false }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
+
+      - name: Validate exact human confirmation
+        env:
+          HUMAN_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$HUMAN_CONFIRMATION" = "EXECUTE AUTHORIZED RENDER ONCE"
+
+      - name: Compile controlled render modules
+        run: |
+          set -euo pipefail
+          python -m compileall -q \
+            src/factory/controlled_render_authorization.py \
+            src/factory/controlled_ffmpeg_execution_gate.py \
+            src/factory/run_controlled_render.py
+
+      - name: Run focused gate tests
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q \
+            tests/factory/test_controlled_render_authorization.py \
+            tests/factory/test_controlled_ffmpeg_execution_gate.py \
+            tests/factory/test_run_controlled_render.py
+
+      - name: Prepare controlled execution order
+        if: ${{ inputs.prepare_only == true }}
+        env:
+          AUTHORIZATION_JSON: ${{ inputs.authorization_json }}
+          RENDER_PACKAGE_JSON: ${{ inputs.render_package_json }}
+          REQUESTED_BY: ${{ inputs.requested_by }}
+          EXECUTION_NOTE: ${{ inputs.execution_note }}
+          HUMAN_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          python -m factory.run_controlled_render \
+            --authorization "$AUTHORIZATION_JSON" \
+            --render-package "$RENDER_PACKAGE_JSON" \
+            --requested-by "$REQUESTED_BY" \
+            --execution-note "$EXECUTION_NOTE" \
+            --confirmation "$HUMAN_CONFIRMATION" \
+            --result "$RESULT_PATH" \
+            --prepare-only
+
+      - name: Execute one controlled FFmpeg render
+        if: ${{ inputs.prepare_only == false }}
+        env:
+          AUTHORIZATION_JSON: ${{ inputs.authorization_json }}
+          RENDER_PACKAGE_JSON: ${{ inputs.render_package_json }}
+          REQUESTED_BY: ${{ inputs.requested_by }}
+          EXECUTION_NOTE: ${{ inputs.execution_note }}
+          HUMAN_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          python -m factory.run_controlled_render \
+            --authorization "$AUTHORIZATION_JSON" \
+            --render-package "$RENDER_PACKAGE_JSON" \
+            --requested-by "$REQUESTED_BY" \
+            --execution-note "$EXECUTION_NOTE" \
+            --confirmation "$HUMAN_CONFIRMATION" \
+            --result "$RESULT_PATH"
+
+      - name: Verify non-publication evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('artifacts/render/controlled_render_result.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          assert payload.get('publication_performed') is False
+          assert payload.get('network_used') is False
+          print('CONTROLLED_RENDER_EVIDENCE=PASS')
+          PY
+
+      - name: Upload controlled render evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-render-${{ github.run_id }}
+          path: |
+            artifacts/render/controlled_render_result.json
+            artifacts/final/*.mp4
+          if-no-files-found: error
+          retention-days: 14
