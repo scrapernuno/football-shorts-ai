@@ -1,0 +1,79 @@
+name: Controlled Publication Series Certification
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/factory/**'
+      - 'src/publishing/**'
+      - 'tests/factory/**'
+      - 'tests/publishing/**'
+      - '.github/workflows/controlled-publication-series-certification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certify-series-0061:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: src
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Compile controlled publication sources
+        run: python -m compileall -q src/factory src/publishing
+
+      - name: Run focused 0061 tests
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/factory/test_controlled_render_authorization.py \
+            tests/factory/test_controlled_ffmpeg_execution_gate.py \
+            tests/factory/test_run_controlled_render.py \
+            tests/factory/test_render_result_intake.py \
+            tests/factory/test_human_render_review_publishing_handover.py \
+            tests/publishing/test_controlled_youtube_publishing_gate.py \
+            tests/publishing/test_controlled_youtube_upload_workflow_binding.py \
+            tests/publishing/test_controlled_oauth_resumable_upload_activation.py \
+            tests/publishing/test_youtube_upload_result_intake.py \
+            tests/publishing/test_controlled_visibility_final_publication.py
+
+      - name: Generate final certification evidence
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/publication-certification
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from publishing.certify_controlled_publication_series import certify_controlled_publication_series
+
+          result = certify_controlled_publication_series(Path('.'))
+          output = Path('artifacts/publication-certification/series_0061_certification.json')
+          output.write_text(json.dumps(result.to_dict(), indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(f'CERTIFICATION_STATUS={result.status}')
+          print('AUTOMATIC_RENDER=DISABLED')
+          print('AUTOMATIC_UPLOAD=DISABLED')
+          print('AUTOMATIC_PUBLICATION=DISABLED')
+          if result.status != 'CERTIFIED':
+              raise SystemExit('series 0061 certification blocked')
+          PY
+
+      - name: Upload certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-publication-series-certification-${{ github.run_id }}
+          path: artifacts/publication-certification/series_0061_certification.json
+          if-no-files-found: error
+          retention-days: 30
