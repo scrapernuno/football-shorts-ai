@@ -1,0 +1,22 @@
+{
+  "schema": "football-shorts-ai.publication-result-intake.v1",
+  "intake_id": "YTPUBRESULT-PENDING000000000000",
+  "execution_id": "YTVISEXEC-PENDING000000000000",
+  "decision_id": "YTVISIBILITY-PENDING0000000000",
+  "youtube_video_id": "",
+  "previous_visibility": "private",
+  "requested_visibility": "private",
+  "verified_visibility": "private",
+  "publication_url": "",
+  "intake_state": "blocked",
+  "publication_confirmed": false,
+  "blockers": [
+    "CONTROLLED_VISIBILITY_EXECUTION_RESULT_MISSING",
+    "YOUTUBE_PUBLICATION_VERIFICATION_REQUIRED"
+  ],
+  "network_used_by_intake": false,
+  "credentials_read_by_intake": false,
+  "visibility_change_executed_by_intake": false,
+  "auto_publish": false,
+  "evidence_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}
