@@ -1,0 +1,87 @@
+name: Master Certification Orchestrator
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: football-shorts-ai-master-certification
+  cancel-in-progress: false
+
+jobs:
+  master-certification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: src
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Compile operational modules
+        run: python -m compileall -q src/factory src/publishing src/operations
+
+      - name: Certify Video Factory
+        run: python -m pytest -q tests/factory tests/dashboard/test_video_factory_preview_player.py tests/dashboard/test_video_subtitle_overlay.py tests/dashboard/test_video_voiceover_preview.py tests/dashboard/test_video_audio_mix_preview.py tests/dashboard/test_video_motion_graphics_overlay.py tests/dashboard/test_thumbnail_preview_studio.py
+
+      - name: Certify controlled render
+        run: python -m pytest -q tests/factory/test_controlled_render_authorization.py tests/factory/test_controlled_ffmpeg_execution_gate.py tests/factory/test_run_controlled_render.py tests/factory/test_render_result_intake.py tests/factory/test_human_render_review_publishing_handover.py
+
+      - name: Certify publication series
+        run: python -m pytest -q tests/publishing/test_controlled_youtube_publishing_gate.py tests/publishing/test_controlled_youtube_upload_workflow_binding.py tests/publishing/test_controlled_oauth_resumable_upload_activation.py tests/publishing/test_youtube_upload_result_intake.py
+
+      - name: Certify visibility and publication execution
+        run: python -m pytest -q tests/publishing/test_controlled_visibility_final_publication.py tests/publishing/test_controlled_visibility_execution.py tests/publishing/test_youtube_visibility_oauth_adapter.py tests/publishing/test_publication_result_intake.py
+
+      - name: Certify master orchestrator
+        run: python -m pytest -q tests/operations/test_master_certification_orchestrator.py
+
+      - name: Build consolidated report
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/master-certification
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from operations.master_certification_orchestrator import build_master_certification_report
+
+          report = build_master_certification_report(
+              commit_sha=os.environ["COMMIT_SHA"],
+              stage_results={
+                  "video_factory": True,
+                  "render": True,
+                  "publication_series": True,
+                  "youtube_upload": True,
+                  "visibility": True,
+                  "publication_execution": True,
+              },
+          )
+          target = Path("artifacts/master-certification/master_platform_certification.json")
+          target.write_text(json.dumps(report.to_dict(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          print(f"PLATFORM_STATUS={report.overall_status}")
+          for name, state in report.stages.items():
+              print(f"{name.upper()}={state}")
+          print("OPERATIONAL_ACTIONS_EXECUTED=FALSE")
+          PY
+
+      - name: Upload master evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-platform-certification-${{ github.run_id }}
+          path: artifacts/master-certification/master_platform_certification.json
+          if-no-files-found: error
+          retention-days: 30
