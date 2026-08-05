@@ -1,0 +1,60 @@
+name: Publication Execution Certification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/publishing/controlled_visibility_execution.py'
+      - 'src/publishing/youtube_visibility_oauth_adapter.py'
+      - 'src/publishing/run_controlled_visibility_execution.py'
+      - 'src/publishing/publication_result_intake.py'
+      - 'src/publishing/certify_publication_execution_series.py'
+      - 'tests/publishing/test_controlled_visibility_execution.py'
+      - 'tests/publishing/test_youtube_visibility_oauth_adapter.py'
+      - 'tests/publishing/test_publication_result_intake.py'
+      - 'dashboard/youtube-publication-result.html'
+      - 'dashboard/assets/youtube-publication-result.js'
+      - 'dashboard/data/youtube_publication_result.json'
+      - '.github/workflows/controlled-visibility-execution.yml'
+      - '.github/workflows/publication-execution-certification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile publication modules
+        run: python -m compileall -q src/publishing
+      - name: Run focused tests
+        run: |
+          python -m pytest -q \
+            tests/publishing/test_controlled_visibility_final_publication.py \
+            tests/publishing/test_controlled_visibility_execution.py \
+            tests/publishing/test_youtube_visibility_oauth_adapter.py \
+            tests/publishing/test_publication_result_intake.py
+      - name: Generate certification evidence
+        run: |
+          mkdir -p artifacts/publication-certification
+          python -m publishing.certify_publication_execution_series \
+            > artifacts/publication-certification/publication_execution_certification.json
+          cat artifacts/publication-certification/publication_execution_certification.json
+          echo 'AUTOMATIC_PUBLICATION=DISABLED'
+          echo 'CREDENTIAL_PERSISTENCE=DISABLED'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publication-execution-certification-${{ github.run_id }}
+          path: artifacts/publication-certification/publication_execution_certification.json
+          if-no-files-found: error
+          retention-days: 30
